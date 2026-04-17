@@ -1,0 +1,31 @@
+{
+  "version": "0.35.0",
+  "ide": "claude-code",
+  "ides": [
+    "claude-code"
+  ],
+  "installedAt": "2026-04-17T21:28:52.510Z",
+  "updatedAt": "2026-04-17T21:28:52.510Z",
+  "managedPaths": {
+    "framework": [
+      "CLAUDE.md",
+      ".claude/agents/",
+      ".claude/skills/",
+      ".claude/commands/"
+    ],
+    "customizable": [
+      ".opencastle/",
+      ".claude/mcp.json"
+    ]
+  },
+  "stack": {
+    "ides": [
+      "claude-code"
+    ],
+    "techTools": [
+      "chrome-devtools"
+    ],
+    "teamTools": []
+  },
+  "repoInfo": {}
+}

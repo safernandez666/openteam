@@ -1,0 +1,23 @@
+{
+  "name": "@openteam/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "openteam": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx watch src/index.ts start",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@openteam/web": "workspace:*"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.3"
+  }
+}

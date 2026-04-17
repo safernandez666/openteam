@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "openteam": {
+      "command": "node",
+      "args": ["packages/core/dist/mcp-entry.js", "--agent-name", "claude"],
+      "env": {}
+    }
+  }
+}

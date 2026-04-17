@@ -1,0 +1,35 @@
+{
+  "name": "openteam",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "dev": "pnpm -r --parallel run dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint 'packages/*/src/**/*.{ts,tsx}'",
+    "clean": "pnpm -r run clean",
+    "demo:spawn": "tsx packages/core/src/demo-spawn.ts",
+    "demo:mcp": "tsx packages/core/src/demo-mcp.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "node-pty",
+      "better-sqlite3"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@types/node": "^22.15.0",
+    "eslint": "^9.25.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.30.0",
+    "vitest": "^3.1.0"
+  }
+}

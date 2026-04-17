@@ -1,0 +1,6 @@
+{"ts":"2026-04-17T21:39:46Z","session_id":"SES-001","agent":"team-lead","type":"session_start","description":"Design document session for OpenTeam agent orchestration framework","status":"completed"}
+{"ts":"2026-04-17T22:29:26Z","session_id":"SES-002","agent":"team-lead","type":"session_start","description":"Phase 0 scaffolding - TypeScript monorepo with pnpm workspaces","status":"completed"}
+{"ts":"2026-04-17T22:44:19Z","session_id":"SES-003","agent":"team-lead","type":"session","description":"Phase 1 - Agent Runtime: PTY management, idle detection, CLI adapters, AgentSimulator","status":"completed"}
+{"ts":"2026-04-17T23:10:05Z","session_id":"SES-004","agent":"team-lead","type":"session","description":"Phase 2 - MCP server + SQLite persistence + event logger","status":"completed"}
+{"ts":"2026-04-17T23:16:28Z","session_id":"SES-005","agent":"team-lead","type":"session","description":"Phase 3 - Web chat UI with PM via WebSocket","status":"completed"}
+{"ts":"2026-04-17T23:24:27Z","session_id":"SES-006","agent":"team-lead","type":"session","description":"Phase 4 - Kanban board with live WebSocket updates","status":"completed"}

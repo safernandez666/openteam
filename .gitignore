@@ -1,0 +1,38 @@
+# >>> OpenCastle managed (do not edit) >>>
+CLAUDE.md
+.claude/agents/
+.claude/skills/
+.claude/commands/
+!.opencastle/
+!.claude/mcp.json
+# <<< OpenCastle managed <<<
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+coverage/
+
+# Logs
+*.log
+
+# OpenTeam data
+.openteam/
