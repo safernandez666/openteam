@@ -398,13 +398,13 @@ body {
 
 /* ===== SIDEBAR ===== */
 .sidebar {
-  background: var(--bg-secondary);
+  background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
   z-index: 20;
-  transition: width 0.2s ease;
+  transition: width 0.25s ease;
   overflow: hidden;
 }
 
@@ -648,17 +648,19 @@ body {
 
 .stat-card {
   flex: 1;
-  background: var(--bg-secondary);
+  background: linear-gradient(135deg, rgba(12, 18, 32, 0.8), rgba(21, 30, 46, 0.6));
+  backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
   min-width: 0;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.2s;
 }
 
 .stat-card:hover {
   border-color: var(--border-strong);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  transform: translateY(-1px);
 }
 
 .stat-card--progress {
@@ -666,21 +668,21 @@ body {
 }
 
 .stat-value {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--text-primary);
   font-family: var(--font-mono);
-  letter-spacing: -0.03em;
-  line-height: 1.2;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
 }
 
 .stat-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-top: 2px;
+  letter-spacing: 0.08em;
+  margin-top: 4px;
 }
 
 .stat-progress-bar {
@@ -736,6 +738,37 @@ body {
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 10px;
+}
+
+/* Board empty state */
+.board-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 60px 20px;
+}
+
+.board-empty-icon {
+  color: var(--accent);
+  opacity: 0.4;
+  margin-bottom: 8px;
+}
+
+.board-empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.board-empty-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  text-align: center;
+  max-width: 300px;
+  line-height: 1.5;
 }
 
 .kanban-columns {
@@ -806,33 +839,40 @@ body {
 
 /* ===== TASK CARD ===== */
 .task-card {
-  background: var(--bg-secondary);
+  background: linear-gradient(145deg, var(--bg-secondary), var(--bg-elevated));
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-  margin-bottom: 6px;
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  margin-bottom: 8px;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s, transform 0.15s, box-shadow 0.2s;
+  transition: border-color 0.25s, background 0.25s, transform 0.2s, box-shadow 0.25s;
   overflow: hidden;
+  animation: cardFadeIn 0.3s ease-out;
 }
 
 .task-card:hover {
-  border-color: var(--border-strong);
-  background: var(--bg-elevated);
+  border-color: rgba(0, 212, 255, 0.2);
+  background: linear-gradient(145deg, var(--bg-elevated), var(--bg-tertiary));
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 212, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(0, 212, 255, 0.08);
 }
 
 .task-card--dragging {
   opacity: 0.4;
-  transform: rotate(2deg);
+  transform: rotate(2deg) scale(1.02);
+}
+
+@keyframes cardFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .kanban-column--drag-over {
-  background: var(--accent-muted);
-  border-radius: var(--radius-md);
-  outline: 2px dashed var(--accent);
+  background: rgba(0, 212, 255, 0.04);
+  border-radius: var(--radius-lg);
+  outline: 2px dashed rgba(0, 212, 255, 0.3);
   outline-offset: -2px;
+  box-shadow: inset 0 0 30px rgba(0, 212, 255, 0.03);
 }
 
 .task-card-top {
@@ -1667,19 +1707,21 @@ body {
 .skill-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  background: var(--bg-secondary);
+  gap: 12px;
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-elevated));
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
   margin-bottom: 6px;
-  transition: border-color 0.15s, background 0.15s;
-  animation: fadeIn 0.2s ease-out;
+  transition: border-color 0.25s, background 0.25s, transform 0.2s, box-shadow 0.25s;
+  animation: cardFadeIn 0.3s ease-out;
 }
 
 .skill-card:hover {
   border-color: var(--border-strong);
-  background: var(--bg-elevated);
+  background: linear-gradient(135deg, var(--bg-elevated), var(--bg-tertiary));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .skill-card--pm {
@@ -1900,15 +1942,21 @@ body {
 }
 
 .modal {
-  background: var(--bg-secondary);
+  background: linear-gradient(180deg, var(--bg-secondary), var(--bg-primary));
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   width: 90vw;
   max-width: 640px;
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 212, 255, 0.05);
+  animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.96) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .modal--skill-editor {

@@ -254,7 +254,25 @@ export function KanbanBoard({
         </div>
       )}
 
-      <div className="kanban-columns">
+      {totalTasks === 0 && (
+        <div className="board-empty">
+          <div className="board-empty-icon">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="6" y="6" width="14" height="36" rx="2" opacity="0.3" />
+              <rect x="24" y="6" width="14" height="20" rx="2" opacity="0.2" />
+              <rect x="24" y="30" width="14" height="12" rx="2" opacity="0.15" />
+              <path d="M13 18l-2 2 2 2" strokeWidth="2" opacity="0.5" />
+              <path d="M31 14l2 2-2 2" strokeWidth="2" opacity="0.4" />
+            </svg>
+          </div>
+          <div className="board-empty-title">No tasks yet</div>
+          <div className="board-empty-subtitle">
+            Chat with Clara to create your first task, or use the CLI
+          </div>
+        </div>
+      )}
+
+      <div className="kanban-columns" style={totalTasks === 0 ? { display: "none" } : undefined}>
         {COLUMNS.map((col) => (
           <Column
             key={col.key}
