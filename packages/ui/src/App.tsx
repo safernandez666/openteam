@@ -9,6 +9,7 @@ import { WorkersPanel } from "./workers/WorkersPanel";
 import { Sidebar, type View } from "./Sidebar";
 import { SkillsPanel } from "./skills/SkillsPanel";
 import { McpPanel } from "./mcp/McpPanel";
+import { WorkspaceSettings } from "./WorkspaceSettings";
 import "./styles.css";
 
 interface WorkspaceInfo {
@@ -23,6 +24,7 @@ export function App() {
   const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<string | null>(null);
   const [showWsMenu, setShowWsMenu] = useState(false);
+  const [showWsSettings, setShowWsSettings] = useState(false);
 
   const refreshWorkspaces = useCallback(async () => {
     try {
@@ -103,6 +105,9 @@ export function App() {
                     </button>
                   ))}
                   <div className="workspace-menu-divider" />
+                  <button className="workspace-menu-item" onClick={() => { setShowWsMenu(false); setShowWsSettings(true); }}>
+                    Settings
+                  </button>
                   <button className="workspace-menu-item workspace-menu-item--new" onClick={() => { setShowWsMenu(false); handleCreateWorkspace(); }}>
                     + New Workspace
                   </button>
@@ -201,6 +206,10 @@ export function App() {
           )}
         </div>
       </div>
+
+      {showWsSettings && (
+        <WorkspaceSettings onClose={() => setShowWsSettings(false)} />
+      )}
     </div>
   );
 }
