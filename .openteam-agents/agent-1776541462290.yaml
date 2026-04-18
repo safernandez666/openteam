@@ -1,4 +1,0 @@
-version: 1
-agent:
-  extend: default
-  system_prompt_path: /Users/santiago/Proyects/OpenTeam/.openteam-agents/system-1776541462290.md

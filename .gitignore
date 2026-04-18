@@ -36,3 +36,4 @@ coverage/
 
 # OpenTeam data
 .openteam/
+.openteam-agents/
