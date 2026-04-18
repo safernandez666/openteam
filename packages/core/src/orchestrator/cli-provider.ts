@@ -88,9 +88,17 @@ function buildKimiArgs(options: BuildArgsOptions): ProviderResult {
  */
 export function parseStreamEvent(provider: ProviderType, event: Record<string, unknown>): string | null {
   if (provider === "kimi") {
-    // Kimi uses {"role":"assistant","content":"..."} format
-    if (event.role === "assistant" && typeof event.content === "string") {
-      return event.content;
+    // Kimi uses {"role":"assistant","content":[{"type":"text","text":"..."},{"type":"think",...}]}
+    if (event.role === "assistant" && event.content) {
+      if (typeof event.content === "string") {
+        return event.content;
+      }
+      if (Array.isArray(event.content)) {
+        return (event.content as Array<{ type: string; text?: string }>)
+          .filter((b) => b.type === "text" && b.text)
+          .map((b) => b.text!)
+          .join("");
+      }
     }
     return null;
   }

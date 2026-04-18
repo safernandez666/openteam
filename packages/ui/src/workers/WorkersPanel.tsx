@@ -48,14 +48,16 @@ function SkillCard({
           </div>
         )}
       </div>
-      {activeCount > 0 ? (
-        <span className="skill-card-active">
-          <span className="skill-card-active-dot" />
-          {activeCount}
-        </span>
-      ) : (
-        <span className="skill-card-idle">idle</span>
-      )}
+      <div className="skill-card-right">
+        {activeCount > 0 ? (
+          <span className="skill-card-active">
+            <span className="skill-card-active-dot" />
+            {activeCount}
+          </span>
+        ) : (
+          <span className="skill-card-idle">idle</span>
+        )}
+      </div>
     </div>
   );
 }

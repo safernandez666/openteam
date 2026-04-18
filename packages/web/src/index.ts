@@ -199,6 +199,17 @@ export function startServer(port = PORT, host = HOST): Server {
     res.json({ ok: true });
   });
 
+  // Workspace Reset
+  app.post("/api/workspace/reset", (_req, res) => {
+    // Clear all data in current workspace
+    db.exec("DELETE FROM tasks");
+    db.exec("DELETE FROM task_updates");
+    db.exec("DELETE FROM team_updates");
+    db.exec("DELETE FROM chat_messages");
+    db.exec("DELETE FROM task_dependencies");
+    res.json({ ok: true });
+  });
+
   // Project Config API
   app.get("/api/project", (_req, res) => {
     res.json(projectConfig.get());
@@ -218,6 +229,16 @@ export function startServer(port = PORT, host = HOST): Server {
   app.put("/api/agent-names", (req, res) => {
     const updates = req.body as Record<string, string>;
     const result = agentNames.update(updates);
+    res.json(result);
+  });
+
+  app.get("/api/agent-providers", (_req, res) => {
+    res.json(agentNames.getAllProviders());
+  });
+
+  app.put("/api/agent-providers", (req, res) => {
+    const updates = req.body as Record<string, string>;
+    const result = agentNames.updateProviders(updates as Record<string, "claude" | "kimi">);
     res.json(result);
   });
 

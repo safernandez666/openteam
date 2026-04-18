@@ -145,7 +145,7 @@ export class Orchestrator extends EventEmitter {
       contextManager: this.contextManager ?? undefined,
       mcpManager: this.mcpManager ?? undefined,
       knowledgeBase: this.knowledgeBase ?? undefined,
-      provider: this.provider,
+      provider: (this.agentNames?.getProvider(task.role ?? "") ?? this.provider) as "claude" | "kimi",
     });
 
     this.activeWorkers.set(task.id, worker);

@@ -1,6 +1,11 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 
+export interface AgentConfig {
+  name: string;
+  provider: "claude" | "kimi";
+}
+
 export interface AgentNamesConfig {
   developer: string;
   designer: string;
@@ -8,6 +13,10 @@ export interface AgentNamesConfig {
   reviewer: string;
   pm: string;
   [role: string]: string;
+}
+
+export interface AgentProvidersConfig {
+  [role: string]: "claude" | "kimi";
 }
 
 const DEFAULTS: AgentNamesConfig = {
@@ -20,19 +29,32 @@ const DEFAULTS: AgentNamesConfig = {
 
 export class AgentNames {
   private names: AgentNamesConfig;
+  private providers: AgentProvidersConfig;
   private configPath: string;
 
   constructor(dataDir: string) {
-    this.configPath = join(dataDir, "agent-names.json");
+    this.configPath = join(dataDir, "agent-config.json");
     this.names = { ...DEFAULTS };
+    this.providers = {};
     this.load();
   }
 
   private load(): void {
-    if (!existsSync(this.configPath)) return;
+    if (!existsSync(this.configPath)) {
+      // Try legacy file
+      const legacyPath = join(dirname(this.configPath), "agent-names.json");
+      if (existsSync(legacyPath)) {
+        try {
+          const data = JSON.parse(readFileSync(legacyPath, "utf-8"));
+          this.names = { ...DEFAULTS, ...data };
+        } catch { /* ignore */ }
+      }
+      return;
+    }
     try {
       const data = JSON.parse(readFileSync(this.configPath, "utf-8"));
-      this.names = { ...DEFAULTS, ...data };
+      this.names = { ...DEFAULTS, ...data.names };
+      this.providers = data.providers ?? {};
     } catch {
       // ignore corrupt file
     }
@@ -40,7 +62,7 @@ export class AgentNames {
 
   private save(): void {
     mkdirSync(dirname(this.configPath), { recursive: true });
-    writeFileSync(this.configPath, JSON.stringify(this.names, null, 2), "utf-8");
+    writeFileSync(this.configPath, JSON.stringify({ names: this.names, providers: this.providers }, null, 2), "utf-8");
   }
 
   /** Get the human name for a role. */
@@ -48,9 +70,19 @@ export class AgentNames {
     return this.names[role] ?? role;
   }
 
+  /** Get the provider for a role. Falls back to project default. */
+  getProvider(role: string): "claude" | "kimi" | null {
+    return this.providers[role] ?? null;
+  }
+
   /** Get all name mappings. */
   getAll(): AgentNamesConfig {
     return { ...this.names };
+  }
+
+  /** Get all provider mappings. */
+  getAllProviders(): AgentProvidersConfig {
+    return { ...this.providers };
   }
 
   /** Update one or more names. */
@@ -62,6 +94,15 @@ export class AgentNames {
     }
     this.save();
     return this.getAll();
+  }
+
+  /** Update provider for one or more roles. */
+  updateProviders(updates: AgentProvidersConfig): AgentProvidersConfig {
+    for (const [role, provider] of Object.entries(updates)) {
+      this.providers[role] = provider;
+    }
+    this.save();
+    return this.getAllProviders();
   }
 
   /** Reset all names to defaults. */

@@ -1758,6 +1758,46 @@ body {
   border-color: var(--accent);
 }
 
+.name-editor-provider {
+  display: flex;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.provider-toggle {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: var(--bg-primary);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.provider-toggle:not(:last-child) {
+  border-right: 1px solid var(--border-default);
+}
+
+.provider-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+.provider-toggle--active {
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.provider-toggle--kimi.provider-toggle--active {
+  background: rgba(255, 140, 66, 0.12);
+  color: var(--orange);
+}
+
 .workers-header-right {
   display: flex;
   align-items: center;
@@ -1950,6 +1990,20 @@ body {
   padding: 12px 20px;
   border-top: 1px solid var(--border-subtle);
   gap: 12px;
+}
+
+.modal-footer-left {
+  flex: 1;
+}
+
+.btn--danger {
+  color: var(--red);
+  border-color: var(--red-muted);
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: var(--red-muted);
+  color: var(--red);
 }
 
 .modal-actions {
