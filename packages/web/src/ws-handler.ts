@@ -34,6 +34,7 @@ export interface WsHandler {
   broadcastWorkerOutput: (taskId: string, chunk: string) => void;
   broadcastWorkerDone: (taskId: string) => void;
   broadcastSkills: (skills: Array<{ name: string; source: string }>) => void;
+  resetChat: () => void;
 }
 
 export function createWsHandler(
@@ -171,6 +172,12 @@ export function createWsHandler(
     broadcastWorkerOutput(taskId: string, chunk: string) {
       for (const client of wss.clients) {
         send(client, { type: "worker_output", taskId, chunk });
+      }
+    },
+    resetChat() {
+      chatSession.clearHistory();
+      for (const client of wss.clients) {
+        send(client, { type: "chat_cleared" });
       }
     },
     broadcastSkills(skills: Array<{ name: string; source: string }>) {

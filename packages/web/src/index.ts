@@ -201,13 +201,36 @@ export function startServer(port = PORT, host = HOST): Server {
 
   // Workspace Reset
   app.post("/api/workspace/reset", (_req, res) => {
-    // Clear all data in current workspace
-    db.exec("DELETE FROM tasks");
+    db.exec("DELETE FROM task_dependencies");
     db.exec("DELETE FROM task_updates");
+    db.exec("DELETE FROM tasks");
     db.exec("DELETE FROM team_updates");
     db.exec("DELETE FROM chat_messages");
-    db.exec("DELETE FROM task_dependencies");
+    wsHandler.resetChat();
+    wsHandler.broadcastTasks([]);
     res.json({ ok: true });
+  });
+
+  // Delete current workspace and switch to another
+  app.post("/api/workspace/delete-current", (_req, res) => {
+    const current = workspaceManager.getActive();
+    if (!current || current === "__legacy__") {
+      res.status(400).json({ error: "Cannot delete this workspace" });
+      return;
+    }
+    const all = workspaceManager.list();
+    if (all.length <= 1) {
+      res.status(400).json({ error: "Cannot delete the only workspace. Create a new one first." });
+      return;
+    }
+    const other = all.find((w) => w.id !== current);
+    if (!other) {
+      res.status(400).json({ error: "No other workspace to switch to" });
+      return;
+    }
+    workspaceManager.setActive(other.id);
+    workspaceManager.remove(current);
+    res.json({ ok: true, switchedTo: other.id, restart: true });
   });
 
   // Project Config API

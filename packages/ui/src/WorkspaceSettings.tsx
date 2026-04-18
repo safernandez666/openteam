@@ -149,14 +149,29 @@ export function WorkspaceSettings({ onClose }: { onClose: () => void }) {
           {saved && <span className="modal-saved">Saved</span>}
           <div className="modal-footer-left">
             <button
-              className="btn btn--ghost btn--danger"
+              className="btn btn--ghost btn--danger btn--sm"
               onClick={async () => {
-                if (!confirm("Reset this workspace? All tasks, chat history, and config will be deleted. This cannot be undone.")) return;
+                if (!confirm("Reset this workspace? All tasks and chat history will be deleted.")) return;
                 await fetch("/api/workspace/reset", { method: "POST" });
-                window.location.reload();
+                onClose();
               }}
             >
-              Reset Workspace
+              Reset
+            </button>
+            <button
+              className="btn btn--ghost btn--danger btn--sm"
+              onClick={async () => {
+                if (!confirm("Delete this workspace permanently? All data will be lost and you'll switch to another workspace.")) return;
+                const res = await fetch("/api/workspace/delete-current", { method: "POST" });
+                if (res.ok) {
+                  window.location.reload();
+                } else {
+                  const data = await res.json();
+                  alert(data.error);
+                }
+              }}
+            >
+              Delete
             </button>
           </div>
           <div className="modal-actions">
