@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && mkdir -p dist/skills && cp -r src/skills/built-in dist/skills/",
     "dev": "tsup --watch",
     "clean": "rm -rf dist"
   },

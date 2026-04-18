@@ -1,12 +1,5 @@
 import { COLUMNS, type Task } from "./useKanban";
 
-const PRIORITY_COLORS: Record<string, string> = {
-  urgent: "#ef4444",
-  high: "#f59e0b",
-  normal: "#3b82f6",
-  low: "#6b7280",
-};
-
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins = Math.floor(diff / 60000);
@@ -17,47 +10,73 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function TaskCard({ task }: { task: Task }) {
+function SubtaskRow({ task }: { task: Task }) {
   return (
-    <div
-      style={{
-        backgroundColor: "#1e293b",
-        borderRadius: "0.5rem",
-        padding: "0.75rem",
-        borderLeft: `3px solid ${PRIORITY_COLORS[task.priority] ?? "#3b82f6"}`,
-        marginBottom: "0.5rem",
-        cursor: "default",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          marginBottom: "0.35rem",
-        }}
-      >
-        <span style={{ fontSize: "0.7rem", color: "#64748b", fontWeight: 600 }}>
-          {task.id}
-        </span>
-        <span style={{ fontSize: "0.65rem", color: "#475569" }}>
-          {timeAgo(task.updated_at)}
-        </span>
+    <div className="subtask-row">
+      <span className={`subtask-status subtask-status--${task.status}`} />
+      <span className="subtask-id">{task.id}</span>
+      <span className="subtask-title">{task.title}</span>
+    </div>
+  );
+}
+
+function TaskCard({
+  task,
+  subtasks,
+}: {
+  task: Task;
+  subtasks: Task[];
+}) {
+  return (
+    <div className="task-card">
+      <div className="task-card-top">
+        <span className="task-id">{task.id}</span>
+        <span className="task-time">{timeAgo(task.updated_at)}</span>
       </div>
-      <div
-        style={{
-          fontSize: "0.85rem",
-          color: "#e2e8f0",
-          fontWeight: 500,
-          marginBottom: "0.35rem",
-          lineHeight: 1.3,
-        }}
-      >
-        {task.title}
+      <div className="task-title">{task.title}</div>
+      <div className="task-tags">
+        <span className={`task-priority task-priority--${task.priority}`}>
+          {task.priority}
+        </span>
+        {task.role && <span className="task-role">{task.role}</span>}
+        {task.depends_on && (
+          <span className="task-dep-badge" title={`Depends on ${task.depends_on}`}>
+            ← {task.depends_on}
+          </span>
+        )}
+        {task.retry_count > 0 && (
+          <span className="task-retry-badge" title={task.last_error ?? ""}>
+            retry {task.retry_count}/{task.max_retries}
+          </span>
+        )}
       </div>
+      {task.last_error && task.status === "rejected" && (
+        <div className="task-error">{task.last_error}</div>
+      )}
       {task.assignee && (
-        <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>
-          {task.assignee}
+        <div className="task-assignee-row">
+          <span className="task-assignee-dot">
+            {task.assignee[0]}
+          </span>
+          <span className="task-assignee-name">{task.assignee}</span>
+        </div>
+      )}
+      {subtasks.length > 0 && (
+        <div className="task-subtasks">
+          <div className="subtask-header">
+            {subtasks.filter((s) => s.status === "done").length}/{subtasks.length} subtasks
+          </div>
+          <div className="subtask-progress">
+            <div
+              className="subtask-progress-fill"
+              style={{
+                width: `${(subtasks.filter((s) => s.status === "done").length / subtasks.length) * 100}%`,
+              }}
+            />
+          </div>
+          {subtasks.map((sub) => (
+            <SubtaskRow key={sub.id} task={sub} />
+          ))}
         </div>
       )}
     </div>
@@ -68,126 +87,126 @@ function Column({
   label,
   tasks,
   columnKey,
+  getSubtasks,
 }: {
   label: string;
   tasks: Task[];
   columnKey: string;
+  getSubtasks: (parentId: string) => Task[];
 }) {
   return (
-    <div
-      style={{
-        flex: "1 1 0",
-        minWidth: "160px",
-        maxWidth: "280px",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div
-        style={{
-          padding: "0.5rem 0.75rem",
-          marginBottom: "0.5rem",
-          display: "flex",
-          alignItems: "center",
-          gap: "0.5rem",
-        }}
-      >
-        <span
-          style={{
-            fontSize: "0.8rem",
-            fontWeight: 600,
-            color: "#94a3b8",
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-          }}
-        >
-          {label}
-        </span>
+    <div className="kanban-column">
+      <div className="column-header">
+        <span className={`column-dot column-dot--${columnKey}`} />
+        <span className="column-label">{label}</span>
         {tasks.length > 0 && (
-          <span
-            style={{
-              fontSize: "0.7rem",
-              backgroundColor: "#334155",
-              color: "#94a3b8",
-              borderRadius: "9999px",
-              padding: "0.1rem 0.45rem",
-              fontWeight: 600,
-            }}
-          >
-            {tasks.length}
-          </span>
+          <span className="column-badge">{tasks.length}</span>
         )}
       </div>
-      <div
-        style={{
-          flex: 1,
-          backgroundColor:
-            columnKey === "done" ? "rgba(34, 197, 94, 0.05)" : "#0f172a",
-          borderRadius: "0.5rem",
-          padding: "0.5rem",
-          overflowY: "auto",
-          minHeight: "100px",
-        }}
-      >
+      <div className="column-body">
         {tasks.map((task) => (
-          <TaskCard key={task.id} task={task} />
+          <TaskCard
+            key={task.id}
+            task={task}
+            subtasks={getSubtasks(task.id)}
+          />
         ))}
       </div>
     </div>
   );
 }
 
+interface WorkerInfo {
+  taskId: string;
+  taskTitle: string;
+  role: string | null;
+  name: string;
+  status: "running" | "completed" | "error";
+  startedAt: string;
+}
+
+function StatCard({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
+  return (
+    <div className="stat-card">
+      <div className="stat-value" style={accent ? { color: accent } : undefined}>{value}</div>
+      <div className="stat-label">{label}</div>
+    </div>
+  );
+}
+
 export function KanbanBoard({
   tasksByColumn,
+  getSubtasks,
+  activeWorkers,
+  completedWorkers,
+  tasks,
 }: {
   tasksByColumn: Record<string, Task[]>;
+  getSubtasks: (parentId: string) => Task[];
+  activeWorkers: WorkerInfo[];
+  completedWorkers: WorkerInfo[];
+  tasks: Task[];
 }) {
   const totalTasks = Object.values(tasksByColumn).reduce(
-    (sum, tasks) => sum + tasks.length,
+    (sum, t) => sum + t.length,
     0,
   );
 
+  const doneTasks = (tasksByColumn["done"] ?? []).length;
+  const inProgress = (tasksByColumn["in_progress"] ?? []).length;
+  const blockedTasks = (tasksByColumn["blocked"] ?? []).length;
+  const rejectedTasks = tasks.filter((t) => t.status === "rejected").length;
+  const completionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        height: "100%",
-        backgroundColor: "#0f172a",
-      }}
-    >
-      <div
-        style={{
-          padding: "0.75rem 1rem",
-          borderBottom: "1px solid #1e293b",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <span style={{ fontWeight: 600, color: "#e2e8f0" }}>Kanban</span>
-        <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+    <>
+      <div className="kanban-header">
+        <span className="kanban-title">Board</span>
+        <span className="kanban-count">
           {totalTasks} task{totalTasks !== 1 ? "s" : ""}
         </span>
       </div>
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          gap: "0.5rem",
-          padding: "0.75rem",
-          overflowX: "auto",
-        }}
-      >
+
+      {/* Project stats */}
+      <div className="board-stats">
+        <StatCard label="Total" value={totalTasks} />
+        <StatCard label="Done" value={doneTasks} accent="var(--green)" />
+        <StatCard label="In Progress" value={inProgress} accent="var(--blue)" />
+        <StatCard label="Blocked" value={blockedTasks + rejectedTasks} accent={blockedTasks + rejectedTasks > 0 ? "var(--red)" : undefined} />
+        <StatCard label="Workers" value={activeWorkers.length} accent={activeWorkers.length > 0 ? "var(--accent)" : undefined} />
+        <div className="stat-card stat-card--progress">
+          <div className="stat-value">{completionPct}%</div>
+          <div className="stat-label">Complete</div>
+          <div className="stat-progress-bar">
+            <div className="stat-progress-fill" style={{ width: `${completionPct}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Active workers strip */}
+      {activeWorkers.length > 0 && (
+        <div className="board-workers-strip">
+          {activeWorkers.map((w) => (
+            <div key={w.taskId} className="board-worker-chip">
+              <span className="board-worker-dot" />
+              <span className="board-worker-name">{w.name}</span>
+              <span className="board-worker-task">{w.taskId}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="kanban-columns">
         {COLUMNS.map((col) => (
           <Column
             key={col.key}
             label={col.label}
             columnKey={col.key}
             tasks={tasksByColumn[col.key] ?? []}
+            getSubtasks={getSubtasks}
           />
         ))}
       </div>
-    </div>
+    </>
   );
 }

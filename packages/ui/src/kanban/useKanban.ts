@@ -7,8 +7,14 @@ export interface Task {
   description: string;
   status: string;
   assignee: string | null;
+  role: string | null;
   priority: string;
   depends_on: string | null;
+  parent_id: string | null;
+  result: string | null;
+  retry_count: number;
+  max_retries: number;
+  last_error: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -38,11 +44,26 @@ export function useKanban(
 
   const tasksByColumn = useCallback(() => {
     const grouped: Record<string, Task[]> = {};
+    // Only show top-level tasks (no parent) in columns
     for (const col of COLUMNS) {
-      grouped[col.key] = tasks.filter((t) => t.status === col.key);
+      grouped[col.key] = tasks.filter(
+        (t) => t.status === col.key && !t.parent_id,
+      );
     }
     return grouped;
   }, [tasks]);
 
-  return { tasks, tasksByColumn };
+  const getSubtasks = useCallback(
+    (parentId: string): Task[] =>
+      tasks.filter((t) => t.parent_id === parentId),
+    [tasks],
+  );
+
+  const getDependencyCount = useCallback(
+    (taskId: string): number =>
+      tasks.filter((t) => t.depends_on === taskId).length,
+    [tasks],
+  );
+
+  return { tasks, tasksByColumn, getSubtasks, getDependencyCount };
 }

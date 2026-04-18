@@ -1,6 +1,7 @@
 import { WebSocketServer, type WebSocket } from "ws";
 import type { Server } from "node:http";
-import { ChatSession, type Task, type TaskStore } from "@openteam/core";
+import type BetterSqlite3 from "better-sqlite3";
+import { ChatSession, type Task, type TaskStore, type SkillLoader } from "@openteam/core";
 
 interface ClientMessage {
   type: string;
@@ -18,17 +19,31 @@ function send(ws: WebSocket, msg: ServerMessage): void {
   }
 }
 
+export interface WorkerInfo {
+  taskId: string;
+  taskTitle: string;
+  role: string | null;
+  name: string;
+  status: "running" | "completed" | "error";
+  startedAt: string;
+}
+
 export interface WsHandler {
   broadcastTasks: (tasks: Task[]) => void;
+  broadcastWorkers: (workers: WorkerInfo[]) => void;
+  broadcastWorkerOutput: (taskId: string, chunk: string) => void;
+  broadcastSkills: (skills: Array<{ name: string; source: string }>) => void;
 }
 
 export function createWsHandler(
   server: Server,
   cwd: string,
   taskStore: TaskStore,
+  skillLoader?: SkillLoader,
+  db?: BetterSqlite3.Database,
 ): WsHandler {
   const wss = new WebSocketServer({ server, path: "/ws" });
-  const chatSession = new ChatSession(cwd);
+  const chatSession = new ChatSession(cwd, undefined, db);
 
   chatSession.on("stream", (chunk: string) => {
     for (const client of wss.clients) {
@@ -61,6 +76,25 @@ export function createWsHandler(
     // Send current tasks
     const tasks = taskStore.list();
     send(ws, { type: "tasks_updated", tasks });
+
+    // Send available skills (team roster) + modules + role-skills
+    if (skillLoader) {
+      const skills = skillLoader.list().map((s) => ({
+        name: s.name,
+        source: s.source,
+      }));
+      send(ws, { type: "skills_roster", skills });
+      send(ws, {
+        type: "modules_roster",
+        modules: skillLoader.listModules().map((m) => ({ name: m.name, source: m.source })),
+      });
+      send(ws, {
+        type: "role_skills_map",
+        map: skillLoader.getAllRoleSkills(),
+      });
+    }
+
+    // Workers state will be pushed by the orchestrator via broadcastWorkers
 
     ws.on("message", async (raw) => {
       let msg: ClientMessage;
@@ -108,6 +142,21 @@ export function createWsHandler(
     broadcastTasks(tasks: Task[]) {
       for (const client of wss.clients) {
         send(client, { type: "tasks_updated", tasks });
+      }
+    },
+    broadcastWorkers(workers: WorkerInfo[]) {
+      for (const client of wss.clients) {
+        send(client, { type: "workers_updated", workers });
+      }
+    },
+    broadcastWorkerOutput(taskId: string, chunk: string) {
+      for (const client of wss.clients) {
+        send(client, { type: "worker_output", taskId, chunk });
+      }
+    },
+    broadcastSkills(skills: Array<{ name: string; source: string }>) {
+      for (const client of wss.clients) {
+        send(client, { type: "skills_roster", skills });
       }
     },
   };

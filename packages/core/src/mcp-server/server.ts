@@ -3,11 +3,13 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 import type { TaskStore } from "../persistence/task-store.js";
 import type { EventLogger } from "../persistence/event-logger.js";
+import type { ContextManager } from "../context/context-manager.js";
 
 export interface McpServerOptions {
   taskStore: TaskStore;
   eventLogger: EventLogger;
   agentName: string;
+  contextManager?: ContextManager;
 }
 
 export function createMcpServer(options: McpServerOptions): McpServer {
@@ -24,7 +26,8 @@ export function createMcpServer(options: McpServerOptions): McpServer {
     {
       title: z.string().describe("Task title"),
       description: z.string().optional().describe("Task description"),
-      assignee: z.string().optional().describe("Agent name to assign to"),
+      assignee: z.string().optional().describe("Agent name to assign to (use 'worker' to auto-execute)"),
+      role: z.string().optional().describe("Worker role/skill to use (e.g. 'developer', 'tester', 'reviewer')"),
       priority: z
         .enum(["urgent", "high", "normal", "low"])
         .optional()
@@ -32,10 +35,21 @@ export function createMcpServer(options: McpServerOptions): McpServer {
       depends_on: z
         .string()
         .optional()
-        .describe("Task ID this depends on (e.g. T-1)"),
+        .describe("Task ID this depends on (e.g. T-1). For multiple dependencies, use add_dependency after creation."),
+      parent_id: z
+        .string()
+        .optional()
+        .describe("Parent task ID to create this as a subtask (e.g. T-1)"),
     },
     async (input) => {
-      const task = taskStore.create(input);
+      try {
+        var task = taskStore.create(input);
+      } catch (err: unknown) {
+        return {
+          content: [{ type: "text" as const, text: (err as Error).message }],
+          isError: true,
+        };
+      }
       eventLogger.log({
         agent: agentName,
         type: "task_created",
@@ -114,6 +128,7 @@ export function createMcpServer(options: McpServerOptions): McpServer {
         .optional()
         .describe("New status"),
       assignee: z.string().optional().describe("New assignee"),
+      role: z.string().optional().describe("Updated worker role/skill"),
       title: z.string().optional().describe("Updated title"),
       description: z.string().optional().describe("Updated description"),
       priority: z
@@ -141,6 +156,87 @@ export function createMcpServer(options: McpServerOptions): McpServer {
           {
             type: "text",
             text: JSON.stringify(task, null, 2),
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    "add_dependency",
+    "Add a dependency between tasks — the task cannot start until the dependency is done",
+    {
+      task_id: z.string().describe("Task that will wait (e.g. T-2)"),
+      depends_on_id: z.string().describe("Task that must complete first (e.g. T-1)"),
+    },
+    async (input) => {
+      try {
+        taskStore.addDependency(input.task_id, input.depends_on_id);
+      } catch (err: unknown) {
+        return {
+          content: [{ type: "text" as const, text: (err as Error).message }],
+          isError: true,
+        };
+      }
+      eventLogger.log({
+        agent: agentName,
+        type: "dependency_added",
+        task_id: input.task_id,
+        detail: `${input.task_id} now depends on ${input.depends_on_id}`,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Dependency added: ${input.task_id} depends on ${input.depends_on_id}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    "remove_dependency",
+    "Remove a dependency between tasks",
+    {
+      task_id: z.string().describe("Task to remove dependency from"),
+      depends_on_id: z.string().describe("Dependency to remove"),
+    },
+    async (input) => {
+      taskStore.removeDependency(input.task_id, input.depends_on_id);
+      eventLogger.log({
+        agent: agentName,
+        type: "dependency_removed",
+        task_id: input.task_id,
+        detail: `Removed dependency ${input.task_id} -> ${input.depends_on_id}`,
+      });
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Dependency removed: ${input.task_id} no longer depends on ${input.depends_on_id}`,
+          },
+        ],
+      };
+    },
+  );
+
+  server.tool(
+    "list_subtasks",
+    "List subtasks of a parent task",
+    {
+      parent_id: z.string().describe("Parent task ID (e.g. T-1)"),
+    },
+    async (input) => {
+      const subtasks = taskStore.listSubtasks(input.parent_id);
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              subtasks.length === 0
+                ? `No subtasks found for ${input.parent_id}.`
+                : JSON.stringify(subtasks, null, 2),
           },
         ],
       };
@@ -212,6 +308,52 @@ export function createMcpServer(options: McpServerOptions): McpServer {
       };
     },
   );
+
+  // Context management tools (only if contextManager provided)
+  if (options.contextManager) {
+    const ctx = options.contextManager;
+
+    server.tool(
+      "get_workspace",
+      "Read the project WORKSPACE.md — contains tech stack, conventions, and current project state that all workers see",
+      {},
+      async () => {
+        const content = ctx.getWorkspace();
+        return {
+          content: [
+            {
+              type: "text",
+              text: content || "(No WORKSPACE.md found. Use set_workspace to create one.)",
+            },
+          ],
+        };
+      },
+    );
+
+    server.tool(
+      "set_workspace",
+      "Write or update the project WORKSPACE.md — this context is injected into every worker's prompt",
+      {
+        content: z.string().describe("Full markdown content for WORKSPACE.md. Include tech stack, project structure, conventions, and current state."),
+      },
+      async (input) => {
+        ctx.setWorkspace(input.content);
+        eventLogger.log({
+          agent: agentName,
+          type: "workspace_updated",
+          detail: `WORKSPACE.md updated (${input.content.length} chars)`,
+        });
+        return {
+          content: [
+            {
+              type: "text",
+              text: `WORKSPACE.md updated (${input.content.length} chars). All workers will now receive this context.`,
+            },
+          ],
+        };
+      },
+    );
+  }
 
   return server;
 }

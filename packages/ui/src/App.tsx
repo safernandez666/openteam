@@ -1,79 +1,134 @@
+import { useState } from "react";
 import { useWebSocket } from "./useWebSocket";
 import { useChat } from "./chat/useChat";
 import { ChatPanel } from "./chat/ChatPanel";
 import { useKanban } from "./kanban/useKanban";
 import { KanbanBoard } from "./kanban/KanbanBoard";
+import { useWorkers } from "./workers/useWorkers";
+import { WorkersPanel } from "./workers/WorkersPanel";
+import { Sidebar, type View } from "./Sidebar";
+import { SkillsPanel } from "./skills/SkillsPanel";
+import { McpPanel } from "./mcp/McpPanel";
+import "./styles.css";
 
 export function App() {
+  const [activeView, setActiveView] = useState<View>("board");
   const { isConnected, subscribe, send } = useWebSocket();
   const { messages, streamingContent, pmStatus, sendMessage } = useChat(
     subscribe,
     send,
     isConnected,
   );
-  const { tasks, tasksByColumn } = useKanban(subscribe);
+  const { tasks, tasksByColumn, getSubtasks } = useKanban(subscribe);
+  const { workers, activeWorkers, completedWorkers, skills, modules, roleSkillsMap, setRoleSkillsMap, getWorkerOutput, refreshModules, agentNames, updateAgentNames } = useWorkers(subscribe);
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#0f172a",
-        fontFamily: "system-ui, -apple-system, sans-serif",
-      }}
-    >
-      {/* Top bar */}
-      <header
-        style={{
-          padding: "0.5rem 1rem",
-          borderBottom: "1px solid #1e293b",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          backgroundColor: "#020617",
-          color: "#e2e8f0",
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <span style={{ fontWeight: 700, fontSize: "1.1rem" }}>OpenTeam</span>
-          <span style={{ color: "#475569", fontSize: "0.8rem" }}>v0.1.0</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
-            {tasks.length} task{tasks.length !== 1 ? "s" : ""}
-          </span>
-          <span
-            style={{
-              fontSize: "0.75rem",
-              color: isConnected ? "#22c55e" : "#ef4444",
-            }}
-          >
-            {isConnected ? "connected" : "disconnected"}
-          </span>
-        </div>
-      </header>
+    <div className="app">
+      <Sidebar
+        activeView={activeView}
+        onViewChange={setActiveView}
+        taskCount={tasks.length}
+        activeWorkerCount={activeWorkers.length}
+        pmStatus={pmStatus}
+        isConnected={isConnected}
+      />
 
-      {/* Main content: Kanban (60%) + Chat (40%) */}
-      <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-        <div
-          style={{
-            flex: "3 1 0",
-            borderRight: "1px solid #1e293b",
-            overflow: "hidden",
-          }}
-        >
-          <KanbanBoard tasksByColumn={tasksByColumn()} />
-        </div>
-        <div style={{ flex: "2 1 0", minWidth: "320px", overflow: "hidden" }}>
-          <ChatPanel
-            messages={messages}
-            streamingContent={streamingContent}
-            pmStatus={pmStatus}
-            isConnected={isConnected}
-            onSendMessage={sendMessage}
-          />
+      <div className="app-main">
+        {/* Top bar */}
+        <header className="header">
+          <div className="header-left">
+            <span className="header-logo">OpenTeam</span>
+            <span className="header-version">v0.1.0</span>
+          </div>
+          <div className="header-right">
+            <span className="header-stat">
+              {tasks.length} task{tasks.length !== 1 ? "s" : ""}
+            </span>
+            {activeWorkers.length > 0 && (
+              <span className="header-stat header-stat--workers">
+                {activeWorkers.length} worker{activeWorkers.length !== 1 ? "s" : ""}
+              </span>
+            )}
+            <span className="header-stat">
+              <span
+                className={`status-dot ${isConnected ? "status-dot--connected" : "status-dot--disconnected"}`}
+              />
+              {isConnected ? "connected" : "disconnected"}
+            </span>
+          </div>
+        </header>
+
+        {/* Content area */}
+        <div className="main-content">
+          {activeView === "board" && (
+            <div className="view-panel view-panel--board view-panel--full">
+              <KanbanBoard
+                tasksByColumn={tasksByColumn()}
+                getSubtasks={getSubtasks}
+                activeWorkers={activeWorkers}
+                completedWorkers={completedWorkers}
+                tasks={tasks}
+              />
+            </div>
+          )}
+
+          {activeView === "workers" && (
+            <div className="view-panel view-panel--workers">
+              <WorkersPanel
+                workers={workers}
+                activeWorkers={activeWorkers}
+                completedWorkers={completedWorkers}
+                skills={skills}
+                modules={modules}
+                roleSkillsMap={roleSkillsMap}
+                onRoleSkillsChange={(role, newSkills) => {
+                  setRoleSkillsMap((prev) => ({ ...prev, [role]: newSkills }));
+                }}
+                getWorkerOutput={getWorkerOutput}
+                agentNames={agentNames}
+                onUpdateAgentNames={updateAgentNames}
+              />
+            </div>
+          )}
+
+          {activeView === "skills" && (
+            <div className="view-panel view-panel--skills">
+              <SkillsPanel modules={modules} onRefresh={refreshModules} />
+            </div>
+          )}
+
+          {activeView === "mcp" && (
+            <div className="view-panel view-panel--mcp">
+              <McpPanel />
+            </div>
+          )}
+
+          {activeView === "chat" && (
+            <div className="view-panel view-panel--chat-full">
+              <ChatPanel
+                messages={messages}
+                streamingContent={streamingContent}
+                pmStatus={pmStatus}
+                isConnected={isConnected}
+                onSendMessage={sendMessage}
+                pmName={agentNames.pm ?? "Clara"}
+              />
+            </div>
+          )}
+
+          {/* Persistent chat sidebar — visible on workers view */}
+          {activeView !== "chat" && activeView !== "board" && (
+            <div className="chat-sidebar">
+              <ChatPanel
+                messages={messages}
+                streamingContent={streamingContent}
+                pmStatus={pmStatus}
+                isConnected={isConnected}
+                onSendMessage={sendMessage}
+                pmName={agentNames.pm ?? "Clara"}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>
