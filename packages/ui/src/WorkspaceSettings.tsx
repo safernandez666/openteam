@@ -190,8 +190,8 @@ export function WorkspaceSettings({ onClose }: { onClose: () => void }) {
       {confirmAction === "delete" && (
         <ConfirmDialog
           title="Delete Workspace"
-          message="This workspace and all its data will be permanently deleted. A new empty workspace will be created automatically."
-          confirmLabel="Delete"
+          message="This workspace and all its data (tasks, chat, skills, config) will be permanently deleted. You'll be switched to another workspace."
+          confirmLabel="Delete Permanently"
           danger
           onConfirm={async () => {
             const res = await fetch("/api/workspace/delete-current", { method: "POST" });

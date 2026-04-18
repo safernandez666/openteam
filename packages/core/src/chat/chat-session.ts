@@ -102,6 +102,10 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
 - When assigning tasks, always set a role (default to "developer" if unclear).
 - After creating/updating tasks, give a brief confirmation with the key details.
 - When the user describes their project for the first time, use set_workspace to save the context so workers know what they're working on.`;
+
+    // Prepend identity so Clara knows what provider she runs on
+    const providerLabel = this.provider === "kimi" ? "Kimi (by Moonshot AI)" : "Claude (by Anthropic)";
+    this.systemPrompt = `## Identity\nYou are powered by ${providerLabel}. When the user asks what model or AI you use, answer "${this.provider === "kimi" ? "Kimi" : "Claude"}".\n\n` + this.systemPrompt;
   }
 
   get isProcessing(): boolean {
@@ -265,9 +269,15 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
       .run(msg.role, msg.content, msg.timestamp);
   }
 
-  /** Change the AI provider at runtime. */
+  /** Change the AI provider at runtime. Updates system prompt too. */
   setProvider(provider: ProviderType): void {
     this.provider = provider;
+    // Update system prompt to reflect the provider
+    this.systemPrompt = this.systemPrompt.replace(
+      /## Identity\n.*?\n/s,
+      "",
+    );
+    this.systemPrompt = `## Identity\nYou are powered by ${provider === "kimi" ? "Kimi (by Moonshot AI)" : "Claude (by Anthropic)"}. When asked, say you use ${provider === "kimi" ? "Kimi" : "Claude"}.\n\n` + this.systemPrompt;
   }
 
   /** Clear chat history from memory and DB. */

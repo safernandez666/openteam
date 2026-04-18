@@ -219,14 +219,17 @@ export function startServer(port = PORT, host = HOST): Server {
       return;
     }
 
-    // If this is the only workspace, create a new default first
     const all = workspaceManager.list();
     let switchTo: string;
     if (all.length <= 1) {
-      const newWs = workspaceManager.create("default", "Default Workspace");
+      // Create a fresh workspace to land on
+      const ts = Date.now().toString(36);
+      const newWs = workspaceManager.create(`project-${ts}`, "New Project");
       switchTo = newWs.id;
     } else {
-      switchTo = all.find((w) => w.id !== current)!.id;
+      // Switch to the most recent other workspace
+      const others = all.filter((w) => w.id !== current);
+      switchTo = others[others.length - 1].id;
     }
 
     workspaceManager.setActive(switchTo);
