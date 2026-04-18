@@ -17,26 +17,42 @@ export interface Task {
   description: string;
   status: TaskStatus;
   assignee: string | null;
+  role: string | null;
   priority: TaskPriority;
   depends_on: string | null;
+  parent_id: string | null;
+  result: string | null;
+  retry_count: number;
+  max_retries: number;
+  last_error: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface TaskDependency {
+  task_id: string;
+  depends_on_id: string;
+  created_at: string;
 }
 
 export interface CreateTaskInput {
   title: string;
   description?: string;
   assignee?: string;
+  role?: string;
   priority?: TaskPriority;
   depends_on?: string;
+  parent_id?: string;
 }
 
 export interface UpdateTaskInput {
   status?: TaskStatus;
   assignee?: string;
+  role?: string;
   title?: string;
   description?: string;
   priority?: TaskPriority;
+  result?: string;
 }
 
 let taskCounter = 0;
@@ -65,10 +81,15 @@ export class TaskStore {
     const id = generateTaskId();
     const now = new Date().toISOString();
 
+    if (input.parent_id) {
+      const parent = this.get(input.parent_id);
+      if (!parent) throw new Error(`Parent task ${input.parent_id} not found`);
+    }
+
     this.db
       .prepare(
-        `INSERT INTO tasks (id, title, description, status, assignee, priority, depends_on, created_at, updated_at)
-         VALUES (@id, @title, @description, @status, @assignee, @priority, @depends_on, @created_at, @updated_at)`,
+        `INSERT INTO tasks (id, title, description, status, assignee, role, priority, depends_on, parent_id, created_at, updated_at)
+         VALUES (@id, @title, @description, @status, @assignee, @role, @priority, @depends_on, @parent_id, @created_at, @updated_at)`,
       )
       .run({
         id,
@@ -76,11 +97,18 @@ export class TaskStore {
         description: input.description ?? "",
         status: input.assignee ? "assigned" : "backlog",
         assignee: input.assignee ?? null,
+        role: input.role ?? null,
         priority: input.priority ?? "normal",
         depends_on: input.depends_on ?? null,
+        parent_id: input.parent_id ?? null,
         created_at: now,
         updated_at: now,
       });
+
+    // Migrate legacy depends_on to task_dependencies table
+    if (input.depends_on) {
+      this.addDependency(id, input.depends_on);
+    }
 
     return this.get(id)!;
   }
@@ -145,11 +173,143 @@ export class TaskStore {
       fields.push("priority = @priority");
       params.priority = input.priority;
     }
+    if (input.role !== undefined) {
+      fields.push("role = @role");
+      params.role = input.role;
+    }
+    if (input.result !== undefined) {
+      fields.push("result = @result");
+      params.result = input.result;
+    }
 
     this.db
       .prepare(`UPDATE tasks SET ${fields.join(", ")} WHERE id = @id`)
       .run(params);
 
     return this.get(id);
+  }
+
+  // ── Retry methods ────────────────────────────────────
+
+  /**
+   * Record a task failure. Increments retry_count and stores the error.
+   * Returns true if the task can be retried (retry_count < max_retries).
+   */
+  recordFailure(id: string, error: string): boolean {
+    const task = this.get(id);
+    if (!task) return false;
+
+    const newCount = task.retry_count + 1;
+    const canRetry = newCount < task.max_retries;
+
+    this.db
+      .prepare(
+        `UPDATE tasks SET retry_count = ?, last_error = ?, status = ?, updated_at = ? WHERE id = ?`,
+      )
+      .run(
+        newCount,
+        error,
+        canRetry ? "assigned" : "rejected",
+        new Date().toISOString(),
+        id,
+      );
+
+    return canRetry;
+  }
+
+  // ── Subtask methods ──────────────────────────────────
+
+  listSubtasks(parentId: string): Task[] {
+    return this.db
+      .prepare("SELECT * FROM tasks WHERE parent_id = ? ORDER BY created_at ASC")
+      .all(parentId) as Task[];
+  }
+
+  // ── Dependency methods ───────────────────────────────
+
+  addDependency(taskId: string, dependsOnId: string): void {
+    if (taskId === dependsOnId) {
+      throw new Error("A task cannot depend on itself");
+    }
+
+    const task = this.get(taskId);
+    if (!task) throw new Error(`Task ${taskId} not found`);
+
+    const dep = this.get(dependsOnId);
+    if (!dep) throw new Error(`Dependency task ${dependsOnId} not found`);
+
+    // Cycle detection: check if dependsOnId (directly or transitively) depends on taskId
+    if (this.wouldCreateCycle(taskId, dependsOnId)) {
+      throw new Error(`Adding dependency ${taskId} -> ${dependsOnId} would create a cycle`);
+    }
+
+    this.db
+      .prepare(
+        "INSERT OR IGNORE INTO task_dependencies (task_id, depends_on_id) VALUES (?, ?)",
+      )
+      .run(taskId, dependsOnId);
+  }
+
+  removeDependency(taskId: string, dependsOnId: string): void {
+    this.db
+      .prepare("DELETE FROM task_dependencies WHERE task_id = ? AND depends_on_id = ?")
+      .run(taskId, dependsOnId);
+  }
+
+  getDependencies(taskId: string): Task[] {
+    return this.db
+      .prepare(
+        `SELECT t.* FROM tasks t
+         JOIN task_dependencies d ON t.id = d.depends_on_id
+         WHERE d.task_id = ?
+         ORDER BY t.created_at ASC`,
+      )
+      .all(taskId) as Task[];
+  }
+
+  getDependents(taskId: string): Task[] {
+    return this.db
+      .prepare(
+        `SELECT t.* FROM tasks t
+         JOIN task_dependencies d ON t.id = d.task_id
+         WHERE d.depends_on_id = ?
+         ORDER BY t.created_at ASC`,
+      )
+      .all(taskId) as Task[];
+  }
+
+  /** Returns true if all dependencies of the task are in "done" status. */
+  areDependenciesMet(taskId: string): boolean {
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(*) as pending FROM task_dependencies d
+         JOIN tasks t ON t.id = d.depends_on_id
+         WHERE d.task_id = ? AND t.status != 'done'`,
+      )
+      .get(taskId) as { pending: number };
+    return row.pending === 0;
+  }
+
+  private wouldCreateCycle(taskId: string, dependsOnId: string): boolean {
+    // BFS from dependsOnId's dependencies — if we reach taskId, it's a cycle
+    const visited = new Set<string>();
+    const queue = [dependsOnId];
+
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (current === taskId) return true;
+      if (visited.has(current)) continue;
+      visited.add(current);
+
+      const deps = this.db
+        .prepare("SELECT depends_on_id FROM task_dependencies WHERE task_id = ?")
+        .all(current) as Array<{ depends_on_id: string }>;
+
+      for (const d of deps) {
+        queue.push(d.depends_on_id);
+      }
+    }
+
+    return false;
   }
 }

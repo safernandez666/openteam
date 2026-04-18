@@ -1,6 +1,6 @@
 {
   "name": "openteam",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -8,11 +8,13 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
+    "start": "node packages/cli/dist/index.js start",
     "dev": "pnpm -r --parallel run dev",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint 'packages/*/src/**/*.{ts,tsx}'",
     "clean": "pnpm -r run clean",
+    "publish:all": "pnpm build && pnpm -r publish --access public --no-git-checks",
     "demo:spawn": "tsx packages/core/src/demo-spawn.ts",
     "demo:mcp": "tsx packages/core/src/demo-mcp.ts"
   },

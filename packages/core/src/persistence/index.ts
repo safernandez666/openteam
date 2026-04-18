@@ -3,6 +3,7 @@ export { TaskStore } from "./task-store.js";
 export { EventLogger } from "./event-logger.js";
 export type {
   Task,
+  TaskDependency,
   TaskStatus,
   TaskPriority,
   CreateTaskInput,

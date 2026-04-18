@@ -1,7 +1,6 @@
 {
   "name": "@openteam/core",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.1",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,8 +10,12 @@
       "types": "./dist/index.d.ts"
     }
   },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && mkdir -p dist/skills && cp -r src/skills/built-in dist/skills/",
     "dev": "tsup --watch",
     "clean": "rm -rf dist"
   },

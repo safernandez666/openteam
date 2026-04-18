@@ -1,4 +1,4 @@
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.1";
 
 // Agent Runtime
 export {
@@ -31,6 +31,7 @@ export {
 
 export type {
   Task,
+  TaskDependency,
   TaskStatus,
   TaskPriority,
   CreateTaskInput,
@@ -42,6 +43,18 @@ export type {
 export { ChatSession } from "./chat/index.js";
 export type { ChatMessage, ChatEvents } from "./chat/index.js";
 
+// Orchestrator
+export { Orchestrator, WorkerRunner, AgentNames } from "./orchestrator/index.js";
+export type { OrchestratorOptions, WorkerInfo, AgentNamesConfig } from "./orchestrator/index.js";
+
+// Skills
+export { SkillLoader } from "./skills/index.js";
+export type { Skill } from "./skills/index.js";
+
+// Context
+export { ContextManager, KnowledgeBase, ProjectConfigManager, WorkspaceManager } from "./context/index.js";
+export type { KnowledgeDoc, ProjectConfig, WorkspaceInfo } from "./context/index.js";
+
 // MCP Server
-export { createMcpServer, startMcpServer } from "./mcp-server/index.js";
-export type { McpServerOptions } from "./mcp-server/index.js";
+export { createMcpServer, startMcpServer, McpManager } from "./mcp-server/index.js";
+export type { McpServerOptions, McpServerConfig, McpServerEntry } from "./mcp-server/index.js";
