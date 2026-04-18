@@ -10,6 +10,7 @@ import { Sidebar, type View } from "./Sidebar";
 import { SkillsPanel } from "./skills/SkillsPanel";
 import { McpPanel } from "./mcp/McpPanel";
 import { WorkspaceSettings } from "./WorkspaceSettings";
+import { useToasts, ToastContainer } from "./Toasts";
 import "./styles.css";
 
 interface WorkspaceInfo {
@@ -75,6 +76,7 @@ export function App() {
     isConnected,
   );
   const { tasks, tasksByColumn, getSubtasks } = useKanban(subscribe);
+  const { toasts } = useToasts(subscribe);
   const { workers, activeWorkers, completedWorkers, skills, modules, roleSkillsMap, setRoleSkillsMap, getWorkerOutput, refreshModules, agentNames, updateAgentNames } = useWorkers(subscribe);
 
   return (
@@ -229,6 +231,8 @@ export function App() {
       {showWsSettings && (
         <WorkspaceSettings onClose={() => setShowWsSettings(false)} />
       )}
+
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

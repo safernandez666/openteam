@@ -31,8 +31,24 @@ function TaskCard({
   subtasks: Task[];
   onClick: (task: Task) => void;
 }) {
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("text/plain", task.id);
+    e.dataTransfer.effectAllowed = "move";
+    (e.currentTarget as HTMLElement).classList.add("task-card--dragging");
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    (e.currentTarget as HTMLElement).classList.remove("task-card--dragging");
+  };
+
   return (
-    <div className="task-card" onClick={() => onClick(task)}>
+    <div
+      className="task-card"
+      draggable
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onClick={() => onClick(task)}
+    >
       <div className="task-card-top">
         <span className="task-id">{task.id}</span>
         <span className="task-time">{timeAgo(task.updated_at)}</span>
@@ -93,15 +109,39 @@ function Column({
   columnKey,
   getSubtasks,
   onTaskClick,
+  onDrop,
 }: {
   label: string;
   tasks: Task[];
   columnKey: string;
   getSubtasks: (parentId: string) => Task[];
   onTaskClick: (task: Task) => void;
+  onDrop: (taskId: string, newStatus: string) => void;
 }) {
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => setDragOver(false);
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const taskId = e.dataTransfer.getData("text/plain");
+    if (taskId) onDrop(taskId, columnKey);
+  };
+
   return (
-    <div className="kanban-column">
+    <div
+      className={`kanban-column ${dragOver ? "kanban-column--drag-over" : ""}`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div className="column-header">
         <span className={`column-dot column-dot--${columnKey}`} />
         <span className="column-label">{label}</span>
@@ -166,6 +206,16 @@ export function KanbanBoard({
   const completionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
+  const handleDropTask = async (taskId: string, newStatus: string) => {
+    try {
+      await fetch(`/api/tasks/${encodeURIComponent(taskId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+    } catch { /* ignore — WS will push update */ }
+  };
+
   return (
     <>
       <div className="kanban-header">
@@ -213,6 +263,7 @@ export function KanbanBoard({
             tasks={tasksByColumn[col.key] ?? []}
             getSubtasks={getSubtasks}
             onTaskClick={setSelectedTask}
+            onDrop={handleDropTask}
           />
         ))}
       </div>

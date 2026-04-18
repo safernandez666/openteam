@@ -49,6 +49,17 @@ export function startServer(port = PORT, host = HOST): Server {
     res.json(tasks);
   });
 
+  app.patch("/api/tasks/:id", (req, res) => {
+    const updates = req.body as Record<string, unknown>;
+    const task = taskStore.update(req.params.id, updates as import("@openteam/core").UpdateTaskInput);
+    if (!task) {
+      res.status(404).json({ error: "Task not found" });
+      return;
+    }
+    wsHandler.broadcastTasks(taskStore.list());
+    res.json(task);
+  });
+
   // Skills API
   app.get("/api/skills", (_req, res) => {
     const skills = skillLoader.list().map((s) => ({
@@ -368,6 +379,7 @@ export function startServer(port = PORT, host = HOST): Server {
 
   orchestrator.on("worker_done", ({ taskId, result }: { taskId: string; result: string }) => {
     console.log(`Worker completed task ${taskId}: ${result.slice(0, 100)}`);
+    wsHandler.broadcastWorkerDone(taskId);
   });
 
   orchestrator.start();

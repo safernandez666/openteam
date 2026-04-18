@@ -32,6 +32,7 @@ export interface WsHandler {
   broadcastTasks: (tasks: Task[]) => void;
   broadcastWorkers: (workers: WorkerInfo[]) => void;
   broadcastWorkerOutput: (taskId: string, chunk: string) => void;
+  broadcastWorkerDone: (taskId: string) => void;
   broadcastSkills: (skills: Array<{ name: string; source: string }>) => void;
 }
 
@@ -159,6 +160,11 @@ export function createWsHandler(
     broadcastWorkers(workers: WorkerInfo[]) {
       for (const client of wss.clients) {
         send(client, { type: "workers_updated", workers });
+      }
+    },
+    broadcastWorkerDone(taskId: string) {
+      for (const client of wss.clients) {
+        send(client, { type: "worker_done", taskId });
       }
     },
     broadcastWorkerOutput(taskId: string, chunk: string) {
