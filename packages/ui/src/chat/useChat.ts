@@ -39,6 +39,10 @@ export function useChat(
           setStreamingContent("");
         }
       }),
+      subscribe("chat_cleared", () => {
+        setMessages([]);
+        setStreamingContent("");
+      }),
       subscribe("status", (e) => {
         if (e.status === "idle" || e.status === "working") {
           setPmStatus(e.status as "idle" | "working");
@@ -60,5 +64,10 @@ export function useChat(
     [isConnected, send],
   );
 
-  return { messages, streamingContent, pmStatus, sendMessage };
+  const clearChat = useCallback(() => {
+    if (!isConnected) return;
+    send({ type: "clear_chat" });
+  }, [isConnected, send]);
+
+  return { messages, streamingContent, pmStatus, sendMessage, clearChat };
 }

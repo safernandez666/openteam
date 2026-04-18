@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { COLUMNS, type Task } from "./useKanban";
+import { TaskDetail } from "./TaskDetail";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -23,12 +25,14 @@ function SubtaskRow({ task }: { task: Task }) {
 function TaskCard({
   task,
   subtasks,
+  onClick,
 }: {
   task: Task;
   subtasks: Task[];
+  onClick: (task: Task) => void;
 }) {
   return (
-    <div className="task-card">
+    <div className="task-card" onClick={() => onClick(task)}>
       <div className="task-card-top">
         <span className="task-id">{task.id}</span>
         <span className="task-time">{timeAgo(task.updated_at)}</span>
@@ -88,11 +92,13 @@ function Column({
   tasks,
   columnKey,
   getSubtasks,
+  onTaskClick,
 }: {
   label: string;
   tasks: Task[];
   columnKey: string;
   getSubtasks: (parentId: string) => Task[];
+  onTaskClick: (task: Task) => void;
 }) {
   return (
     <div className="kanban-column">
@@ -109,6 +115,7 @@ function Column({
             key={task.id}
             task={task}
             subtasks={getSubtasks(task.id)}
+            onClick={onTaskClick}
           />
         ))}
       </div>
@@ -157,6 +164,7 @@ export function KanbanBoard({
   const blockedTasks = (tasksByColumn["blocked"] ?? []).length;
   const rejectedTasks = tasks.filter((t) => t.status === "rejected").length;
   const completionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   return (
     <>
@@ -204,9 +212,18 @@ export function KanbanBoard({
             columnKey={col.key}
             tasks={tasksByColumn[col.key] ?? []}
             getSubtasks={getSubtasks}
+            onTaskClick={setSelectedTask}
           />
         ))}
       </div>
+
+      {selectedTask && (
+        <TaskDetail
+          task={selectedTask}
+          subtasks={getSubtasks(selectedTask.id)}
+          onClose={() => setSelectedTask(null)}
+        />
+      )}
     </>
   );
 }

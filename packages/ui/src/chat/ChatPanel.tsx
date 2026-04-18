@@ -44,6 +44,7 @@ interface ChatPanelProps {
   pmStatus: "idle" | "working";
   isConnected: boolean;
   onSendMessage: (content: string) => void;
+  onClearChat?: () => void;
   pmName?: string;
 }
 
@@ -53,6 +54,7 @@ export function ChatPanel({
   pmStatus,
   isConnected,
   onSendMessage,
+  onClearChat,
   pmName = "Clara",
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
@@ -83,6 +85,11 @@ export function ChatPanel({
       <div className="chat-header">
         <span className="chat-header-label">{pmName}</span>
         <span className="chat-header-role">PM</span>
+        {onClearChat && messages.length > 0 && (
+          <button className="chat-clear-btn" onClick={onClearChat} title="Clear chat">
+            Clear
+          </button>
+        )}
         <span className="chat-status">
           <span className={`chat-status-dot ${statusDotClass}`} />
           {statusLabel}

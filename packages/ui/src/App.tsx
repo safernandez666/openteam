@@ -54,6 +54,13 @@ export function App() {
     window.location.reload();
   };
 
+  const handleDeleteWorkspace = async (id: string) => {
+    if (id === activeWorkspace) return;
+    if (!confirm(`Delete workspace "${id}"? This cannot be undone.`)) return;
+    await fetch(`/api/workspaces/${encodeURIComponent(id)}`, { method: "DELETE" });
+    refreshWorkspaces();
+  };
+
   const handleSwitchWorkspace = async (id: string) => {
     await fetch("/api/workspaces/active", {
       method: "PUT",
@@ -62,7 +69,7 @@ export function App() {
     });
     window.location.reload();
   };
-  const { messages, streamingContent, pmStatus, sendMessage } = useChat(
+  const { messages, streamingContent, pmStatus, sendMessage, clearChat } = useChat(
     subscribe,
     send,
     isConnected,
@@ -95,14 +102,24 @@ export function App() {
               {showWsMenu && (
                 <div className="workspace-menu" onClick={(e) => e.stopPropagation()}>
                   {workspaces.map((ws) => (
-                    <button
-                      key={ws.id}
-                      className={`workspace-menu-item ${ws.id === activeWorkspace ? "workspace-menu-item--active" : ""}`}
-                      onClick={() => { setShowWsMenu(false); handleSwitchWorkspace(ws.id); }}
-                    >
-                      {ws.name}
-                      {ws.id === activeWorkspace && <span className="workspace-check">&#10003;</span>}
-                    </button>
+                    <div key={ws.id} className="workspace-menu-row">
+                      <button
+                        className={`workspace-menu-item ${ws.id === activeWorkspace ? "workspace-menu-item--active" : ""}`}
+                        onClick={() => { setShowWsMenu(false); handleSwitchWorkspace(ws.id); }}
+                      >
+                        {ws.name}
+                        {ws.id === activeWorkspace && <span className="workspace-check">&#10003;</span>}
+                      </button>
+                      {ws.id !== activeWorkspace && (
+                        <button
+                          className="workspace-delete"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteWorkspace(ws.id); }}
+                          title="Delete workspace"
+                        >
+                          &times;
+                        </button>
+                      )}
+                    </div>
                   ))}
                   <div className="workspace-menu-divider" />
                   <button className="workspace-menu-item" onClick={() => { setShowWsMenu(false); setShowWsSettings(true); }}>
@@ -186,6 +203,7 @@ export function App() {
                 pmStatus={pmStatus}
                 isConnected={isConnected}
                 onSendMessage={sendMessage}
+                onClearChat={clearChat}
                 pmName={agentNames.pm ?? "Clara"}
               />
             </div>
@@ -200,6 +218,7 @@ export function App() {
                 pmStatus={pmStatus}
                 isConnected={isConnected}
                 onSendMessage={sendMessage}
+                onClearChat={clearChat}
                 pmName={agentNames.pm ?? "Clara"}
               />
             </div>

@@ -100,12 +100,20 @@ export function createWsHandler(
 
     // Workers state will be pushed by the orchestrator via broadcastWorkers
 
-    ws.on("message", async (raw) => {
+    ws.on("message", async (raw: import("ws").RawData) => {
       let msg: ClientMessage;
       try {
         msg = JSON.parse(raw.toString()) as ClientMessage;
       } catch {
         send(ws, { type: "error", content: "Invalid JSON" });
+        return;
+      }
+
+      if (msg.type === "clear_chat") {
+        chatSession.clearHistory();
+        for (const client of wss.clients) {
+          send(client, { type: "chat_cleared" });
+        }
         return;
       }
 
