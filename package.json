@@ -1,6 +1,6 @@
 {
   "name": "openteam",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "engines": {
@@ -14,6 +14,7 @@
     "test:watch": "vitest",
     "lint": "eslint 'packages/*/src/**/*.{ts,tsx}'",
     "clean": "pnpm -r run clean",
+    "publish:all": "pnpm build && pnpm -r publish --access public --no-git-checks",
     "demo:spawn": "tsx packages/core/src/demo-spawn.ts",
     "demo:mcp": "tsx packages/core/src/demo-mcp.ts"
   },
