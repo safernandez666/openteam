@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase } from "@openteam/core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager } from "@openteam/core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -134,6 +134,17 @@ export function startServer(port = PORT, host = HOST): Server {
     res.json(modules);
   });
 
+  // Project Config API
+  app.get("/api/project", (_req, res) => {
+    res.json(projectConfig.get());
+  });
+
+  app.put("/api/project", (req, res) => {
+    const updates = req.body as Record<string, unknown>;
+    const result = projectConfig.update(updates as Partial<import("@openteam/core").ProjectConfig>);
+    res.json(result);
+  });
+
   // Agent Names API
   app.get("/api/agent-names", (_req, res) => {
     res.json(agentNames.getAll());
@@ -245,6 +256,13 @@ export function startServer(port = PORT, host = HOST): Server {
     console.log(`Loaded WORKSPACE.md (${workspace.length} chars)`);
   } else {
     console.log("No WORKSPACE.md found — workers will run without project context");
+  }
+
+  // Project Config
+  const projectConfig = new ProjectConfigManager(dataDir);
+  const project = projectConfig.get();
+  if (project.name) {
+    console.log(`Project: ${project.name} (${project.workDir})`);
   }
 
   // Agent Names
