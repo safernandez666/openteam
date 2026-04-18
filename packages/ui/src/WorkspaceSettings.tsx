@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface ProjectConfig {
   workDir: string;
@@ -14,6 +15,7 @@ export function WorkspaceSettings({ onClose }: { onClose: () => void }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"reset" | "delete" | null>(null);
 
   useEffect(() => {
     fetch("/api/project")
@@ -150,26 +152,13 @@ export function WorkspaceSettings({ onClose }: { onClose: () => void }) {
           <div className="modal-footer-left">
             <button
               className="btn btn--ghost btn--danger btn--sm"
-              onClick={async () => {
-                if (!confirm("Reset this workspace? All tasks and chat history will be deleted.")) return;
-                await fetch("/api/workspace/reset", { method: "POST" });
-                onClose();
-              }}
+              onClick={() => setConfirmAction("reset")}
             >
               Reset
             </button>
             <button
               className="btn btn--ghost btn--danger btn--sm"
-              onClick={async () => {
-                if (!confirm("Delete this workspace permanently? All data will be lost and you'll switch to another workspace.")) return;
-                const res = await fetch("/api/workspace/delete-current", { method: "POST" });
-                if (res.ok) {
-                  window.location.reload();
-                } else {
-                  const data = await res.json();
-                  alert(data.error);
-                }
-              }}
+              onClick={() => setConfirmAction("delete")}
             >
               Delete
             </button>
@@ -182,6 +171,41 @@ export function WorkspaceSettings({ onClose }: { onClose: () => void }) {
           </div>
         </div>
       </div>
+
+      {confirmAction === "reset" && (
+        <ConfirmDialog
+          title="Reset Workspace"
+          message="All tasks, chat history, and updates will be permanently deleted. Your settings, skills, and MCP config will be preserved."
+          confirmLabel="Reset"
+          danger
+          onConfirm={async () => {
+            await fetch("/api/workspace/reset", { method: "POST" });
+            setConfirmAction(null);
+            onClose();
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+
+      {confirmAction === "delete" && (
+        <ConfirmDialog
+          title="Delete Workspace"
+          message="This workspace and all its data will be permanently deleted. A new empty workspace will be created automatically."
+          confirmLabel="Delete"
+          danger
+          onConfirm={async () => {
+            const res = await fetch("/api/workspace/delete-current", { method: "POST" });
+            if (res.ok) {
+              window.location.reload();
+            } else {
+              const data = await res.json();
+              setError(data.error);
+              setConfirmAction(null);
+            }
+          }}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }

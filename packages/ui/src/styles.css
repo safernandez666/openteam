@@ -1998,6 +1998,41 @@ body {
   gap: 6px;
 }
 
+.modal--confirm {
+  max-width: 380px;
+  padding: 24px;
+}
+
+.confirm-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.confirm-message {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.btn--danger-solid {
+  background: var(--red);
+  color: white;
+  font-weight: 600;
+}
+
+.btn--danger-solid:hover:not(:disabled) {
+  background: #e0354f;
+}
+
 .btn--danger {
   color: var(--red);
   border-color: var(--red-muted);

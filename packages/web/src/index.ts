@@ -218,19 +218,20 @@ export function startServer(port = PORT, host = HOST): Server {
       res.status(400).json({ error: "Cannot delete this workspace" });
       return;
     }
+
+    // If this is the only workspace, create a new default first
     const all = workspaceManager.list();
+    let switchTo: string;
     if (all.length <= 1) {
-      res.status(400).json({ error: "Cannot delete the only workspace. Create a new one first." });
-      return;
+      const newWs = workspaceManager.create("default", "Default Workspace");
+      switchTo = newWs.id;
+    } else {
+      switchTo = all.find((w) => w.id !== current)!.id;
     }
-    const other = all.find((w) => w.id !== current);
-    if (!other) {
-      res.status(400).json({ error: "No other workspace to switch to" });
-      return;
-    }
-    workspaceManager.setActive(other.id);
+
+    workspaceManager.setActive(switchTo);
     workspaceManager.remove(current);
-    res.json({ ok: true, switchedTo: other.id, restart: true });
+    res.json({ ok: true, switchedTo: switchTo, restart: true });
   });
 
   // Project Config API

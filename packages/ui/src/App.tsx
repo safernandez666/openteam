@@ -12,6 +12,7 @@ import { McpPanel } from "./mcp/McpPanel";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 import { useToasts, ToastContainer } from "./Toasts";
 import { NewWorkspaceModal } from "./NewWorkspaceModal";
+import { ConfirmDialog } from "./ConfirmDialog";
 import "./styles.css";
 
 interface WorkspaceInfo {
@@ -28,6 +29,7 @@ export function App() {
   const [showWsMenu, setShowWsMenu] = useState(false);
   const [showWsSettings, setShowWsSettings] = useState(false);
   const [showNewWs, setShowNewWs] = useState(false);
+  const [deletingWs, setDeletingWs] = useState<string | null>(null);
 
   const refreshWorkspaces = useCallback(async () => {
     try {
@@ -56,8 +58,13 @@ export function App() {
 
   const handleDeleteWorkspace = async (id: string) => {
     if (id === activeWorkspace) return;
-    if (!confirm(`Delete workspace "${id}"? This cannot be undone.`)) return;
-    await fetch(`/api/workspaces/${encodeURIComponent(id)}`, { method: "DELETE" });
+    setDeletingWs(id);
+  };
+
+  const confirmDeleteWorkspace = async () => {
+    if (!deletingWs) return;
+    await fetch(`/api/workspaces/${encodeURIComponent(deletingWs)}`, { method: "DELETE" });
+    setDeletingWs(null);
     refreshWorkspaces();
   };
 
@@ -235,6 +242,17 @@ export function App() {
         <NewWorkspaceModal
           onClose={() => setShowNewWs(false)}
           onCreate={(id, name) => { setShowNewWs(false); handleCreateWorkspace(id, name); }}
+        />
+      )}
+
+      {deletingWs && (
+        <ConfirmDialog
+          title="Delete Workspace"
+          message={`Delete workspace "${deletingWs}"? All data will be permanently lost.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={confirmDeleteWorkspace}
+          onCancel={() => setDeletingWs(null)}
         />
       )}
 
