@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { PtyManager, createEmitter } from "../agent-runtime/pty-manager.js";
 import type BetterSqlite3 from "better-sqlite3";
+import { buildCliArgs, parseStreamEvent, type ProviderType } from "../orchestrator/cli-provider.js";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -38,11 +39,13 @@ export class ChatSession extends EventEmitter {
   private history: ChatMessage[] = [];
   private _isProcessing = false;
   private db: BetterSqlite3.Database | null = null;
+  private provider: ProviderType;
 
-  constructor(cwd: string, systemPrompt?: string, db?: BetterSqlite3.Database) {
+  constructor(cwd: string, systemPrompt?: string, db?: BetterSqlite3.Database, provider?: ProviderType) {
     super();
     this.cwd = cwd;
     this.db = db ?? null;
+    this.provider = provider ?? "claude";
 
     // Restore chat history from DB
     if (this.db) {
@@ -147,22 +150,23 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
       const emitter = createEmitter();
       const pty = new PtyManager(emitter);
 
-      const args = [
-        "--print",
-        "--verbose",
-        "--output-format", "stream-json",
-        "--allowedTools", "mcp__openteam__create_task,mcp__openteam__list_tasks,mcp__openteam__update_task,mcp__openteam__post_update,mcp__openteam__get_updates,mcp__openteam__get_workspace,mcp__openteam__set_workspace",
-      ];
+      const { command, args } = buildCliArgs(this.provider, {
+        prompt,
+        systemPrompt: this.systemPrompt,
+        sessionId: this.sessionId,
+        cwd: this.cwd,
+      });
 
-      if (this.systemPrompt) {
-        args.push("--append-system-prompt", this.systemPrompt);
+      // Claude-specific: add allowed MCP tools
+      if (this.provider === "claude") {
+        // Insert before the prompt (last arg)
+        const promptArg = args.pop()!;
+        args.push(
+          "--allowedTools",
+          "mcp__openteam__create_task,mcp__openteam__list_tasks,mcp__openteam__update_task,mcp__openteam__post_update,mcp__openteam__get_updates,mcp__openteam__get_workspace,mcp__openteam__set_workspace",
+        );
+        args.push(promptArg);
       }
-
-      if (this.sessionId) {
-        args.push("--resume", this.sessionId);
-      }
-
-      args.push(prompt);
 
       let fullOutput = "";
       let responseText = "";
@@ -178,15 +182,18 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
           if (!line.trim()) continue;
           try {
             const event = JSON.parse(line) as StreamJsonEvent;
-            this.processStreamEvent(event, (chunk) => {
+
+            // Try provider-agnostic parsing first
+            const chunk = parseStreamEvent(this.provider, event as unknown as Record<string, unknown>);
+            if (chunk) {
               responseText += chunk;
               this.emit("stream", chunk);
-            });
+            }
 
+            // Claude-specific: capture session ID
             if (event.type === "system" && event.subtype === "init" && event.session_id) {
               capturedSessionId = event.session_id;
             }
-
             if (event.type === "result" && event.session_id) {
               capturedSessionId = event.session_id;
             }
@@ -201,10 +208,11 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
         if (fullOutput.trim()) {
           try {
             const event = JSON.parse(fullOutput) as StreamJsonEvent;
-            this.processStreamEvent(event, (chunk) => {
+            const chunk = parseStreamEvent(this.provider, event as unknown as Record<string, unknown>);
+            if (chunk) {
               responseText += chunk;
               this.emit("stream", chunk);
-            });
+            }
             if (event.type === "result" && event.session_id) {
               capturedSessionId = event.session_id;
             }
@@ -218,7 +226,7 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
         }
 
         if (code !== 0 && !responseText) {
-          reject(new Error(`Claude Code exited with code ${code}`));
+          reject(new Error(`${this.provider} exited with code ${code}`));
         } else {
           resolve(responseText || "(no response)");
         }
@@ -226,7 +234,7 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
 
       try {
         pty.spawn({
-          command: "claude",
+          command,
           args,
           cwd: this.cwd,
         });

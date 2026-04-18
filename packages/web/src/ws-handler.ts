@@ -43,9 +43,10 @@ export function createWsHandler(
   skillLoader?: SkillLoader,
   db?: BetterSqlite3.Database,
   activeWs?: string,
+  provider?: string,
 ): WsHandler {
   const wss = new WebSocketServer({ server, path: "/ws" });
-  const chatSession = new ChatSession(cwd, undefined, db);
+  const chatSession = new ChatSession(cwd, undefined, db, (provider as "claude" | "kimi") ?? "claude");
 
   chatSession.on("stream", (chunk: string) => {
     for (const client of wss.clients) {

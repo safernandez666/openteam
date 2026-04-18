@@ -11,6 +11,7 @@ import { SkillsPanel } from "./skills/SkillsPanel";
 import { McpPanel } from "./mcp/McpPanel";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 import { useToasts, ToastContainer } from "./Toasts";
+import { NewWorkspaceModal } from "./NewWorkspaceModal";
 import "./styles.css";
 
 interface WorkspaceInfo {
@@ -26,6 +27,7 @@ export function App() {
   const [activeWorkspace, setActiveWorkspace] = useState<string | null>(null);
   const [showWsMenu, setShowWsMenu] = useState(false);
   const [showWsSettings, setShowWsSettings] = useState(false);
+  const [showNewWs, setShowNewWs] = useState(false);
 
   const refreshWorkspaces = useCallback(async () => {
     try {
@@ -38,10 +40,7 @@ export function App() {
 
   useEffect(() => { refreshWorkspaces(); }, [refreshWorkspaces]);
 
-  const handleCreateWorkspace = async () => {
-    const name = prompt("Workspace name:");
-    if (!name) return;
-    const id = name.toLowerCase().replace(/[^a-z0-9-_]/g, "-");
+  const handleCreateWorkspace = async (id: string, name: string) => {
     await fetch("/api/workspaces", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -127,7 +126,7 @@ export function App() {
                   <button className="workspace-menu-item" onClick={() => { setShowWsMenu(false); setShowWsSettings(true); }}>
                     Settings
                   </button>
-                  <button className="workspace-menu-item workspace-menu-item--new" onClick={() => { setShowWsMenu(false); handleCreateWorkspace(); }}>
+                  <button className="workspace-menu-item workspace-menu-item--new" onClick={() => { setShowWsMenu(false); setShowNewWs(true); }}>
                     + New Workspace
                   </button>
                 </div>
@@ -230,6 +229,13 @@ export function App() {
 
       {showWsSettings && (
         <WorkspaceSettings onClose={() => setShowWsSettings(false)} />
+      )}
+
+      {showNewWs && (
+        <NewWorkspaceModal
+          onClose={() => setShowNewWs(false)}
+          onCreate={(id, name) => { setShowNewWs(false); handleCreateWorkspace(id, name); }}
+        />
       )}
 
       <ToastContainer toasts={toasts} />

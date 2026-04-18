@@ -348,7 +348,7 @@ export function startServer(port = PORT, host = HOST): Server {
   }
 
   // WebSocket handler
-  const wsHandler = createWsHandler(httpServer, cwd, taskStore, skillLoader, db, activeWs);
+  const wsHandler = createWsHandler(httpServer, cwd, taskStore, skillLoader, db, activeWs, project.provider);
 
   // Orchestrator — picks up "assigned" tasks and spawns workers
   const orchestrator = new Orchestrator({
