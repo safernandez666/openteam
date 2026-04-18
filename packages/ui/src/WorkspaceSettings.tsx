@@ -6,6 +6,7 @@ interface ProjectConfig {
   branch: string;
   name: string;
   description: string;
+  provider: "claude" | "kimi";
 }
 
 export function WorkspaceSettings({ onClose }: { onClose: () => void }) {
@@ -120,6 +121,25 @@ export function WorkspaceSettings({ onClose }: { onClose: () => void }) {
                 onChange={(e) => setConfig({ ...config, branch: e.target.value })}
                 placeholder="main"
               />
+            </div>
+
+            <div className="ws-settings-field">
+              <label className="ws-settings-label">AI Provider</label>
+              <div className="ws-settings-provider">
+                <button
+                  className={`ws-provider-btn ${config.provider === "claude" ? "ws-provider-btn--active" : ""}`}
+                  onClick={() => setConfig({ ...config, provider: "claude" })}
+                >
+                  Claude Code
+                </button>
+                <button
+                  className={`ws-provider-btn ${config.provider === "kimi" ? "ws-provider-btn--active" : ""}`}
+                  onClick={() => setConfig({ ...config, provider: "kimi" })}
+                >
+                  Kimi Code
+                </button>
+              </div>
+              <span className="ws-settings-hint">CLI used by workers to execute tasks. Requires the CLI installed globally.</span>
             </div>
           </div>
         </div>

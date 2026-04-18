@@ -6,6 +6,7 @@ import type { SkillLoader } from "../skills/skill-loader.js";
 import type { ContextManager } from "../context/context-manager.js";
 import type { McpManager } from "../mcp-server/mcp-manager.js";
 import type { KnowledgeBase } from "../context/knowledge-base.js";
+import { buildCliArgs, parseStreamEvent, type ProviderType } from "./cli-provider.js";
 
 const DEFAULT_WORKER_PROMPT = `You are a Worker agent in the OpenTeam framework.
 You have been assigned a task. Complete it efficiently and concisely.
@@ -20,6 +21,7 @@ export interface WorkerRunnerOptions {
   contextManager?: ContextManager;
   mcpManager?: McpManager;
   knowledgeBase?: KnowledgeBase;
+  provider?: ProviderType;
 }
 
 export class WorkerRunner extends EventEmitter {
@@ -30,6 +32,7 @@ export class WorkerRunner extends EventEmitter {
   private contextManager: ContextManager | null;
   private mcpManager: McpManager | null;
   private knowledgeBase: KnowledgeBase | null;
+  private provider: ProviderType;
   private pty: PtyManager | null = null;
 
   constructor(options: WorkerRunnerOptions) {
@@ -41,6 +44,7 @@ export class WorkerRunner extends EventEmitter {
     this.contextManager = options.contextManager ?? null;
     this.mcpManager = options.mcpManager ?? null;
     this.knowledgeBase = options.knowledgeBase ?? null;
+    this.provider = options.provider ?? "claude";
   }
 
   start(): void {
@@ -66,21 +70,14 @@ export class WorkerRunner extends EventEmitter {
     }
 
     const prompt = this.buildPrompt();
-    const args = [
-      "--print",
-      "--verbose",
-      "--output-format", "stream-json",
-      "--append-system-prompt", systemPrompt,
-      prompt,
-    ];
+    const mcpConfig = this.mcpManager?.buildMcpConfigJson() ?? null;
 
-    // Pass MCP config if available
-    if (this.mcpManager) {
-      const mcpConfig = this.mcpManager.buildMcpConfigJson();
-      if (mcpConfig) {
-        args.push("--mcp-config", mcpConfig);
-      }
-    }
+    const { command, args } = buildCliArgs(this.provider, {
+      prompt,
+      systemPrompt,
+      mcpConfigJson: mcpConfig,
+      cwd: this.cwd,
+    });
 
     let fullOutput = "";
     let responseText = "";
@@ -94,30 +91,13 @@ export class WorkerRunner extends EventEmitter {
         if (!line.trim()) continue;
         try {
           const event = JSON.parse(line);
-
-          // Stream content_block_delta — real-time text chunks
-          if (event.type === "content_block_delta" && event.delta?.text) {
-            responseText += event.delta.text;
+          const chunk = parseStreamEvent(this.provider, event);
+          if (chunk) {
+            responseText += chunk;
             this.emit("output", {
               taskId: this.task.id,
-              chunk: event.delta.text,
+              chunk,
             });
-          }
-
-          // Fallback: full assistant message (non-streaming mode)
-          if (event.type === "assistant" && event.message?.content) {
-            for (const block of event.message.content) {
-              if (block.type === "text" && block.text) {
-                // Only use if we haven't been getting deltas
-                if (!responseText) {
-                  responseText = block.text;
-                  this.emit("output", {
-                    taskId: this.task.id,
-                    chunk: block.text,
-                  });
-                }
-              }
-            }
           }
         } catch {
           // skip non-JSON
@@ -143,7 +123,7 @@ export class WorkerRunner extends EventEmitter {
 
     try {
       this.pty.spawn({
-        command: "claude",
+        command,
         args,
         cwd: this.cwd,
       });

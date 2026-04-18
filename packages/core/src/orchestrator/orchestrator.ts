@@ -6,6 +6,7 @@ import type { ContextManager } from "../context/context-manager.js";
 import type { McpManager } from "../mcp-server/mcp-manager.js";
 import type { AgentNames } from "./agent-names.js";
 import type { KnowledgeBase } from "../context/knowledge-base.js";
+import type { ProviderType } from "./cli-provider.js";
 import { WorkerRunner } from "./worker-runner.js";
 
 export interface WorkerInfo {
@@ -26,6 +27,7 @@ export interface OrchestratorOptions {
   mcpManager?: McpManager;
   agentNames?: AgentNames;
   knowledgeBase?: KnowledgeBase;
+  provider?: ProviderType;
   maxConcurrentWorkers?: number;
   pollIntervalMs?: number;
   retryDelayMs?: number;
@@ -40,6 +42,7 @@ export class Orchestrator extends EventEmitter {
   private mcpManager: McpManager | null;
   private agentNames: AgentNames | null;
   private knowledgeBase: KnowledgeBase | null;
+  private provider: ProviderType;
   private maxWorkers: number;
   private pollIntervalMs: number;
   private activeWorkers = new Map<string, WorkerRunner>();
@@ -60,6 +63,7 @@ export class Orchestrator extends EventEmitter {
     this.mcpManager = options.mcpManager ?? null;
     this.agentNames = options.agentNames ?? null;
     this.knowledgeBase = options.knowledgeBase ?? null;
+    this.provider = options.provider ?? "claude";
     this.maxWorkers = options.maxConcurrentWorkers ?? 3;
     this.pollIntervalMs = options.pollIntervalMs ?? 3000;
     this.retryDelayMs = options.retryDelayMs ?? 5000;
@@ -141,6 +145,7 @@ export class Orchestrator extends EventEmitter {
       contextManager: this.contextManager ?? undefined,
       mcpManager: this.mcpManager ?? undefined,
       knowledgeBase: this.knowledgeBase ?? undefined,
+      provider: this.provider,
     });
 
     this.activeWorkers.set(task.id, worker);

@@ -360,6 +360,7 @@ export function startServer(port = PORT, host = HOST): Server {
     mcpManager,
     agentNames,
     knowledgeBase,
+    provider: project.provider as "claude" | "kimi",
     maxConcurrentWorkers: 3,
     pollIntervalMs: 3000,
   });

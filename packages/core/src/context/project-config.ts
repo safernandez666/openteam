@@ -12,6 +12,8 @@ export interface ProjectConfig {
   name: string;
   /** Project description */
   description: string;
+  /** CLI provider for workers: "claude" or "kimi" */
+  provider: "claude" | "kimi";
 }
 
 const DEFAULTS: ProjectConfig = {
@@ -20,6 +22,7 @@ const DEFAULTS: ProjectConfig = {
   branch: "main",
   name: "",
   description: "",
+  provider: "claude",
 };
 
 export class ProjectConfigManager {
