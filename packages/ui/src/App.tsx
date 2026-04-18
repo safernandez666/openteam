@@ -102,7 +102,11 @@ export function App() {
           <div className="header-left">
             <span className="header-logo">OpenTeam</span>
             <span className="header-version">v0.1.0</span>
-            <div className="workspace-selector" onClick={() => setShowWsMenu(!showWsMenu)}>
+            <div
+              className="workspace-selector"
+              onClick={() => setShowWsMenu(!showWsMenu)}
+              onDoubleClick={(e) => { e.stopPropagation(); setShowWsMenu(false); setShowWsSettings(true); }}
+            >
               <span className="workspace-name">
                 {workspaces.find((w) => w.id === activeWorkspace)?.name ?? activeWorkspace ?? "..."}
               </span>
@@ -134,6 +138,7 @@ export function App() {
                     Settings
                   </button>
                   <button className="workspace-menu-item workspace-menu-item--new" onClick={() => { setShowWsMenu(false); setShowNewWs(true); }}>
+
                     + New Workspace
                   </button>
                 </div>

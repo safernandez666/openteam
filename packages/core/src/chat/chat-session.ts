@@ -265,6 +265,11 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
       .run(msg.role, msg.content, msg.timestamp);
   }
 
+  /** Change the AI provider at runtime. */
+  setProvider(provider: ProviderType): void {
+    this.provider = provider;
+  }
+
   /** Clear chat history from memory and DB. */
   clearHistory(): void {
     this.history = [];

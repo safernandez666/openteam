@@ -34,6 +34,7 @@ export interface WsHandler {
   broadcastWorkerOutput: (taskId: string, chunk: string) => void;
   broadcastWorkerDone: (taskId: string) => void;
   broadcastSkills: (skills: Array<{ name: string; source: string }>) => void;
+  setProvider: (provider: string) => void;
   resetChat: () => void;
 }
 
@@ -184,6 +185,9 @@ export function createWsHandler(
       for (const client of wss.clients) {
         send(client, { type: "skills_roster", skills });
       }
+    },
+    setProvider(provider: string) {
+      chatSession.setProvider(provider as "claude" | "kimi");
     },
   };
 }

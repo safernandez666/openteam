@@ -242,6 +242,10 @@ export function startServer(port = PORT, host = HOST): Server {
   app.put("/api/project", (req, res) => {
     const updates = req.body as Record<string, unknown>;
     const result = projectConfig.update(updates as Partial<import("@openteam/core").ProjectConfig>);
+    // Hot-reload provider if changed
+    if (updates.provider && typeof updates.provider === "string") {
+      wsHandler.setProvider(updates.provider);
+    }
     res.json(result);
   });
 
