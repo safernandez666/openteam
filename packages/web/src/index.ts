@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager } from "@openteam/core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager } from "@openteam/core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -23,7 +23,20 @@ const httpServer: Server = createServer(app);
 
 export function startServer(port = PORT, host = HOST): Server {
   const cwd = process.cwd();
-  const dataDir = join(homedir(), ".openteam");
+  const baseDir = join(homedir(), ".openteam");
+
+  // Workspace management
+  const workspaceManager = new WorkspaceManager(baseDir);
+  let activeWs = workspaceManager.getActive();
+  if (!activeWs) {
+    // First run — create default workspace
+    workspaceManager.create("default", "Default Workspace");
+    workspaceManager.setActive("default");
+    activeWs = "default";
+  }
+  const dataDir = workspaceManager.getWorkspaceDir(activeWs);
+  console.log(`Active workspace: ${activeWs} (${dataDir})`);
+
   const dbPath = join(dataDir, "openteam.db");
 
   const db = openDatabase(dbPath);
@@ -132,6 +145,47 @@ export function startServer(port = PORT, host = HOST): Server {
       source: m.source,
     }));
     res.json(modules);
+  });
+
+  // Workspace API
+  app.get("/api/workspaces", (_req, res) => {
+    res.json({
+      active: workspaceManager.getActive(),
+      workspaces: workspaceManager.list(),
+    });
+  });
+
+  app.post("/api/workspaces", (req, res) => {
+    const { id, name } = req.body as { id?: string; name?: string };
+    if (!id) {
+      res.status(400).json({ error: "id is required" });
+      return;
+    }
+    try {
+      const ws = workspaceManager.create(id, name);
+      res.json(ws);
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+    }
+  });
+
+  app.put("/api/workspaces/active", (req, res) => {
+    const { id } = req.body as { id?: string };
+    if (!id) {
+      res.status(400).json({ error: "id is required" });
+      return;
+    }
+    workspaceManager.setActive(id);
+    res.json({ active: id, restart: true, message: "Restart the server to apply workspace change" });
+  });
+
+  app.delete("/api/workspaces/:id", (req, res) => {
+    const removed = workspaceManager.remove(req.params.id);
+    if (!removed) {
+      res.status(404).json({ error: "Workspace not found" });
+      return;
+    }
+    res.json({ ok: true });
   });
 
   // Project Config API
@@ -283,7 +337,7 @@ export function startServer(port = PORT, host = HOST): Server {
   }
 
   // WebSocket handler
-  const wsHandler = createWsHandler(httpServer, cwd, taskStore, skillLoader, db);
+  const wsHandler = createWsHandler(httpServer, cwd, taskStore, skillLoader, db, activeWs);
 
   // Orchestrator — picks up "assigned" tasks and spawns workers
   const orchestrator = new Orchestrator({

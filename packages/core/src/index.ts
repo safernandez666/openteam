@@ -52,8 +52,8 @@ export { SkillLoader } from "./skills/index.js";
 export type { Skill } from "./skills/index.js";
 
 // Context
-export { ContextManager, KnowledgeBase, ProjectConfigManager } from "./context/index.js";
-export type { KnowledgeDoc, ProjectConfig } from "./context/index.js";
+export { ContextManager, KnowledgeBase, ProjectConfigManager, WorkspaceManager } from "./context/index.js";
+export type { KnowledgeDoc, ProjectConfig, WorkspaceInfo } from "./context/index.js";
 
 // MCP Server
 export { createMcpServer, startMcpServer, McpManager } from "./mcp-server/index.js";

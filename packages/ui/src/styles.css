@@ -129,6 +129,91 @@ body {
   border-radius: var(--radius-sm);
 }
 
+/* Workspace selector */
+.workspace-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-default);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.workspace-selector:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
+}
+
+.workspace-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.workspace-arrow {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.workspace-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 200px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  padding: 4px;
+  animation: fadeIn 0.1s ease-out;
+}
+
+.workspace-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s;
+  text-align: left;
+}
+
+.workspace-menu-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.workspace-menu-item--active {
+  color: var(--accent);
+}
+
+.workspace-menu-item--new {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.workspace-check {
+  color: var(--accent);
+  font-size: 12px;
+}
+
+.workspace-menu-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 4px 0;
+}
+
 .header-right {
   display: flex;
   align-items: center;
@@ -1349,6 +1434,58 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+/* Name Editor */
+.name-editor-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.name-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.name-editor-emoji {
+  font-size: 18px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.name-editor-role {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.name-editor-input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.name-editor-input:focus {
+  border-color: var(--accent);
+}
+
+.workers-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .skill-card-role {

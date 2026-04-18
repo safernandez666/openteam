@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useWebSocket } from "./useWebSocket";
 import { useChat } from "./chat/useChat";
 import { ChatPanel } from "./chat/ChatPanel";
@@ -11,9 +11,55 @@ import { SkillsPanel } from "./skills/SkillsPanel";
 import { McpPanel } from "./mcp/McpPanel";
 import "./styles.css";
 
+interface WorkspaceInfo {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
 export function App() {
   const [activeView, setActiveView] = useState<View>("board");
   const { isConnected, subscribe, send } = useWebSocket();
+  const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([]);
+  const [activeWorkspace, setActiveWorkspace] = useState<string | null>(null);
+  const [showWsMenu, setShowWsMenu] = useState(false);
+
+  const refreshWorkspaces = useCallback(async () => {
+    try {
+      const res = await fetch("/api/workspaces");
+      const data = await res.json();
+      setWorkspaces(data.workspaces);
+      setActiveWorkspace(data.active);
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { refreshWorkspaces(); }, [refreshWorkspaces]);
+
+  const handleCreateWorkspace = async () => {
+    const name = prompt("Workspace name:");
+    if (!name) return;
+    const id = name.toLowerCase().replace(/[^a-z0-9-_]/g, "-");
+    await fetch("/api/workspaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, name }),
+    });
+    await fetch("/api/workspaces/active", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    window.location.reload();
+  };
+
+  const handleSwitchWorkspace = async (id: string) => {
+    await fetch("/api/workspaces/active", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    });
+    window.location.reload();
+  };
   const { messages, streamingContent, pmStatus, sendMessage } = useChat(
     subscribe,
     send,
@@ -39,6 +85,30 @@ export function App() {
           <div className="header-left">
             <span className="header-logo">OpenTeam</span>
             <span className="header-version">v0.1.0</span>
+            <div className="workspace-selector" onClick={() => setShowWsMenu(!showWsMenu)}>
+              <span className="workspace-name">
+                {workspaces.find((w) => w.id === activeWorkspace)?.name ?? activeWorkspace ?? "..."}
+              </span>
+              <span className="workspace-arrow">&#9662;</span>
+              {showWsMenu && (
+                <div className="workspace-menu" onClick={(e) => e.stopPropagation()}>
+                  {workspaces.map((ws) => (
+                    <button
+                      key={ws.id}
+                      className={`workspace-menu-item ${ws.id === activeWorkspace ? "workspace-menu-item--active" : ""}`}
+                      onClick={() => { setShowWsMenu(false); handleSwitchWorkspace(ws.id); }}
+                    >
+                      {ws.name}
+                      {ws.id === activeWorkspace && <span className="workspace-check">&#10003;</span>}
+                    </button>
+                  ))}
+                  <div className="workspace-menu-divider" />
+                  <button className="workspace-menu-item workspace-menu-item--new" onClick={() => { setShowWsMenu(false); handleCreateWorkspace(); }}>
+                    + New Workspace
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <div className="header-right">
             <span className="header-stat">

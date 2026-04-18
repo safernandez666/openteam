@@ -41,6 +41,7 @@ export function createWsHandler(
   taskStore: TaskStore,
   skillLoader?: SkillLoader,
   db?: BetterSqlite3.Database,
+  activeWs?: string,
 ): WsHandler {
   const wss = new WebSocketServer({ server, path: "/ws" });
   const chatSession = new ChatSession(cwd, undefined, db);
@@ -76,6 +77,9 @@ export function createWsHandler(
     // Send current tasks
     const tasks = taskStore.list();
     send(ws, { type: "tasks_updated", tasks });
+
+    // Send workspace info
+    send(ws, { type: "workspace_info", workspace: activeWs });
 
     // Send available skills (team roster) + modules + role-skills
     if (skillLoader) {

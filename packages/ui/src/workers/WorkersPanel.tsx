@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { WorkerInfo, SkillInfo, ModuleInfo, AgentNamesMap } from "./useWorkers";
 import { getRoleMeta } from "./useWorkers";
 import { SkillEditor } from "./SkillEditor";
+import { NameEditor } from "./NameEditor";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -147,6 +148,7 @@ export function WorkersPanel({
   onUpdateAgentNames,
 }: WorkersPanelProps) {
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
+  const [editingNames, setEditingNames] = useState(false);
 
   // Count active workers per role
   const activeByRole: Record<string, number> = {};
@@ -159,11 +161,16 @@ export function WorkersPanel({
     <>
       <div className="workers-header">
         <span className="workers-title">Workers</span>
-        <span className="workers-count">
-          {activeWorkers.length > 0
-            ? `${activeWorkers.length} active`
-            : `${skills.length} roles`}
-        </span>
+        <div className="workers-header-right">
+          <button className="btn btn--ghost btn--sm" onClick={() => setEditingNames(true)}>
+            Edit Names
+          </button>
+          <span className="workers-count">
+            {activeWorkers.length > 0
+              ? `${activeWorkers.length} active`
+              : `${skills.length} roles`}
+          </span>
+        </div>
       </div>
 
       <div className="workers-body">
@@ -223,6 +230,14 @@ export function WorkersPanel({
           </div>
         )}
       </div>
+
+      {editingNames && (
+        <NameEditor
+          agentNames={agentNames}
+          onSave={onUpdateAgentNames}
+          onClose={() => setEditingNames(false)}
+        />
+      )}
 
       {editingSkill && (
         <SkillEditor
