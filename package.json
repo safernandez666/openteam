@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
+    "start": "node packages/cli/dist/index.js start",
     "dev": "pnpm -r --parallel run dev",
     "test": "vitest run",
     "test:watch": "vitest",

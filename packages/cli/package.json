@@ -1,11 +1,28 @@
 {
   "name": "@openteam/cli",
   "version": "0.1.0",
-  "private": true,
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "openteam": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "ai",
+    "agents",
+    "orchestrator",
+    "claude",
+    "team",
+    "kanban",
+    "mcp"
+  ],
+  "description": "AI-powered development team orchestrator — spawn a team of Claude agents that collaborate to build your project",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/safernandez666/openteam"
   },
   "scripts": {
     "build": "tsup",
