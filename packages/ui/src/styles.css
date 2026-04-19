@@ -2386,6 +2386,12 @@ body {
   overflow: hidden;
   flex-shrink: 0;
   border: 2px solid var(--border-default);
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.agent-card-avatar:hover {
+  border-color: var(--accent);
 }
 
 .agent-card-body {

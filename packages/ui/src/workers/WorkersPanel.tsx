@@ -37,6 +37,8 @@ function AgentCard({
   const meta = getRoleMeta(role, agentNames);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(meta.displayName);
+  const [avatarSeed, setAvatarSeed] = useState(0);
+  const avatarUrl = getAvatarUrl(meta.displayName + (avatarSeed ? `-${avatarSeed}` : ""));
 
   const handleNameSave = () => {
     if (nameInput.trim() && nameInput.trim() !== meta.displayName) {
@@ -47,8 +49,8 @@ function AgentCard({
 
   return (
     <div className="agent-card">
-      <div className="agent-card-avatar">
-        <img src={meta.avatarUrl} alt={meta.displayName} className="agent-avatar" />
+      <div className="agent-card-avatar" onClick={() => setAvatarSeed((s) => s + 1)} title="Click to change avatar">
+        <img src={avatarUrl} alt={meta.displayName} className="agent-avatar" />
       </div>
       <div className="agent-card-body">
         <div className="agent-card-top">
@@ -228,7 +230,25 @@ export function WorkersPanel({
     onUpdateTeamMember(role, { name });
   };
 
-  const handleProviderChange = (role: string, provider: "claude" | "kimi") => {
+  const [pmProvider, setPmProvider] = useState<"claude" | "kimi">("claude");
+
+  // Load PM provider from project config
+  useEffect(() => {
+    fetch("/api/project").then((r) => r.json()).then((d) => {
+      setPmProvider(d.provider ?? "claude");
+    }).catch(() => {});
+  }, []);
+
+  const handleProviderChange = async (role: string, provider: "claude" | "kimi") => {
+    if (role === "pm") {
+      setPmProvider(provider);
+      await fetch("/api/project", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider }),
+      });
+      return;
+    }
     onUpdateTeamMember(role, { provider });
   };
 
@@ -296,7 +316,7 @@ export function WorkersPanel({
               activeCount={1}
               assignedModules={[]}
               agentNames={{ ...agentNames, pm: agentNames.pm ?? "Facu" }}
-              provider={team.find((m) => m.roleId === "pm")?.provider ?? "claude"}
+              provider={pmProvider}
               onNameChange={handleNameChange}
               onProviderChange={handleProviderChange}
               onEditSkill={() => {}}

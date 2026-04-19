@@ -270,6 +270,10 @@ export function startServer(port = PORT, host = HOST): Server {
     }
     projectManager.setActive(projectId, workspaceId);
     res.json({ active: { projectId, workspaceId }, restart: true });
+
+    // Restart server to load new workspace
+    console.log(`Switching to ${projectId}/${workspaceId} — restarting...`);
+    setTimeout(() => process.exit(42), 300);
   });
 
   // Legacy Workspace API (backward compat)

@@ -134,7 +134,6 @@ function cmdStart(flags: Record<string, string>): void {
 
   console.log(`\n  ${bold("OpenTeam")} ${dim(`v${VERSION}`)}\n`);
 
-  // Dynamic import to avoid loading web deps unless needed
   import("@openteam/web").then((mod) => {
     mod.startServer(port, host);
   });
