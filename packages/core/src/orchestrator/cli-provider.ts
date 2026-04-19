@@ -46,7 +46,7 @@ function buildClaudeArgs(options: BuildArgsOptions): ProviderResult {
     args.push("--mcp-config", options.mcpConfigJson);
   }
 
-  args.push(options.prompt);
+  args.push("-p", options.prompt);
 
   return { command: "claude", args };
 }

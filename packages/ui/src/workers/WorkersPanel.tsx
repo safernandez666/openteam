@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import type { WorkerInfo, SkillInfo, ModuleInfo, AgentNamesMap, TeamMember, RoleDef } from "./useWorkers";
 import { getRoleMeta, getAvatarUrl } from "./useWorkers";
 import { SkillEditor } from "./SkillEditor";
+import { ConfirmDialog } from "../ConfirmDialog";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -249,6 +250,7 @@ export function WorkersPanel({
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
   const [showCatalog, setShowCatalog] = useState(false);
   const [avatarSeeds, setAvatarSeeds] = useState<Record<string, number>>({});
+  const [removingRole, setRemovingRole] = useState<string | null>(null);
 
   const handleNameChange = (role: string, name: string) => {
     onUpdateTeamMember(role, { name });
@@ -374,7 +376,7 @@ export function WorkersPanel({
                 onNameChange={handleNameChange}
                 onProviderChange={handleProviderChange}
                 onEditSkill={setEditingSkill}
-                onRemove={onRemoveTeamMember}
+                onRemove={(roleId) => setRemovingRole(roleId)}
                 initialAvatarSeed={avatarSeeds[member.roleId] ?? 0}
                 onAvatarSeedChange={handleAvatarSeedChange}
               />
@@ -410,6 +412,20 @@ export function WorkersPanel({
           assignedSkills={roleSkillsMap[editingSkill] ?? []}
           onSkillsChange={onRoleSkillsChange}
           onClose={() => setEditingSkill(null)}
+        />
+      )}
+
+      {removingRole && (
+        <ConfirmDialog
+          title="Remove Agent"
+          message={`Remove "${team.find((m) => m.roleId === removingRole)?.name ?? removingRole}" from the team?`}
+          confirmLabel="Remove"
+          danger
+          onConfirm={() => {
+            onRemoveTeamMember(removingRole);
+            setRemovingRole(null);
+          }}
+          onCancel={() => setRemovingRole(null)}
         />
       )}
     </>

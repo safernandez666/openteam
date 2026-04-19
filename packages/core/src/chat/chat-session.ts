@@ -1,7 +1,9 @@
 import { EventEmitter } from "node:events";
-import { PtyManager, createEmitter } from "../agent-runtime/pty-manager.js";
+import { createRequire } from "node:module";
 import type BetterSqlite3 from "better-sqlite3";
 import { buildCliArgs, parseStreamEvent, type ProviderType } from "../orchestrator/cli-provider.js";
+
+const require = createRequire(import.meta.url);
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -151,9 +153,6 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
 
   private async runClaudeOnce(prompt: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      const emitter = createEmitter();
-      const pty = new PtyManager(emitter);
-
       const { command, args } = buildCliArgs(this.provider, {
         prompt,
         systemPrompt: this.systemPrompt,
@@ -163,21 +162,30 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
 
       // Claude-specific: add allowed MCP tools
       if (this.provider === "claude") {
-        // Insert before the prompt (last arg)
-        const promptArg = args.pop()!;
+        // Remove "-p" and prompt from end, insert --allowedTools before them
+        const promptArg = args.pop()!; // prompt text
+        const pFlag = args.pop()!;     // "-p"
         args.push(
           "--allowedTools",
           "mcp__openteam__create_task,mcp__openteam__list_tasks,mcp__openteam__update_task,mcp__openteam__post_update,mcp__openteam__get_updates,mcp__openteam__get_workspace,mcp__openteam__set_workspace",
         );
-        args.push(promptArg);
+        args.push(pFlag, promptArg);
       }
 
       let fullOutput = "";
       let responseText = "";
       let capturedSessionId: string | null = null;
 
-      emitter.on("output", (output) => {
-        fullOutput += output.data;
+      // Use child_process.spawn instead of PTY for cleaner output
+      const { spawn: cpSpawn } = require("node:child_process") as typeof import("node:child_process");
+      const child = cpSpawn(command, args, {
+        cwd: this.cwd,
+        stdio: ["ignore", "pipe", "pipe"],
+        env: { ...process.env },
+      });
+
+      child.stdout.on("data", (data: Buffer) => {
+        fullOutput += data.toString();
 
         const lines = fullOutput.split("\n");
         fullOutput = lines.pop() ?? "";
@@ -187,14 +195,12 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
           try {
             const event = JSON.parse(line) as StreamJsonEvent;
 
-            // Try provider-agnostic parsing first
             const chunk = parseStreamEvent(this.provider, event as unknown as Record<string, unknown>);
             if (chunk) {
               responseText += chunk;
               this.emit("stream", chunk);
             }
 
-            // Claude-specific: capture session ID
             if (event.type === "system" && event.subtype === "init" && event.session_id) {
               capturedSessionId = event.session_id;
             }
@@ -207,7 +213,12 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
         }
       });
 
-      emitter.on("exit", (code) => {
+      let stderrOutput = "";
+      child.stderr.on("data", (data: Buffer) => {
+        stderrOutput += data.toString();
+      });
+
+      child.on("close", (code) => {
         // Process any remaining output
         if (fullOutput.trim()) {
           try {
@@ -230,22 +241,16 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
         }
 
         if (code !== 0 && !responseText) {
-          reject(new Error(`${this.provider} exited with code ${code}`));
+          const debugInfo = stderrOutput.trim() ? ` — ${stderrOutput.trim().slice(0, 300)}` : "";
+          reject(new Error(`${this.provider} exited with code ${code}${debugInfo}`));
         } else {
           resolve(responseText || "(no response)");
         }
       });
 
-      try {
-        pty.spawn({
-          command,
-          args,
-          cwd: this.cwd,
-        });
-      } catch (err) {
-        this._isProcessing = false;
+      child.on("error", (err) => {
         reject(err);
-      }
+      });
     });
   }
 
