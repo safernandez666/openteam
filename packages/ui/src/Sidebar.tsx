@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 
-export type View = "board" | "workers" | "skills" | "mcp" | "chat";
+export type View = "projects" | "board" | "workers" | "skills" | "mcp" | "chat";
 
 const NAV_ITEMS: { key: View; label: string; icon: string }[] = [
+  { key: "projects", label: "Projects", icon: "projects" },
   { key: "board", label: "Board", icon: "board" },
   { key: "workers", label: "Workers", icon: "workers" },
   { key: "skills", label: "Skills", icon: "skills" },
@@ -11,6 +12,13 @@ const NAV_ITEMS: { key: View; label: string; icon: string }[] = [
 ];
 
 function NavIcon({ type }: { type: string }) {
+  if (type === "projects") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 4h5l2 2h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+      </svg>
+    );
+  }
   if (type === "board") {
     return (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -63,11 +71,6 @@ function NavIcon({ type }: { type: string }) {
   return null;
 }
 
-export interface ProjectItem {
-  id: string;
-  name: string;
-}
-
 export interface WorkspaceItem {
   id: string;
   name: string;
@@ -81,13 +84,11 @@ interface SidebarProps {
   activeWorkerCount: number;
   pmStatus: "idle" | "working";
   isConnected: boolean;
-  projects: ProjectItem[];
+  // Project/workspace
+  projectName: string | null;
   workspaces: WorkspaceItem[];
-  activeProject: string | null;
   activeWorkspace: string | null;
-  onSwitchWorkspace: (projectId: string, workspaceId: string) => void;
-  onCreateProject: () => void;
-  onCreateWorkspace: (projectId: string) => void;
+  onSwitchWorkspace: (workspaceId: string) => void;
   onOpenSettings: () => void;
 }
 
@@ -98,13 +99,10 @@ export function Sidebar({
   activeWorkerCount,
   pmStatus,
   isConnected,
-  projects,
+  projectName,
   workspaces,
-  activeProject,
   activeWorkspace,
   onSwitchWorkspace,
-  onCreateProject,
-  onCreateWorkspace,
   onOpenSettings,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(() => {
@@ -123,42 +121,27 @@ export function Sidebar({
         {!collapsed && <span className="sidebar-logo-text">OpenTeam</span>}
       </div>
 
-      {/* Projects & Workspaces */}
-      {!collapsed && (
-        <div className="sidebar-projects">
-          {projects.map((proj) => (
-            <div key={proj.id} className="sidebar-project">
-              <div className={`sidebar-project-header ${proj.id === activeProject ? "sidebar-project-header--active" : ""}`}>
-                <span className="sidebar-project-icon">📁</span>
-                <span className="sidebar-project-name">{proj.name}</span>
-                <button
-                  className="sidebar-project-add"
-                  onClick={(e) => { e.stopPropagation(); onCreateWorkspace(proj.id); }}
-                  title="Add workspace"
-                >
-                  +
-                </button>
-              </div>
-              {proj.id === activeProject && workspaces.map((ws) => (
-                <button
-                  key={ws.id}
-                  className={`sidebar-workspace ${ws.id === activeWorkspace ? "sidebar-workspace--active" : ""}`}
-                  onClick={() => onSwitchWorkspace(proj.id, ws.id)}
-                >
-                  {ws.name}
-                  {ws.id === activeWorkspace && <span className="sidebar-ws-check">&#10003;</span>}
-                </button>
-              ))}
-            </div>
+      {/* Active project + workspaces (expanded only) */}
+      {!collapsed && projectName && (
+        <div className="sidebar-project-section">
+          <div className="sidebar-project-header sidebar-project-header--active">
+            <span className="sidebar-project-icon">📁</span>
+            <span className="sidebar-project-name">{projectName}</span>
+          </div>
+          {workspaces.map((ws) => (
+            <button
+              key={ws.id}
+              className={`sidebar-workspace ${ws.id === activeWorkspace ? "sidebar-workspace--active" : ""}`}
+              onClick={() => onSwitchWorkspace(ws.id)}
+            >
+              {ws.name}
+              {ws.id === activeWorkspace && <span className="sidebar-ws-check">&#10003;</span>}
+            </button>
           ))}
-          <button className="sidebar-new-project" onClick={onCreateProject}>
-            + New Project
-          </button>
         </div>
       )}
 
-      {/* Divider */}
-      <div className="sidebar-divider" />
+      {!collapsed && <div className="sidebar-divider" />}
 
       {/* Navigation */}
       <nav className="sidebar-nav">

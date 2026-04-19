@@ -13,6 +13,7 @@ import { WorkspaceSettings } from "./WorkspaceSettings";
 import { useToasts, ToastContainer } from "./Toasts";
 import { NewWorkspaceModal } from "./NewWorkspaceModal";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { ProjectsPanel } from "./projects/ProjectsPanel";
 import "./styles.css";
 
 interface WorkspaceInfo {
@@ -110,13 +111,10 @@ export function App() {
         activeWorkerCount={activeWorkers.length}
         pmStatus={pmStatus}
         isConnected={isConnected}
-        projects={projects}
+        projectName={projects.find((p) => p.id === activeProject)?.name ?? null}
         workspaces={workspaces}
-        activeProject={activeProject}
         activeWorkspace={activeWorkspace}
-        onSwitchWorkspace={handleSwitchWorkspace}
-        onCreateProject={handleCreateWorkspace}
-        onCreateWorkspace={() => setShowNewWs(true)}
+        onSwitchWorkspace={(wsId) => activeProject && handleSwitchWorkspace(activeProject, wsId)}
         onOpenSettings={() => setShowWsSettings(true)}
       />
 
@@ -201,6 +199,16 @@ export function App() {
 
         {/* Content area */}
         <div className="main-content">
+          {activeView === "projects" && (
+            <div className="view-panel view-panel--projects">
+              <ProjectsPanel
+                activeProjectId={activeProject}
+                activeWorkspaceId={activeWorkspace}
+                onSwitch={(projId, wsId) => handleSwitchWorkspace(projId, wsId)}
+              />
+            </div>
+          )}
+
           {activeView === "board" && (
             <div className="view-panel view-panel--board view-panel--full">
               <KanbanBoard
