@@ -1,6 +1,9 @@
 {
-  "name": "@openteam/cli",
-  "version": "0.1.2",
+  "name": "openteam-cli",
+  "version": "0.2.0",
+  "author": "Santiago Fernandez",
+  "homepage": "https://github.com/safernandez666/openteam",
+  "bugs": "https://github.com/safernandez666/openteam/issues",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
@@ -30,8 +33,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@openteam/core": "workspace:*",
-    "@openteam/web": "workspace:*"
+    "openteam-core": "workspace:*",
+    "openteam-web": "workspace:*"
   },
   "devDependencies": {
     "tsup": "^8.4.0",

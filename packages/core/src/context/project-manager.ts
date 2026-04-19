@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync, cpSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync, cpSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 
 export interface ProjectInfo {
@@ -74,7 +74,8 @@ export class ProjectManager {
   createProject(id: string, name: string, description = ""): ProjectInfo {
     const sanitized = id.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
     const dir = join(this.projectsDir, sanitized);
-    if (existsSync(dir)) throw new Error(`Project "${sanitized}" already exists`);
+    const metaPath = join(dir, "project.json");
+    if (existsSync(metaPath)) throw new Error(`Project "${sanitized}" already exists`);
 
     mkdirSync(dir, { recursive: true });
     mkdirSync(join(dir, "workspaces"), { recursive: true });
@@ -164,6 +165,12 @@ export class ProjectManager {
 
   setActive(projectId: string, workspaceId: string): void {
     writeFileSync(this.activeFilePath, JSON.stringify({ projectId, workspaceId }, null, 2), "utf-8");
+  }
+
+  clearActive(): void {
+    if (existsSync(this.activeFilePath)) {
+      unlinkSync(this.activeFilePath);
+    }
   }
 
   // ── Migration from old structure ──────────

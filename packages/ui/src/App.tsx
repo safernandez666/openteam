@@ -33,6 +33,17 @@ export function App() {
   const [showWsSettings, setShowWsSettings] = useState(false);
   const [showNewWs, setShowNewWs] = useState(false);
   const [deletingWs, setDeletingWs] = useState<string | null>(null);
+  const [workDirWarning, setWorkDirWarning] = useState<string | null>(null);
+
+  // Check workDir permissions
+  useEffect(() => {
+    fetch("/api/project/check")
+      .then((r) => r.json())
+      .then((data: { ok: boolean; error?: string }) => {
+        setWorkDirWarning(data.ok ? null : data.error ?? "Working directory issue");
+      })
+      .catch(() => {});
+  }, [activeWorkspace]);
 
   const refreshWorkspaces = useCallback(async () => {
     try {
@@ -48,11 +59,10 @@ export function App() {
         const wsData = await wsRes.json();
         setWorkspaces(wsData);
       } else {
-        // Fallback to legacy
-        const res = await fetch("/api/workspaces");
-        const data = await res.json();
-        setWorkspaces(data.workspaces ?? []);
-        setActiveWorkspace(data.active);
+        // No active project — clear breadcrumb
+        setActiveProject(null);
+        setActiveWorkspace(null);
+        setWorkspaces([]);
       }
     } catch { /* ignore */ }
   }, []);
@@ -70,7 +80,7 @@ export function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id }),
     });
-    window.location.reload();
+    await refreshWorkspaces();
   };
 
   const handleDeleteWorkspace = async (id: string) => {
@@ -91,8 +101,7 @@ export function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectId, workspaceId }),
     });
-    // Workspace changed — need server restart to load new data
-    window.location.reload();
+    await refreshWorkspaces();
   };
   const { messages, streamingContent, pmStatus, sendMessage, clearChat } = useChat(
     subscribe,
@@ -120,7 +129,7 @@ export function App() {
         <header className="header">
           <div className="header-left">
             <span className="header-logo">OpenTeam</span>
-            <span className="header-version">v0.1.0</span>
+            <span className="header-version">v0.2.0</span>
             {activeProject && (
               <span className="header-breadcrumb">
                 <span className="header-breadcrumb-project">{projects.find((p) => p.id === activeProject)?.name ?? activeProject}</span>
@@ -151,6 +160,19 @@ export function App() {
           </div>
         </header>
 
+        {workDirWarning && (
+          <div className="workdir-warning">
+            <span className="workdir-warning-icon">&#9888;</span>
+            <span className="workdir-warning-text">{workDirWarning}</span>
+            <button className="workdir-warning-action" onClick={() => setShowWsSettings(true)}>
+              Configure
+            </button>
+            <button className="workdir-warning-dismiss" onClick={() => setWorkDirWarning(null)}>
+              &times;
+            </button>
+          </div>
+        )}
+
         {/* Content area */}
         <div className="main-content">
           {activeView === "projects" && (
@@ -160,6 +182,7 @@ export function App() {
                 activeWorkspaceId={activeWorkspace}
                 onSwitch={(projId, wsId) => handleSwitchWorkspace(projId, wsId)}
                 onRefresh={refreshWorkspaces}
+                onOpenSettings={() => setShowWsSettings(true)}
               />
             </div>
           )}

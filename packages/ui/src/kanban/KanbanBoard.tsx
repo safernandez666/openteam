@@ -204,6 +204,7 @@ export function KanbanBoard({
   const blockedTasks = (tasksByColumn["blocked"] ?? []).length;
   const rejectedTasks = tasks.filter((t) => t.status === "rejected").length;
   const completionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const totalTokens = tasks.reduce((sum, t) => sum + (t.input_tokens ?? 0) + (t.output_tokens ?? 0), 0);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [query, setQuery] = useState("");
   const [filterAssignee, setFilterAssignee] = useState<string | null>(null);
@@ -272,6 +273,12 @@ export function KanbanBoard({
         <StatCard label="In Progress" value={inProgress} accent="var(--blue)" />
         <StatCard label="Blocked" value={blockedTasks + rejectedTasks} accent={blockedTasks + rejectedTasks > 0 ? "var(--red)" : undefined} />
         <StatCard label="Workers" value={activeWorkers.length} accent={activeWorkers.length > 0 ? "var(--accent)" : undefined} />
+        {totalTokens > 0 && (
+          <StatCard
+            label="Tokens"
+            value={totalTokens > 1000 ? `${(totalTokens / 1000).toFixed(1)}k` : totalTokens}
+          />
+        )}
         <div className="stat-card stat-card--progress">
           <div className="stat-value">{completionPct}%</div>
           <div className="stat-label">Complete</div>
@@ -354,7 +361,7 @@ export function KanbanBoard({
           </div>
           <div className="board-empty-title">No tasks yet</div>
           <div className="board-empty-subtitle">
-            Chat with Clara to create your first task, or use the CLI
+            Chat with Facu to create your first task, or use the CLI
           </div>
         </div>
       )}

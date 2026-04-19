@@ -1,7 +1,7 @@
 import { WebSocketServer, type WebSocket } from "ws";
 import type { Server } from "node:http";
 import type BetterSqlite3 from "better-sqlite3";
-import { ChatSession, type Task, type TaskStore, type SkillLoader } from "@openteam/core";
+import { ChatSession, type Task, type TaskStore, type SkillLoader } from "openteam-core";
 
 interface ClientMessage {
   type: string;
@@ -42,14 +42,16 @@ export interface WsHandler {
 export function createWsHandler(
   server: Server,
   cwd: string,
-  taskStore: TaskStore,
-  skillLoader?: SkillLoader,
-  db?: BetterSqlite3.Database,
-  activeWs?: string,
-  provider?: string,
+  deps: {
+    getTaskStore: () => TaskStore;
+    getSkillLoader: () => SkillLoader | undefined;
+    getDb: () => BetterSqlite3.Database | undefined;
+    getActiveWs: () => string;
+    getProvider: () => string;
+  },
 ): WsHandler {
   const wss = new WebSocketServer({ server, path: "/ws" });
-  const chatSession = new ChatSession(cwd, undefined, db, (provider as "claude" | "kimi") ?? "claude");
+  const chatSession = new ChatSession(cwd, undefined, deps.getDb(), (deps.getProvider() as "claude" | "kimi") ?? "claude");
 
   chatSession.on("stream", (chunk: string) => {
     for (const client of wss.clients) {
@@ -80,13 +82,14 @@ export function createWsHandler(
     });
 
     // Send current tasks
-    const tasks = taskStore.list();
+    const tasks = deps.getTaskStore().list();
     send(ws, { type: "tasks_updated", tasks });
 
     // Send workspace info
-    send(ws, { type: "workspace_info", workspace: activeWs });
+    send(ws, { type: "workspace_info", workspace: deps.getActiveWs() });
 
     // Send available skills (team roster) + modules + role-skills
+    const skillLoader = deps.getSkillLoader();
     if (skillLoader) {
       const skills = skillLoader.list().map((s) => ({
         name: s.name,
@@ -139,7 +142,7 @@ export function createWsHandler(
           }
 
           // After PM responds, push updated tasks (PM may have created tasks via MCP)
-          const updatedTasks = taskStore.list();
+          const updatedTasks = deps.getTaskStore().list();
           for (const client of wss.clients) {
             send(client, { type: "tasks_updated", tasks: updatedTasks });
           }

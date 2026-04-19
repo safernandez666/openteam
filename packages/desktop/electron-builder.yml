@@ -1,0 +1,19 @@
+appId: com.openteam.desktop
+productName: OpenTeam
+directories:
+  output: release
+files:
+  - dist/**/*
+  - node_modules/**/*
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+win:
+  target:
+    - nsis
+linux:
+  target:
+    - AppImage
+    - deb

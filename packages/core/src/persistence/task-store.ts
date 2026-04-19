@@ -25,6 +25,8 @@ export interface Task {
   retry_count: number;
   max_retries: number;
   last_error: string | null;
+  input_tokens: number;
+  output_tokens: number;
   created_at: string;
   updated_at: string;
 }
@@ -187,6 +189,30 @@ export class TaskStore {
       .run(params);
 
     return this.get(id);
+  }
+
+  delete(id: string): boolean {
+    const task = this.get(id);
+    if (!task) return false;
+    this.db.prepare("DELETE FROM task_dependencies WHERE task_id = ? OR depends_on_id = ?").run(id, id);
+    this.db.prepare("DELETE FROM task_updates WHERE task_id = ?").run(id);
+    this.db.prepare("DELETE FROM tasks WHERE id = ?").run(id);
+    return true;
+  }
+
+  retry(id: string): Task | null {
+    const task = this.get(id);
+    if (!task) return null;
+    this.db
+      .prepare("UPDATE tasks SET status = 'assigned', retry_count = 0, last_error = NULL, updated_at = ? WHERE id = ?")
+      .run(new Date().toISOString(), id);
+    return this.get(id);
+  }
+
+  updateTokens(id: string, inputTokens: number, outputTokens: number): void {
+    this.db
+      .prepare("UPDATE tasks SET input_tokens = ?, output_tokens = ?, updated_at = ? WHERE id = ?")
+      .run(inputTokens, outputTokens, new Date().toISOString(), id);
   }
 
   // ── Retry methods ────────────────────────────────────

@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager } from "@openteam/core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -35,44 +35,48 @@ export function startServer(port = PORT, host = HOST): Server {
   let projectDir: string;
   let dataDir: string;
 
+  // Validate active pointer — clear if project was deleted
+  if (active) {
+    const activeProjectId = active.projectId;
+    if (!projectManager.listProjects().some((p) => p.id === activeProjectId)) {
+      console.log(`Active project "${activeProjectId}" no longer exists — clearing`);
+      projectManager.clearActive();
+      active = null;
+    }
+  }
+
   if (active) {
     projectDir = projectManager.getProjectDir(active.projectId);
     dataDir = projectManager.getWorkspaceDir(active.projectId, active.workspaceId);
     console.log(`Project: ${active.projectId} | Workspace: ${active.workspaceId}`);
   } else {
-    // Try legacy migration
-    const migrated = projectManager.migrateFromLegacy();
-    if (migrated) {
-      active = projectManager.getActive();
-      if (active) {
-        projectDir = projectManager.getProjectDir(active.projectId);
-        dataDir = projectManager.getWorkspaceDir(active.projectId, active.workspaceId);
-        console.log(`Migrated! Project: ${active.projectId} | Workspace: ${active.workspaceId}`);
+    // No active pointer — check if projects already exist
+    const existingProjects = projectManager.listProjects();
+    if (existingProjects.length > 0) {
+      // Pick the first existing project and its first workspace
+      const firstProj = existingProjects[0];
+      const workspaces = projectManager.listWorkspaces(firstProj.id);
+      const firstWs = workspaces[0];
+      if (firstWs) {
+        projectManager.setActive(firstProj.id, firstWs.id);
+        projectDir = projectManager.getProjectDir(firstProj.id);
+        dataDir = projectManager.getWorkspaceDir(firstProj.id, firstWs.id);
+        console.log(`Resumed: ${firstProj.id}/${firstWs.id}`);
       } else {
-        // Migration failed to set active — create default
-        projectManager.createProject("default", "Default Project");
-        projectManager.createWorkspace("default", "main", "Main");
-        projectManager.setActive("default", "main");
-        projectDir = projectManager.getProjectDir("default");
-        dataDir = projectManager.getWorkspaceDir("default", "main");
+        // Project exists but no workspaces — create one
+        projectManager.createWorkspace(firstProj.id, "main", "Main");
+        projectManager.setActive(firstProj.id, "main");
+        projectDir = projectManager.getProjectDir(firstProj.id);
+        dataDir = projectManager.getWorkspaceDir(firstProj.id, "main");
       }
     } else {
-      // No legacy data — first run
-      let activeWs = workspaceManager.getActive();
-      if (activeWs && activeWs !== "__legacy__") {
-        // Old workspace system still active — use it for now
-        dataDir = workspaceManager.getWorkspaceDir(activeWs);
-        projectDir = dataDir; // Same dir for legacy
-        console.log(`Legacy workspace: ${activeWs} (${dataDir})`);
-      } else {
-        // Brand new install
-        projectManager.createProject("default", "Default Project");
-        projectManager.createWorkspace("default", "main", "Main");
-        projectManager.setActive("default", "main");
-        projectDir = projectManager.getProjectDir("default");
-        dataDir = projectManager.getWorkspaceDir("default", "main");
-        console.log(`New install — Project: default | Workspace: main`);
-      }
+      // No projects at all — create default
+      projectManager.createProject("default", "Default Project");
+      projectManager.createWorkspace("default", "main", "Main");
+      projectManager.setActive("default", "main");
+      projectDir = projectManager.getProjectDir("default");
+      dataDir = projectManager.getWorkspaceDir("default", "main");
+      console.log(`New install — Project: default | Workspace: main`);
     }
   }
 
@@ -115,15 +119,46 @@ export function startServer(port = PORT, host = HOST): Server {
     res.json(tasks);
   });
 
+  app.post("/api/tasks", (req, res) => {
+    const input = req.body as import("openteam-core").CreateTaskInput;
+    if (!input.title) {
+      res.status(400).json({ error: "title is required" });
+      return;
+    }
+    const task = state.taskStore.create(input);
+    wsHandler.broadcastTasks(state.taskStore.list());
+    res.status(201).json(task);
+  });
+
   app.patch("/api/tasks/:id", (req, res) => {
     const updates = req.body as Record<string, unknown>;
-    const task = state.taskStore.update(req.params.id, updates as import("@openteam/core").UpdateTaskInput);
+    const task = state.taskStore.update(req.params.id, updates as import("openteam-core").UpdateTaskInput);
     if (!task) {
       res.status(404).json({ error: "Task not found" });
       return;
     }
     wsHandler.broadcastTasks(state.taskStore.list());
     res.json(task);
+  });
+
+  app.delete("/api/tasks/:id", (req, res) => {
+    const removed = state.taskStore.delete(req.params.id);
+    if (!removed) {
+      res.status(404).json({ error: "Task not found" });
+      return;
+    }
+    wsHandler.broadcastTasks(state.taskStore.list());
+    res.status(204).send();
+  });
+
+  app.post("/api/tasks/:id/retry", (req, res) => {
+    const task = state.taskStore.retry(req.params.id);
+    if (!task) {
+      res.status(404).json({ error: "Task not found" });
+      return;
+    }
+    wsHandler.broadcastTasks(state.taskStore.list());
+    res.json({ taskId: task.id, status: task.status });
   });
 
   // Skills API
@@ -263,10 +298,15 @@ export function startServer(port = PORT, host = HOST): Server {
   });
 
   app.delete("/api/projects/:id", (req, res) => {
+    const currentActive = projectManager.getActive();
     const removed = projectManager.deleteProject(req.params.id);
     if (!removed) {
       res.status(404).json({ error: "Project not found" });
       return;
+    }
+    // If we deleted the active project, clear the active pointer
+    if (currentActive?.projectId === req.params.id) {
+      projectManager.clearActive();
     }
     res.json({ ok: true });
   });
@@ -289,6 +329,24 @@ export function startServer(port = PORT, host = HOST): Server {
     }
   });
 
+  app.delete("/api/projects/:projectId/workspaces/:wsId", (req, res) => {
+    const { projectId, wsId } = req.params;
+    const currentActive = projectManager.getActive();
+
+    // Prevent deleting the active workspace
+    if (currentActive?.projectId === projectId && currentActive?.workspaceId === wsId) {
+      res.status(400).json({ error: "Cannot delete the active workspace. Switch to another workspace first." });
+      return;
+    }
+
+    const removed = projectManager.deleteWorkspace(projectId, wsId);
+    if (!removed) {
+      res.status(404).json({ error: "Workspace not found" });
+      return;
+    }
+    res.json({ ok: true });
+  });
+
   app.put("/api/active", (req, res) => {
     const { projectId, workspaceId } = req.body as { projectId?: string; workspaceId?: string };
     if (!projectId || !workspaceId) {
@@ -301,9 +359,27 @@ export function startServer(port = PORT, host = HOST): Server {
     const newDataDir = projectManager.getWorkspaceDir(projectId, workspaceId);
     loadWorkspace(newDataDir);
 
-    // Update chat session provider
-    const newProject = state.projectConfig.get();
-    wsHandler.setProvider(newProject.provider);
+    // Recreate orchestrator with new workspace state
+    orchestrator.stop();
+    orchestrator.removeAllListeners();
+    orchestrator = new Orchestrator({
+      taskStore: state.taskStore,
+      eventLogger: state.eventLogger,
+      cwd,
+      skillLoader: state.skillLoader,
+      contextManager: state.contextManager,
+      mcpManager: state.mcpManager,
+      agentNames: state.agentNames,
+      knowledgeBase: state.knowledgeBase,
+      provider: state.projectConfig.get().provider as "claude" | "kimi",
+      maxConcurrentWorkers: 3,
+      pollIntervalMs: 3000,
+    });
+    attachOrchestratorListeners(orchestrator);
+    orchestrator.start();
+
+    // Update chat session
+    wsHandler.setProvider(state.projectConfig.get().provider);
     wsHandler.setTeamInfo(state.teamConfig.getMembers());
     wsHandler.resetChat();
     wsHandler.broadcastTasks(state.taskStore.list());
@@ -340,8 +416,38 @@ export function startServer(port = PORT, host = HOST): Server {
       res.status(400).json({ error: "id is required" });
       return;
     }
-    workspaceManager.setActive(id);
-    res.json({ active: id, restart: true, message: "Restart the server to apply workspace change" });
+    const currentActive = projectManager.getActive();
+    const pid = currentActive?.projectId ?? "default";
+    const newDataDir = projectManager.getWorkspaceDir(pid, id);
+    projectManager.setActive(pid, id);
+    loadWorkspace(newDataDir);
+
+    // Recreate orchestrator with new workspace state
+    orchestrator.stop();
+    orchestrator.removeAllListeners();
+    orchestrator = new Orchestrator({
+      taskStore: state.taskStore,
+      eventLogger: state.eventLogger,
+      cwd,
+      skillLoader: state.skillLoader,
+      contextManager: state.contextManager,
+      mcpManager: state.mcpManager,
+      agentNames: state.agentNames,
+      knowledgeBase: state.knowledgeBase,
+      provider: state.projectConfig.get().provider as "claude" | "kimi",
+      maxConcurrentWorkers: 3,
+      pollIntervalMs: 3000,
+    });
+    attachOrchestratorListeners(orchestrator);
+    orchestrator.start();
+
+    wsHandler.setProvider(state.projectConfig.get().provider);
+    wsHandler.setTeamInfo(state.teamConfig.getMembers());
+    wsHandler.resetChat();
+    wsHandler.broadcastTasks(state.taskStore.list());
+
+    console.log(`Hot-swapped to legacy workspace ${id} (${newDataDir})`);
+    res.json({ active: id, switched: true });
   });
 
   app.delete("/api/workspaces/:id", (req, res) => {
@@ -398,12 +504,18 @@ export function startServer(port = PORT, host = HOST): Server {
     res.json(state.projectConfig.get());
   });
 
+  app.get("/api/project/check", (_req, res) => {
+    const check = state.projectConfig.checkWorkDir();
+    res.json(check);
+  });
+
   app.put("/api/project", (req, res) => {
     const updates = req.body as Record<string, unknown>;
-    const result = state.projectConfig.update(updates as Partial<import("@openteam/core").ProjectConfig>);
+    const result = state.projectConfig.update(updates as Partial<import("openteam-core").ProjectConfig>);
     // Hot-reload provider if changed
     if (updates.provider && typeof updates.provider === "string") {
       wsHandler.setProvider(updates.provider);
+      orchestrator.setProvider(updates.provider as "claude" | "kimi");
     }
     res.json(result);
   });
@@ -452,14 +564,15 @@ export function startServer(port = PORT, host = HOST): Server {
       state.skillLoader.saveModule(repoName, allContent);
 
       // AI analysis for the combined skill
-      const providerCmd = project.provider === "kimi" ? "kimi" : "claude";
+      const currentProvider = state.projectConfig.get().provider;
+      const providerCmd = currentProvider === "kimi" ? "kimi" : "claude";
       // Name from repo/skill — capitalize properly
       const aiName = repoName.split(/[-_]/).map((w) => w[0]?.toUpperCase() + w.slice(1)).join(" ");
       let aiDesc = "";
       let aiCategory = autoCategorize(repoName, allContent);
 
       try {
-        const { execSync: exec } = await import("node:child_process");
+        const { exec } = await import("node:child_process");
         const prompt = `This skill pack is called "${repoName}". It contains ${installedNames.length} files. Write a short description and pick a category.
 
 Respond with ONLY JSON: {"description": "max 60 chars describing what this skill does", "category": "one of: Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom"}
@@ -468,10 +581,16 @@ Content preview:
 ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
         const quietFlag = providerCmd === "kimi" ? "--quiet" : "--print";
-        const result = exec(
-          `${providerCmd} ${quietFlag} -p ${JSON.stringify(prompt)}`,
-          { timeout: 30000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
-        );
+        const result = await new Promise<string>((resolve, reject) => {
+          exec(
+            `${providerCmd} ${quietFlag} -p ${JSON.stringify(prompt)}`,
+            { timeout: 30000, encoding: "utf-8" },
+            (error, stdout) => {
+              if (error) reject(error);
+              else resolve(stdout);
+            },
+          );
+        });
 
         const jsonMatch = result.match(/\{[\s\S]*?\}/);
         if (jsonMatch) {
@@ -597,6 +716,20 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     res.json(result);
   });
 
+  app.get("/api/avatar-seeds", (_req, res) => {
+    res.json(state.agentNames.getAllAvatarSeeds());
+  });
+
+  app.put("/api/avatar-seeds/:role", (req, res) => {
+    const { seed } = req.body as { seed?: number };
+    if (typeof seed !== "number") {
+      res.status(400).json({ error: "seed (number) is required" });
+      return;
+    }
+    state.agentNames.setAvatarSeed(req.params.role, seed);
+    res.json({ role: req.params.role, seed });
+  });
+
   // Knowledge Base API
   app.get("/api/knowledge", (_req, res) => {
     res.json(state.knowledgeBase.list());
@@ -636,7 +769,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       res.status(400).json({ error: "name and config are required" });
       return;
     }
-    const entry = state.mcpManager.set(name, config as import("@openteam/core").McpServerConfig, enabled ?? true);
+    const entry = state.mcpManager.set(name, config as import("openteam-core").McpServerConfig, enabled ?? true);
     res.json(entry);
   });
 
@@ -719,12 +852,20 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   }
 
   // WebSocket handler
-  const activeLabel = active ? `${active.projectId}/${active.workspaceId}` : "default";
-  const wsHandler = createWsHandler(httpServer, cwd, state.taskStore, state.skillLoader, state.db, activeLabel, state.projectConfig.get().provider);
+  const wsHandler = createWsHandler(httpServer, cwd, {
+    getTaskStore: () => state.taskStore,
+    getSkillLoader: () => state.skillLoader,
+    getDb: () => state.db,
+    getActiveWs: () => {
+      const a = projectManager.getActive();
+      return a ? `${a.projectId}/${a.workspaceId}` : "default";
+    },
+    getProvider: () => state.projectConfig.get().provider,
+  });
 
   // Orchestrator — picks up "assigned" tasks and spawns workers
   const project = state.projectConfig.get();
-  const orchestrator = new Orchestrator({
+  let orchestrator = new Orchestrator({
     taskStore: state.taskStore,
     eventLogger: state.eventLogger,
     cwd,
@@ -738,23 +879,27 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     pollIntervalMs: 3000,
   });
 
-  orchestrator.on("task_updated", () => {
-    const tasks = state.taskStore.list();
-    wsHandler.broadcastTasks(tasks);
-  });
+  function attachOrchestratorListeners(orc: Orchestrator) {
+    orc.on("task_updated", () => {
+      const tasks = state.taskStore.list();
+      wsHandler.broadcastTasks(tasks);
+    });
 
-  orchestrator.on("workers_changed", (workers: unknown[]) => {
-    wsHandler.broadcastWorkers(workers as import("./ws-handler.js").WorkerInfo[]);
-  });
+    orc.on("workers_changed", (workers: unknown[]) => {
+      wsHandler.broadcastWorkers(workers as import("./ws-handler.js").WorkerInfo[]);
+    });
 
-  orchestrator.on("worker_output", ({ taskId, chunk }: { taskId: string; chunk: string }) => {
-    wsHandler.broadcastWorkerOutput(taskId, chunk);
-  });
+    orc.on("worker_output", ({ taskId, chunk }: { taskId: string; chunk: string }) => {
+      wsHandler.broadcastWorkerOutput(taskId, chunk);
+    });
 
-  orchestrator.on("worker_done", ({ taskId, result }: { taskId: string; result: string }) => {
-    console.log(`Worker completed task ${taskId}: ${result.slice(0, 100)}`);
-    wsHandler.broadcastWorkerDone(taskId);
-  });
+    orc.on("worker_done", ({ taskId, result }: { taskId: string; result: string }) => {
+      console.log(`Worker completed task ${taskId}: ${result.slice(0, 100)}`);
+      wsHandler.broadcastWorkerDone(taskId);
+    });
+  }
+
+  attachOrchestratorListeners(orchestrator);
 
   // Update Clara's team knowledge
   wsHandler.setTeamInfo(state.teamConfig.getMembers());
@@ -775,16 +920,14 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     console.log(`OpenTeam server listening on http://${host}:${port}`);
   });
 
-  // Poll for task changes every 2s and push to clients
-  let lastTaskHash = "";
-  setInterval(() => {
-    const tasks = state.taskStore.list();
-    const hash = JSON.stringify(tasks);
-    if (hash !== lastTaskHash) {
-      lastTaskHash = hash;
-      wsHandler.broadcastTasks(tasks);
-    }
-  }, 2000);
+  // Graceful shutdown
+  const shutdown = () => {
+    console.log("Shutting down gracefully...");
+    orchestrator.stop();
+    httpServer.close(() => process.exit(0));
+  };
+  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", shutdown);
 
   return httpServer;
 }

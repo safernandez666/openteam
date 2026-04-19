@@ -19,11 +19,13 @@ export function ProjectsPanel({
   activeWorkspaceId,
   onSwitch,
   onRefresh,
+  onOpenSettings,
 }: {
   activeProjectId: string | null;
   activeWorkspaceId: string | null;
   onSwitch: (projectId: string, workspaceId: string) => void;
   onRefresh: () => void;
+  onOpenSettings: () => void;
 }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [workspacesByProject, setWorkspacesByProject] = useState<Record<string, Workspace[]>>({});
@@ -38,6 +40,7 @@ export function ProjectsPanel({
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [deletingProject, setDeletingProject] = useState<string | null>(null);
+  const [deletingWs, setDeletingWs] = useState<{ projectId: string; wsId: string } | null>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/projects");
@@ -103,6 +106,13 @@ export function ProjectsPanel({
     onRefresh();
   };
 
+  const confirmDeleteWorkspace = async () => {
+    if (!deletingWs) return;
+    await fetch(`/api/projects/${deletingWs.projectId}/workspaces/${deletingWs.wsId}`, { method: "DELETE" });
+    setDeletingWs(null);
+    await refresh();
+  };
+
   const startEdit = (proj: Project) => {
     setEditing(proj.id);
     setEditName(proj.name);
@@ -119,6 +129,7 @@ export function ProjectsPanel({
     });
     setEditing(null);
     await refresh();
+    onRefresh();
   };
 
   return (
@@ -175,7 +186,16 @@ export function ProjectsPanel({
             const isActive = proj.id === activeProjectId;
             const isEditing = editing === proj.id;
             return (
-              <div key={proj.id} className={`project-card ${isActive ? "project-card--active" : ""}`}>
+              <div
+                key={proj.id}
+                className={`project-card ${isActive ? "project-card--active" : ""}`}
+                onClick={() => {
+                  if (!isActive && !isEditing && wsList.length > 0) {
+                    onSwitch(proj.id, wsList[0].id);
+                  }
+                }}
+                style={!isActive && !isEditing && wsList.length > 0 ? { cursor: "pointer" } : undefined}
+              >
                 <div className="project-card-header">
                   {isEditing ? (
                     <input
@@ -226,14 +246,29 @@ export function ProjectsPanel({
                   {wsList.map((ws) => {
                     const isWsActive = isActive && ws.id === activeWorkspaceId;
                     return (
-                      <button
-                        key={ws.id}
-                        className={`project-ws-item ${isWsActive ? "project-ws-item--active" : ""}`}
-                        onClick={() => onSwitch(proj.id, ws.id)}
-                      >
-                        {ws.name}
-                        {isWsActive && <span className="sidebar-ws-check">&#10003;</span>}
-                      </button>
+                      <div key={ws.id} className="project-ws-row">
+                        <button
+                          className={`project-ws-item ${isWsActive ? "project-ws-item--active" : ""}`}
+                          onClick={(e) => { e.stopPropagation(); onSwitch(proj.id, ws.id); }}
+                        >
+                          {ws.name}
+                          {isWsActive && <span className="sidebar-ws-check">&#10003;</span>}
+                        </button>
+                        {isWsActive && (
+                          <button
+                            className="project-ws-settings"
+                            onClick={(e) => { e.stopPropagation(); onOpenSettings(); }}
+                            title="Workspace settings"
+                          >&#9881;</button>
+                        )}
+                        {!isWsActive && (
+                          <button
+                            className="project-ws-delete"
+                            onClick={(e) => { e.stopPropagation(); setDeletingWs({ projectId: proj.id, wsId: ws.id }); }}
+                            title="Delete workspace"
+                          >&times;</button>
+                        )}
+                      </div>
                     );
                   })}
                   {addingWs === proj.id && (
@@ -266,6 +301,17 @@ export function ProjectsPanel({
           danger
           onConfirm={handleDeleteProject}
           onCancel={() => setDeletingProject(null)}
+        />
+      )}
+
+      {deletingWs && (
+        <ConfirmDialog
+          title="Delete Workspace"
+          message={`Delete workspace "${deletingWs.wsId}"? All tasks, chat history, and configuration will be permanently lost.`}
+          confirmLabel="Delete"
+          danger
+          onConfirm={confirmDeleteWorkspace}
+          onCancel={() => setDeletingWs(null)}
         />
       )}
     </>

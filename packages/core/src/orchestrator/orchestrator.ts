@@ -6,7 +6,7 @@ import type { ContextManager } from "../context/context-manager.js";
 import type { McpManager } from "../mcp-server/mcp-manager.js";
 import type { AgentNames } from "./agent-names.js";
 import type { KnowledgeBase } from "../context/knowledge-base.js";
-import type { ProviderType } from "./cli-provider.js";
+import type { ProviderType, TokenUsage } from "./cli-provider.js";
 import { WorkerRunner } from "./worker-runner.js";
 
 export interface WorkerInfo {
@@ -89,10 +89,10 @@ export class Orchestrator extends EventEmitter {
       clearInterval(this.pollTimer);
       this.pollTimer = null;
     }
-    for (const [taskId, worker] of this.activeWorkers) {
+    for (const [, worker] of new Map(this.activeWorkers)) {
       worker.stop();
-      this.activeWorkers.delete(taskId);
     }
+    this.activeWorkers.clear();
     for (const [, timer] of this.retryTimers) {
       clearTimeout(timer);
     }
@@ -101,6 +101,10 @@ export class Orchestrator extends EventEmitter {
 
   get workerCount(): number {
     return this.activeWorkers.size;
+  }
+
+  setProvider(provider: ProviderType): void {
+    this.provider = provider;
   }
 
   /** Returns current state of all tracked workers (active + recently finished). */
@@ -176,8 +180,11 @@ export class Orchestrator extends EventEmitter {
       this.emit("worker_output", data);
     });
 
-    worker.on("complete", (result: string) => {
+    worker.on("complete", (result: string, usage?: TokenUsage) => {
       this.taskStore.update(task.id, { status: "done", result });
+      if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
+        this.taskStore.updateTokens(task.id, usage.inputTokens, usage.outputTokens);
+      }
       this.activeWorkers.delete(task.id);
 
       const info = this.workerInfoMap.get(task.id);
@@ -198,6 +205,9 @@ export class Orchestrator extends EventEmitter {
       this.emit("task_updated", this.taskStore.get(task.id));
       this.emit("worker_done", { taskId: task.id, result });
       this.emit("workers_changed", this.getWorkers());
+
+      // Clean up completed worker info after 60s to prevent memory leak
+      setTimeout(() => this.workerInfoMap.delete(task.id), 60000);
 
       // Check if completing this task unblocks dependents
       this.checkUnblockedDependents(task.id);
@@ -241,6 +251,9 @@ export class Orchestrator extends EventEmitter {
 
       this.emit("task_updated", updatedTask);
       this.emit("workers_changed", this.getWorkers());
+
+      // Clean up errored worker info after 60s to prevent memory leak
+      setTimeout(() => this.workerInfoMap.delete(task.id), 60000);
     });
 
     worker.start();

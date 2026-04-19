@@ -1,6 +1,6 @@
 {
-  "name": "@openteam/web",
-  "version": "0.1.2",
+  "name": "openteam-web",
+  "version": "0.2.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,13 +20,15 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@openteam/core": "workspace:*",
+    "openteam-core": "workspace:*",
     "express": "^5.1.0",
     "ws": "^8.20.0"
   },
   "devDependencies": {
     "@types/express": "^5.0.0",
+    "@types/supertest": "^7.2.0",
     "@types/ws": "^8.18.1",
+    "supertest": "^7.2.2",
     "tsup": "^8.4.0",
     "tsx": "^4.19.0",
     "typescript": "^5.8.3"

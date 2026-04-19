@@ -124,3 +124,50 @@ export function parseStreamEvent(provider: ProviderType, event: Record<string, u
 
   return null;
 }
+
+export interface TokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+/**
+ * Extract token usage from a stream-json event.
+ * Claude emits usage in message_start and message_delta events.
+ * Returns null if this event doesn't contain usage data.
+ */
+export function parseTokenUsage(provider: ProviderType, event: Record<string, unknown>): TokenUsage | null {
+  if (provider === "claude") {
+    // message_start: { type: "message_start", message: { usage: { input_tokens, output_tokens } } }
+    if (event.type === "message_start") {
+      const message = event.message as Record<string, unknown> | undefined;
+      const usage = message?.usage as Record<string, number> | undefined;
+      if (usage) {
+        return { inputTokens: usage.input_tokens ?? 0, outputTokens: usage.output_tokens ?? 0 };
+      }
+    }
+    // message_delta: { type: "message_delta", usage: { output_tokens } }
+    if (event.type === "message_delta") {
+      const usage = event.usage as Record<string, number> | undefined;
+      if (usage) {
+        return { inputTokens: 0, outputTokens: usage.output_tokens ?? 0 };
+      }
+    }
+    // result event at the end: { type: "result", ... usage: { input_tokens, output_tokens } }
+    if (event.type === "result") {
+      const usage = event.usage as Record<string, number> | undefined;
+      if (usage) {
+        return { inputTokens: usage.input_tokens ?? 0, outputTokens: usage.output_tokens ?? 0 };
+      }
+    }
+  }
+
+  if (provider === "kimi") {
+    // Kimi usage in: { usage: { input_tokens, output_tokens } }
+    const usage = event.usage as Record<string, number> | undefined;
+    if (usage && (usage.input_tokens || usage.output_tokens)) {
+      return { inputTokens: usage.input_tokens ?? 0, outputTokens: usage.output_tokens ?? 0 };
+    }
+  }
+
+  return null;
+}

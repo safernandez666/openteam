@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 import { homedir } from "node:os";
 import { readFileSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
@@ -9,11 +9,12 @@ import {
   EventLogger,
   SkillLoader,
   ContextManager,
-} from "@openteam/core";
-import type { TaskPriority, TaskStatus } from "@openteam/core";
+} from "openteam-core";
+import type { TaskPriority, TaskStatus } from "openteam-core";
+import { resolveDbPath } from "./resolve-db-path.js";
 
 const DATA_DIR = join(homedir(), ".openteam");
-const DB_PATH = join(DATA_DIR, "openteam.db");
+const DB_PATH = resolveDbPath(DATA_DIR);
 
 // ── Helpers ──────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ function cmdStart(flags: Record<string, string>): void {
 
   console.log(`\n  ${bold("OpenTeam")} ${dim(`v${VERSION}`)}\n`);
 
-  import("@openteam/web").then((mod) => {
+  import("openteam-web").then((mod) => {
     mod.startServer(port, host);
   });
 }
@@ -269,7 +270,7 @@ function printTaskDetail(task: { id: string; title: string; description: string;
 }
 
 function cmdSkills(): void {
-  const userSkillsDir = join(DATA_DIR, "skills");
+  const userSkillsDir = join(dirname(DB_PATH), "skills");
   const loader = new SkillLoader(userSkillsDir);
   const skills = loader.list();
 
@@ -295,7 +296,7 @@ function cmdSkillsAdd(args: string[]): void {
     process.exit(1);
   }
 
-  const userSkillsDir = join(DATA_DIR, "skills");
+  const userSkillsDir = join(dirname(DB_PATH), "skills");
   const loader = new SkillLoader(userSkillsDir);
 
   console.log(`\n  ${dim("Installing skill from")} ${source} ${dim("...")}\n`);
@@ -320,7 +321,7 @@ function cmdSkillsRemove(args: string[]): void {
     process.exit(1);
   }
 
-  const userSkillsDir = join(DATA_DIR, "skills");
+  const userSkillsDir = join(dirname(DB_PATH), "skills");
   const loader = new SkillLoader(userSkillsDir);
 
   // Can't remove built-in skills
@@ -342,7 +343,7 @@ function cmdSkillsRemove(args: string[]): void {
 function cmdContext(args: string[]): void {
   const db = openDatabase(DB_PATH);
   const store = new TaskStore(db);
-  const ctx = new ContextManager(DATA_DIR, store);
+  const ctx = new ContextManager(dirname(DB_PATH), store);
 
   const sub = args[0];
 
@@ -407,10 +408,10 @@ function cmdStatus(): void {
     byStatus[t.status] = (byStatus[t.status] ?? 0) + 1;
   }
 
-  const loader = new SkillLoader(join(DATA_DIR, "skills"));
+  const loader = new SkillLoader(join(dirname(DB_PATH), "skills"));
   const skills = loader.list();
 
-  const ctx = new ContextManager(DATA_DIR, store);
+  const ctx = new ContextManager(dirname(DB_PATH), store);
   const workspace = ctx.getWorkspace();
 
   console.log(`\n  ${bold("OpenTeam Status")} ${dim(`v${VERSION}`)}\n`);

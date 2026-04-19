@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, accessSync, constants } from "node:fs";
 import { join, dirname } from "node:path";
 
 export interface ProjectConfig {
@@ -62,6 +62,19 @@ export class ProjectConfigManager {
     }
     this.save();
     return this.get();
+  }
+
+  /** Check if workDir exists and is readable/writable */
+  checkWorkDir(): { ok: boolean; error?: string } {
+    const dir = this.config.workDir;
+    if (!dir) return { ok: false, error: "No working directory configured" };
+    if (!existsSync(dir)) return { ok: false, error: `Directory does not exist: ${dir}` };
+    try {
+      accessSync(dir, constants.R_OK | constants.W_OK);
+      return { ok: true };
+    } catch {
+      return { ok: false, error: `No read/write permission on: ${dir}` };
+    }
   }
 
   /** Build a summary for worker/PM prompts */

@@ -37,11 +37,13 @@ function AgentCard({
   onEditSkill: (name: string) => void;
   onRemove?: (role: string) => void;
   isPM?: boolean;
+  initialAvatarSeed?: number;
+  onAvatarSeedChange?: (role: string, seed: number) => void;
 }) {
   const meta = getRoleMeta(role, agentNames);
   const [editingName, setEditingName] = useState(false);
   const [nameInput, setNameInput] = useState(meta.displayName);
-  const [avatarSeed, setAvatarSeed] = useState(0);
+  const [avatarSeed, setAvatarSeed] = useState(initialAvatarSeed ?? 0);
   const avatarUrl = getAvatarUrl(meta.displayName + (avatarSeed ? `-${avatarSeed}` : ""));
 
   const handleNameSave = () => {
@@ -51,9 +53,15 @@ function AgentCard({
     setEditingName(false);
   };
 
+  const handleAvatarClick = () => {
+    const newSeed = avatarSeed + 1;
+    setAvatarSeed(newSeed);
+    onAvatarSeedChange?.(role, newSeed);
+  };
+
   return (
     <div className="agent-card">
-      <div className="agent-card-avatar" onClick={() => setAvatarSeed((s) => s + 1)} title="Click to change avatar">
+      <div className="agent-card-avatar" onClick={handleAvatarClick} title="Click to change avatar">
         <img src={avatarUrl} alt={meta.displayName} className="agent-avatar" />
       </div>
       <div className="agent-card-body">
@@ -238,17 +246,30 @@ export function WorkersPanel({
 }: WorkersPanelProps) {
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
   const [showCatalog, setShowCatalog] = useState(false);
+  const [avatarSeeds, setAvatarSeeds] = useState<Record<string, number>>({});
 
   const handleNameChange = (role: string, name: string) => {
     onUpdateTeamMember(role, { name });
   };
 
+  const handleAvatarSeedChange = (role: string, seed: number) => {
+    setAvatarSeeds((prev) => ({ ...prev, [role]: seed }));
+    fetch(`/api/avatar-seeds/${role}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ seed }),
+    }).catch(() => {});
+  };
+
   const [pmProvider, setPmProvider] = useState<"claude" | "kimi">("claude");
 
-  // Load PM provider from project config
+  // Load PM provider + avatar seeds
   useEffect(() => {
     fetch("/api/project").then((r) => r.json()).then((d) => {
       setPmProvider(d.provider ?? "claude");
+    }).catch(() => {});
+    fetch("/api/avatar-seeds").then((r) => r.json()).then((seeds) => {
+      setAvatarSeeds(seeds);
     }).catch(() => {});
   }, []);
 
@@ -334,6 +355,8 @@ export function WorkersPanel({
               onProviderChange={handleProviderChange}
               onEditSkill={() => {}}
               isPM
+              initialAvatarSeed={avatarSeeds.pm ?? 0}
+              onAvatarSeedChange={handleAvatarSeedChange}
             />
 
             {/* Team member cards */}
@@ -350,6 +373,8 @@ export function WorkersPanel({
                 onProviderChange={handleProviderChange}
                 onEditSkill={setEditingSkill}
                 onRemove={onRemoveTeamMember}
+                initialAvatarSeed={avatarSeeds[member.roleId] ?? 0}
+                onAvatarSeedChange={handleAvatarSeedChange}
               />
             ))}
           </div>

@@ -6,7 +6,7 @@ import type { SkillLoader } from "../skills/skill-loader.js";
 import type { ContextManager } from "../context/context-manager.js";
 import type { McpManager } from "../mcp-server/mcp-manager.js";
 import type { KnowledgeBase } from "../context/knowledge-base.js";
-import { buildCliArgs, parseStreamEvent, type ProviderType } from "./cli-provider.js";
+import { buildCliArgs, parseStreamEvent, parseTokenUsage, type ProviderType, type TokenUsage } from "./cli-provider.js";
 
 const DEFAULT_WORKER_PROMPT = `You are a Worker agent in the OpenTeam framework.
 You have been assigned a task. Complete it efficiently and concisely.
@@ -81,6 +81,8 @@ export class WorkerRunner extends EventEmitter {
 
     let fullOutput = "";
     let responseText = "";
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
 
     emitter.on("output", (output) => {
       fullOutput += output.data;
@@ -99,6 +101,11 @@ export class WorkerRunner extends EventEmitter {
               chunk,
             });
           }
+          const usage = parseTokenUsage(this.provider, event);
+          if (usage) {
+            totalInputTokens += usage.inputTokens;
+            totalOutputTokens += usage.outputTokens;
+          }
         } catch {
           // skip non-JSON
         }
@@ -115,7 +122,10 @@ export class WorkerRunner extends EventEmitter {
           task_id: this.task.id,
           detail: responseText.slice(0, 500),
         });
-        this.emit("complete", responseText || "(completed with no output)");
+        this.emit("complete", responseText || "(completed with no output)", {
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
+        } as TokenUsage);
       } else {
         this.emit("error", new Error(`Worker exited with code ${code}`));
       }

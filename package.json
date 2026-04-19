@@ -1,8 +1,17 @@
 {
   "name": "openteam",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
+  "description": "AI agent orchestration framework — spawn a team of AI agents that collaborate to build your project",
+  "author": "Santiago Fernandez",
+  "license": "MIT",
+  "homepage": "https://github.com/safernandez666/openteam",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/safernandez666/openteam"
+  },
+  "bugs": "https://github.com/safernandez666/openteam/issues",
   "engines": {
     "node": ">=22"
   },
@@ -27,8 +36,14 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^22.15.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "eslint": "^9.25.0",
+    "jsdom": "^29.0.2",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.30.0",

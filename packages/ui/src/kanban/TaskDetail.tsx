@@ -107,6 +107,18 @@ export function TaskDetail({
                 <span className="task-detail-value">{task.retry_count}/{task.max_retries}</span>
               </div>
             )}
+            {(task.input_tokens > 0 || task.output_tokens > 0) && (
+              <div className="task-detail-meta-item">
+                <span className="task-detail-label">Tokens</span>
+                <span className="task-detail-value task-detail-tokens">
+                  <span title="Input tokens">{task.input_tokens.toLocaleString()} in</span>
+                  <span className="task-detail-tokens-sep">/</span>
+                  <span title="Output tokens">{task.output_tokens.toLocaleString()} out</span>
+                  <span className="task-detail-tokens-sep">/</span>
+                  <span title="Total tokens">{(task.input_tokens + task.output_tokens).toLocaleString()} total</span>
+                </span>
+              </div>
+            )}
             <div className="task-detail-meta-item">
               <span className="task-detail-label">Created</span>
               <span className="task-detail-value">{new Date(task.created_at).toLocaleString()}</span>

@@ -1,0 +1,26 @@
+{
+  "name": "@openteam/desktop",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "OpenTeam desktop app — Electron wrapper for the AI agent orchestration framework",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc || echo 'Desktop build skipped (install electron deps first)'",
+    "dev": "pnpm build && electron .",
+    "clean": "rm -rf dist",
+    "dist": "pnpm build && electron-builder",
+    "rebuild": "electron-rebuild -f -w better-sqlite3 -w node-pty"
+  },
+  "dependencies": {
+    "openteam-web": "workspace:*",
+    "openteam-core": "workspace:*"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0",
+    "electron-rebuild": "^3.2.9",
+    "typescript": "^5.8.3"
+  }
+}

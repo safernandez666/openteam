@@ -30,12 +30,14 @@ const DEFAULTS: AgentNamesConfig = {
 export class AgentNames {
   private names: AgentNamesConfig;
   private providers: AgentProvidersConfig;
+  private avatarSeeds: Record<string, number>;
   private configPath: string;
 
   constructor(dataDir: string) {
     this.configPath = join(dataDir, "agent-config.json");
     this.names = { ...DEFAULTS };
     this.providers = {};
+    this.avatarSeeds = {};
     this.load();
   }
 
@@ -55,6 +57,7 @@ export class AgentNames {
       const data = JSON.parse(readFileSync(this.configPath, "utf-8"));
       this.names = { ...DEFAULTS, ...data.names };
       this.providers = data.providers ?? {};
+      this.avatarSeeds = data.avatarSeeds ?? {};
     } catch {
       // ignore corrupt file
     }
@@ -62,7 +65,7 @@ export class AgentNames {
 
   private save(): void {
     mkdirSync(dirname(this.configPath), { recursive: true });
-    writeFileSync(this.configPath, JSON.stringify({ names: this.names, providers: this.providers }, null, 2), "utf-8");
+    writeFileSync(this.configPath, JSON.stringify({ names: this.names, providers: this.providers, avatarSeeds: this.avatarSeeds }, null, 2), "utf-8");
   }
 
   /** Get the human name for a role. */
@@ -103,6 +106,22 @@ export class AgentNames {
     }
     this.save();
     return this.getAllProviders();
+  }
+
+  /** Get avatar seed for a role. */
+  getAvatarSeed(role: string): number {
+    return this.avatarSeeds[role] ?? 0;
+  }
+
+  /** Get all avatar seeds. */
+  getAllAvatarSeeds(): Record<string, number> {
+    return { ...this.avatarSeeds };
+  }
+
+  /** Update avatar seed for a role. */
+  setAvatarSeed(role: string, seed: number): void {
+    this.avatarSeeds[role] = seed;
+    this.save();
   }
 
   /** Reset all names to defaults. */

@@ -74,6 +74,11 @@ const MIGRATION_V6 = `
   );
 `;
 
+const MIGRATION_V7 = `
+  ALTER TABLE tasks ADD COLUMN input_tokens INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE tasks ADD COLUMN output_tokens INTEGER NOT NULL DEFAULT 0;
+`;
+
 export function openDatabase(dbPath: string): BetterSqlite3Database {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -104,6 +109,10 @@ export function openDatabase(dbPath: string): BetterSqlite3Database {
   if (version < 6) {
     db.exec(MIGRATION_V6);
     db.pragma("user_version = 6");
+  }
+  if (version < 7) {
+    db.exec(MIGRATION_V7);
+    db.pragma("user_version = 7");
   }
 
   return db;

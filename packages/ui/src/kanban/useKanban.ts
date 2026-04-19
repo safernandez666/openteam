@@ -15,6 +15,8 @@ export interface Task {
   retry_count: number;
   max_retries: number;
   last_error: string | null;
+  input_tokens: number;
+  output_tokens: number;
   created_at: string;
   updated_at: string;
 }
