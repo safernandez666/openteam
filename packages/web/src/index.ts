@@ -299,16 +299,18 @@ export function startServer(port = PORT, host = HOST): Server {
 
       // AI analysis for the combined skill
       const providerCmd = project.provider === "kimi" ? "kimi" : "claude";
-      let aiName = repoName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+      // Name from repo/skill — capitalize properly
+      const aiName = repoName.split(/[-_]/).map((w) => w[0]?.toUpperCase() + w.slice(1)).join(" ");
       let aiDesc = "";
       let aiCategory = autoCategorize(repoName, allContent);
 
       try {
         const { execSync: exec } = await import("node:child_process");
-        const prompt = `Analyze this skill and respond with ONLY JSON, no markdown:
-{"name": "Short Title (2-4 words)", "description": "Max 60 chars, like: UI animation, transitions, scroll effects", "category": "one of: Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom"}
+        const prompt = `This skill pack is called "${repoName}". It contains ${installedNames.length} files. Write a short description and pick a category.
 
-Skill content (${installedNames.length} files combined):
+Respond with ONLY JSON: {"description": "max 60 chars describing what this skill does", "category": "one of: Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom"}
+
+Content preview:
 ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
         const quietFlag = providerCmd === "kimi" ? "--quiet" : "--print";
@@ -320,7 +322,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
         const jsonMatch = result.match(/\{[\s\S]*?\}/);
         if (jsonMatch) {
           const parsed = JSON.parse(jsonMatch[0]);
-          if (parsed.name) aiName = parsed.name;
+          // Don't override the name — keep repo/skill name
           if (parsed.description && parsed.description !== "---" && parsed.description.length > 5) {
             let d = parsed.description;
             // Strip YAML-style prefix: "name: xxx description: "
