@@ -159,14 +159,21 @@ export class SkillLoader {
         "readme.md", "license.md", "code_of_conduct.md", "contributing.md",
         "changelog.md", "security.md", "pull_request_template.md",
         "bug_report.md", "feature_request.md", "attack_coverage.md",
+        "claude.md",
       ]);
 
-      // Recursively find .md files
+      // Skip directories that aren't skill content
+      const SKIP_DIRS = new Set([
+        ".github", ".git", "node_modules", "assets", "mappings",
+        "docs", "examples", "tests", "__tests__", ".opencastle",
+      ]);
+
+      // Recursively find .md files (skip non-skill directories)
       const findMdFiles = (dir: string): Array<{ filePath: string; fileName: string }> => {
         if (!existsSync(dir)) return [];
         const results: Array<{ filePath: string; fileName: string }> = [];
         for (const entry of readdirSync(dir, { withFileTypes: true })) {
-          if (entry.isDirectory() && !entry.name.startsWith(".")) {
+          if (entry.isDirectory() && !entry.name.startsWith(".") && !SKIP_DIRS.has(entry.name.toLowerCase())) {
             results.push(...findMdFiles(join(dir, entry.name)));
           } else if (entry.isFile() && extname(entry.name) === ".md") {
             results.push({ filePath: join(dir, entry.name), fileName: entry.name });
@@ -180,14 +187,16 @@ export class SkillLoader {
 
         const content = readFileSync(filePath, "utf-8").trim();
 
-        // Skip files that look like repo docs
+        // Skip files that look like repo docs or templates
         const looksLikeDoc =
           content.includes("img.shields.io") ||
           content.includes("<p align=") ||
           content.includes("Supported |") ||
           content.includes("## Contributing") ||
           content.startsWith("# Code of") ||
-          content.length < 50;
+          content.includes("{{TITLE}}") ||
+          content.includes("{{DESCRIPTION}}") ||
+          content.length < 100;
         if (looksLikeDoc) continue;
 
         // Derive name: SKILL.md uses parent folder, otherwise file name
