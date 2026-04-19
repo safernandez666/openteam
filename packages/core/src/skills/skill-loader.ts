@@ -154,7 +154,6 @@ export class SkillLoader {
       });
 
       const installed: string[] = [];
-      const searchDirs = [tmpDir, join(tmpDir, "skills"), join(tmpDir, "modules")];
 
       const SKIP_FILES = new Set([
         "readme.md", "license.md", "code_of_conduct.md", "contributing.md",
@@ -162,30 +161,46 @@ export class SkillLoader {
         "bug_report.md", "feature_request.md", "attack_coverage.md",
       ]);
 
-      for (const dir of searchDirs) {
-        if (!existsSync(dir)) continue;
-        for (const file of readdirSync(dir)) {
-          if (extname(file) !== ".md") continue;
-          if (SKIP_FILES.has(file.toLowerCase())) continue;
-
-          const originalName = basename(file, ".md").toLowerCase();
-          const content = readFileSync(join(dir, file), "utf-8").trim();
-
-          // Skip files that look like repo docs, not skills
-          const looksLikeDoc =
-            content.includes("img.shields.io") ||
-            content.includes("<p align=") ||
-            content.includes("Supported |") ||
-            content.includes("## Contributing") ||
-            content.startsWith("# Code of") ||
-            content.length < 50;
-          if (looksLikeDoc) continue;
-
-          // Use custom name for single-file repos, otherwise use file name
-          const name = customName && installed.length === 0 ? customName.toLowerCase() : originalName;
-          writeFileSync(join(modulesDir, `${name}.md`), content, "utf-8");
-          installed.push(name);
+      // Recursively find .md files
+      const findMdFiles = (dir: string): Array<{ filePath: string; fileName: string }> => {
+        if (!existsSync(dir)) return [];
+        const results: Array<{ filePath: string; fileName: string }> = [];
+        for (const entry of readdirSync(dir, { withFileTypes: true })) {
+          if (entry.isDirectory() && !entry.name.startsWith(".")) {
+            results.push(...findMdFiles(join(dir, entry.name)));
+          } else if (entry.isFile() && extname(entry.name) === ".md") {
+            results.push({ filePath: join(dir, entry.name), fileName: entry.name });
+          }
         }
+        return results;
+      };
+
+      for (const { filePath, fileName } of findMdFiles(tmpDir)) {
+        if (SKIP_FILES.has(fileName.toLowerCase())) continue;
+
+        const content = readFileSync(filePath, "utf-8").trim();
+
+        // Skip files that look like repo docs
+        const looksLikeDoc =
+          content.includes("img.shields.io") ||
+          content.includes("<p align=") ||
+          content.includes("Supported |") ||
+          content.includes("## Contributing") ||
+          content.startsWith("# Code of") ||
+          content.length < 50;
+        if (looksLikeDoc) continue;
+
+        // Derive name: SKILL.md uses parent folder, otherwise file name
+        let skillName: string;
+        if (fileName.toLowerCase() === "skill.md") {
+          skillName = basename(join(filePath, "..")).toLowerCase();
+        } else {
+          skillName = basename(fileName, ".md").toLowerCase();
+        }
+
+        const finalName = customName && installed.length === 0 ? customName.toLowerCase() : skillName;
+        writeFileSync(join(modulesDir, `${finalName}.md`), content, "utf-8");
+        installed.push(finalName);
       }
 
       if (installed.length === 0) {
