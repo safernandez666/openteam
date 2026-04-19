@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import type { WorkerInfo, SkillInfo, ModuleInfo, AgentNamesMap } from "./useWorkers";
+import type { WorkerInfo, SkillInfo, ModuleInfo, AgentNamesMap, TeamMember, RoleDef } from "./useWorkers";
 import { getRoleMeta, getAvatarUrl } from "./useWorkers";
 import { SkillEditor } from "./SkillEditor";
 
@@ -198,6 +198,11 @@ interface WorkersPanelProps {
   getWorkerOutput: (taskId: string) => string;
   agentNames: AgentNamesMap;
   onUpdateAgentNames: (updates: AgentNamesMap) => void;
+  team: TeamMember[];
+  roleCatalog: RoleDef[];
+  onAddTeamMember: (roleId: string, name?: string) => void;
+  onRemoveTeamMember: (roleId: string) => void;
+  onUpdateTeamMember: (roleId: string, updates: { name?: string; provider?: string }) => void;
 }
 
 export function WorkersPanel({
@@ -210,36 +215,21 @@ export function WorkersPanel({
   getWorkerOutput,
   agentNames,
   onUpdateAgentNames,
+  team,
+  roleCatalog,
+  onAddTeamMember,
+  onRemoveTeamMember,
+  onUpdateTeamMember,
 }: WorkersPanelProps) {
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
-  const [providers, setProviders] = useState<Record<string, "claude" | "kimi">>({});
-
-  // Load providers on mount
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/agent-providers").then((r) => r.json()),
-      fetch("/api/project").then((r) => r.json()),
-    ]).then(([agentP, project]) => {
-      const defaultP = project.provider ?? "claude";
-      const merged: Record<string, "claude" | "kimi"> = {};
-      for (const role of ["pm", "developer", "designer", "tester", "reviewer"]) {
-        merged[role] = agentP[role] ?? defaultP;
-      }
-      setProviders(merged);
-    }).catch(() => {});
-  }, []);
-
-  const handleProviderChange = async (role: string, provider: "claude" | "kimi") => {
-    setProviders((prev) => ({ ...prev, [role]: provider }));
-    await fetch("/api/agent-providers", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ [role]: provider }),
-    });
-  };
+  const [showCatalog, setShowCatalog] = useState(false);
 
   const handleNameChange = (role: string, name: string) => {
-    onUpdateAgentNames({ [role]: name });
+    onUpdateTeamMember(role, { name });
+  };
+
+  const handleProviderChange = (role: string, provider: "claude" | "kimi") => {
+    onUpdateTeamMember(role, { provider });
   };
 
   // Count active workers per role
@@ -263,30 +253,65 @@ export function WorkersPanel({
       <div className="workers-body">
         {/* Team grid */}
         <div className="workers-section">
-          <div className="workers-section-label">Team</div>
+          <div className="workers-section-header">
+            <div className="workers-section-label">Team</div>
+            <button className="btn btn--ghost btn--sm" onClick={() => setShowCatalog(!showCatalog)}>
+              {showCatalog ? "Done" : "+ Add Agent"}
+            </button>
+          </div>
+
+          {/* Role catalog — add agents */}
+          {showCatalog && (
+            <div className="role-catalog">
+              <div className="role-catalog-hint">Select roles to add to your team</div>
+              <div className="role-catalog-grid">
+                {roleCatalog.map((role) => {
+                  const inTeam = team.some((m) => m.roleId === role.id);
+                  return (
+                    <button
+                      key={role.id}
+                      className={`role-catalog-item ${inTeam ? "role-catalog-item--active" : ""}`}
+                      onClick={() => {
+                        if (inTeam) {
+                          onRemoveTeamMember(role.id);
+                        } else {
+                          onAddTeamMember(role.id, role.defaultName);
+                        }
+                      }}
+                    >
+                      <span className="role-catalog-name">{role.name}</span>
+                      <span className="role-catalog-desc">{role.description}</span>
+                      {inTeam && <span className="role-catalog-check">&#10003;</span>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="agent-grid">
-            {/* PM card */}
+            {/* PM card — always present */}
             <AgentCard
               role="pm"
               activeCount={1}
               assignedModules={[]}
-              agentNames={agentNames}
-              provider={providers.pm ?? "claude"}
+              agentNames={{ ...agentNames, pm: agentNames.pm ?? "Clara" }}
+              provider={team.find((m) => m.roleId === "pm")?.provider ?? "claude"}
               onNameChange={handleNameChange}
               onProviderChange={handleProviderChange}
               onEditSkill={() => {}}
             />
 
-            {/* Worker cards */}
-            {skills.map((skill) => (
+            {/* Team member cards */}
+            {team.map((member) => (
               <AgentCard
-                key={skill.name}
-                role={skill.name}
-                skill={skill}
-                activeCount={activeByRole[skill.name] ?? 0}
-                assignedModules={roleSkillsMap[skill.name] ?? []}
-                agentNames={agentNames}
-                provider={providers[skill.name] ?? "claude"}
+                key={member.roleId}
+                role={member.roleId}
+                skill={skills.find((s) => s.name === member.roleId)}
+                activeCount={activeByRole[member.roleId] ?? 0}
+                assignedModules={roleSkillsMap[member.roleId] ?? []}
+                agentNames={{ ...agentNames, [member.roleId]: member.name }}
+                provider={member.provider}
                 onNameChange={handleNameChange}
                 onProviderChange={handleProviderChange}
                 onEditSkill={setEditingSkill}

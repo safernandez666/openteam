@@ -83,7 +83,7 @@ export function App() {
   );
   const { tasks, tasksByColumn, getSubtasks } = useKanban(subscribe);
   const { toasts } = useToasts(subscribe);
-  const { workers, activeWorkers, completedWorkers, skills, modules, roleSkillsMap, setRoleSkillsMap, getWorkerOutput, refreshModules, agentNames, updateAgentNames } = useWorkers(subscribe);
+  const { workers, activeWorkers, completedWorkers, skills, modules, roleSkillsMap, setRoleSkillsMap, getWorkerOutput, refreshModules, agentNames, updateAgentNames, team, roleCatalog, addTeamMember, removeTeamMember, updateTeamMember } = useWorkers(subscribe);
 
   return (
     <div className="app">
@@ -201,6 +201,11 @@ export function App() {
                 getWorkerOutput={getWorkerOutput}
                 agentNames={agentNames}
                 onUpdateAgentNames={updateAgentNames}
+                team={team}
+                roleCatalog={roleCatalog}
+                onAddTeamMember={addTeamMember}
+                onRemoveTeamMember={removeTeamMember}
+                onUpdateTeamMember={updateTeamMember}
               />
             </div>
           )}

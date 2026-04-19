@@ -1,6 +1,10 @@
 export { Orchestrator } from "./orchestrator.js";
 export { WorkerRunner } from "./worker-runner.js";
 export { AgentNames } from "./agent-names.js";
+export { TeamConfigManager } from "./team-config.js";
+export { ROLE_CATALOG, CATEGORIES, getRole, getRolesByCategory } from "./role-catalog.js";
 export type { OrchestratorOptions, WorkerInfo } from "./orchestrator.js";
 export type { AgentNamesConfig } from "./agent-names.js";
+export type { TeamMember, TeamConfig } from "./team-config.js";
+export type { RoleDefinition } from "./role-catalog.js";
 export type { ProviderType } from "./cli-provider.js";

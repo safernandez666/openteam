@@ -44,8 +44,8 @@ export { ChatSession } from "./chat/index.js";
 export type { ChatMessage, ChatEvents } from "./chat/index.js";
 
 // Orchestrator
-export { Orchestrator, WorkerRunner, AgentNames } from "./orchestrator/index.js";
-export type { OrchestratorOptions, WorkerInfo, AgentNamesConfig } from "./orchestrator/index.js";
+export { Orchestrator, WorkerRunner, AgentNames, TeamConfigManager, ROLE_CATALOG, CATEGORIES, getRole, getRolesByCategory } from "./orchestrator/index.js";
+export type { OrchestratorOptions, WorkerInfo, AgentNamesConfig, TeamMember, TeamConfig, RoleDefinition } from "./orchestrator/index.js";
 
 // Skills
 export { SkillLoader } from "./skills/index.js";

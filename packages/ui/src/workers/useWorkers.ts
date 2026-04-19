@@ -22,12 +22,35 @@ export interface ModuleInfo {
   source: "built-in" | "user";
 }
 
+export interface TeamMember {
+  roleId: string;
+  name: string;
+  provider: "claude" | "kimi";
+}
+
+export interface RoleDef {
+  id: string;
+  name: string;
+  emoji: string;
+  description: string;
+  category: string;
+  defaultName: string;
+}
+
 const ROLE_STATIC: Record<string, { emoji: string; description: string }> = {
-  pm: { emoji: "📋", description: "Project manager, coordination, chat" },
-  developer: { emoji: "🔧", description: "Code, features, bug fixes" },
-  designer: { emoji: "🎨", description: "UI/UX, components, visual polish" },
-  tester: { emoji: "🧪", description: "Tests, validation, quality" },
-  reviewer: { emoji: "🔍", description: "Code review, security, performance" },
+  pm: { emoji: "clipboard", description: "Project manager, coordination, chat" },
+  developer: { emoji: "code", description: "Code, features, bug fixes" },
+  designer: { emoji: "palette", description: "UI/UX, components, visual polish" },
+  tester: { emoji: "test-tube", description: "Tests, validation, quality" },
+  reviewer: { emoji: "search", description: "Code review, security, performance" },
+  architect: { emoji: "building", description: "System design, architecture decisions" },
+  devops: { emoji: "rocket", description: "CI/CD, Docker, deployments" },
+  security: { emoji: "shield", description: "Auth, vulnerabilities, hardening" },
+  "data-engineer": { emoji: "database", description: "ETL, data models, migrations" },
+  copywriter: { emoji: "pen", description: "UI text, docs, marketing copy" },
+  seo: { emoji: "globe", description: "Meta tags, structured data, sitemaps" },
+  performance: { emoji: "zap", description: "Core Web Vitals, bundle size, caching" },
+  "api-designer": { emoji: "plug", description: "REST/GraphQL API design, schemas" },
 };
 
 export type AgentNamesMap = Record<string, string>;
@@ -98,12 +121,14 @@ export function useWorkers(
     [workerOutput],
   );
 
-  // Fetch agent names on mount
+  const [team, setTeam] = useState<TeamMember[]>([]);
+  const [roleCatalog, setRoleCatalog] = useState<RoleDef[]>([]);
+
+  // Fetch agent names + team + catalog on mount
   useEffect(() => {
-    fetch("/api/agent-names")
-      .then((r) => r.json())
-      .then((data) => setAgentNames(data))
-      .catch(() => {});
+    fetch("/api/agent-names").then((r) => r.json()).then(setAgentNames).catch(() => {});
+    fetch("/api/team").then((r) => r.json()).then((d) => setTeam(d.members ?? [])).catch(() => {});
+    fetch("/api/role-catalog").then((r) => r.json()).then((d) => setRoleCatalog(d.roles ?? [])).catch(() => {});
   }, []);
 
   const refreshModules = useCallback(async () => {
@@ -112,6 +137,34 @@ export function useWorkers(
       const data = await res.json();
       if (Array.isArray(data)) setModules(data as ModuleInfo[]);
     } catch { /* ignore */ }
+  }, []);
+
+  const addTeamMember = useCallback(async (roleId: string, name?: string, provider?: string) => {
+    const res = await fetch("/api/team/members", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roleId, name, provider }),
+    });
+    if (res.ok) {
+      const d = await fetch("/api/team").then((r) => r.json());
+      setTeam(d.members ?? []);
+    }
+  }, []);
+
+  const removeTeamMember = useCallback(async (roleId: string) => {
+    await fetch(`/api/team/members/${encodeURIComponent(roleId)}`, { method: "DELETE" });
+    const d = await fetch("/api/team").then((r) => r.json());
+    setTeam(d.members ?? []);
+  }, []);
+
+  const updateTeamMember = useCallback(async (roleId: string, updates: { name?: string; provider?: string }) => {
+    await fetch(`/api/team/members/${encodeURIComponent(roleId)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    const d = await fetch("/api/team").then((r) => r.json());
+    setTeam(d.members ?? []);
   }, []);
 
   const updateAgentNames = useCallback(async (updates: AgentNamesMap) => {
@@ -126,5 +179,5 @@ export function useWorkers(
     } catch { /* ignore */ }
   }, []);
 
-  return { workers, activeWorkers, completedWorkers, skills, modules, roleSkillsMap, setRoleSkillsMap, getWorkerOutput, refreshModules, agentNames, updateAgentNames };
+  return { workers, activeWorkers, completedWorkers, skills, modules, roleSkillsMap, setRoleSkillsMap, getWorkerOutput, refreshModules, agentNames, updateAgentNames, team, roleCatalog, addTeamMember, removeTeamMember, updateTeamMember };
 }

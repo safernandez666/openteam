@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager } from "@openteam/core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES } from "@openteam/core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -254,6 +254,53 @@ export function startServer(port = PORT, host = HOST): Server {
     res.json(result);
   });
 
+  // Role Catalog API
+  app.get("/api/role-catalog", (_req, res) => {
+    res.json({ roles: ROLE_CATALOG, categories: CATEGORIES });
+  });
+
+  // Team API
+  app.get("/api/team", (_req, res) => {
+    res.json({ members: teamConfig.getMembers() });
+  });
+
+  app.post("/api/team/members", (req, res) => {
+    const { roleId, name, provider } = req.body as { roleId: string; name?: string; provider?: string };
+    if (!roleId) {
+      res.status(400).json({ error: "roleId is required" });
+      return;
+    }
+    const role = ROLE_CATALOG.find((r) => r.id === roleId);
+    const member = teamConfig.addMember(
+      roleId,
+      name ?? role?.defaultName ?? roleId,
+      (provider as "claude" | "kimi") ?? "claude",
+    );
+    res.json(member);
+  });
+
+  app.delete("/api/team/members/:roleId", (req, res) => {
+    const removed = teamConfig.removeMember(req.params.roleId);
+    if (!removed) {
+      res.status(404).json({ error: "Member not found" });
+      return;
+    }
+    res.json({ ok: true });
+  });
+
+  app.put("/api/team/members/:roleId", (req, res) => {
+    const updates = req.body as { name?: string; provider?: string };
+    const member = teamConfig.updateMember(req.params.roleId, {
+      name: updates.name,
+      provider: updates.provider as "claude" | "kimi",
+    });
+    if (!member) {
+      res.status(404).json({ error: "Member not found" });
+      return;
+    }
+    res.json(member);
+  });
+
   // Agent Names API
   app.get("/api/agent-names", (_req, res) => {
     res.json(agentNames.getAll());
@@ -383,6 +430,11 @@ export function startServer(port = PORT, host = HOST): Server {
   if (project.name) {
     console.log(`Project: ${project.name} (${project.workDir})`);
   }
+
+  // Team Config
+  const teamConfig = new TeamConfigManager(dataDir);
+  const team = teamConfig.getMembers();
+  console.log(`Team: ${team.map(m => m.name).join(", ")} + PM`);
 
   // Agent Names
   const agentNames = new AgentNames(dataDir);
