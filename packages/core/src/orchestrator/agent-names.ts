@@ -24,7 +24,7 @@ const DEFAULTS: AgentNamesConfig = {
   designer: "Sofia",
   tester: "Max",
   reviewer: "Ana",
-  pm: "Clara",
+  pm: "Facu",
 };
 
 export class AgentNames {

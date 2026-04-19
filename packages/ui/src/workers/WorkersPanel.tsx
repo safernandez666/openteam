@@ -295,7 +295,7 @@ export function WorkersPanel({
               role="pm"
               activeCount={1}
               assignedModules={[]}
-              agentNames={{ ...agentNames, pm: agentNames.pm ?? "Clara" }}
+              agentNames={{ ...agentNames, pm: agentNames.pm ?? "Facu" }}
               provider={team.find((m) => m.roleId === "pm")?.provider ?? "claude"}
               onNameChange={handleNameChange}
               onProviderChange={handleProviderChange}

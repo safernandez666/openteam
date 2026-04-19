@@ -2878,6 +2878,132 @@ body {
   flex-shrink: 0;
 }
 
+/* Skills tabs */
+.skills-tabs {
+  display: flex;
+  gap: 0;
+}
+
+.skills-tab {
+  padding: 0 16px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.skills-tab:hover {
+  color: var(--text-secondary);
+}
+
+.skills-tab--active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Marketplace */
+.mp-filters {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.mp-filter {
+  padding: 4px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mp-filter:hover {
+  border-color: var(--accent);
+  color: var(--text-secondary);
+}
+
+.mp-filter--active {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.mp-card {
+  padding: 12px 14px;
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-elevated));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.2s;
+}
+
+.mp-card:hover {
+  border-color: var(--border-strong);
+}
+
+.mp-card--installed {
+  opacity: 0.7;
+}
+
+.mp-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mp-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.mp-card-category {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mp-card-desc {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  line-height: 1.4;
+}
+
+.mp-card-bottom {
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mp-card-installed {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .skills-panel-title {
   font-size: 13px;
   font-weight: 600;

@@ -231,7 +231,7 @@ export function App() {
                 isConnected={isConnected}
                 onSendMessage={sendMessage}
                 onClearChat={clearChat}
-                pmName={agentNames.pm ?? "Clara"}
+                pmName={agentNames.pm ?? "Facu"}
               />
             </div>
           )}
@@ -246,7 +246,7 @@ export function App() {
                 isConnected={isConnected}
                 onSendMessage={sendMessage}
                 onClearChat={clearChat}
-                pmName={agentNames.pm ?? "Clara"}
+                pmName={agentNames.pm ?? "Facu"}
               />
             </div>
           )}

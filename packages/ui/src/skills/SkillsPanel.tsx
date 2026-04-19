@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { ModuleInfo } from "../workers/useWorkers";
 
 function ModuleCard({
@@ -63,6 +63,32 @@ export function SkillsPanel({
   modules: ModuleInfo[];
   onRefresh: () => void;
 }) {
+  const [tab, setTab] = useState<"installed" | "marketplace">("installed");
+  const [marketplace, setMarketplace] = useState<Array<{ id: string; name: string; description: string; category: string; source: string; installed: boolean }>>([]);
+  const [mpCategories, setMpCategories] = useState<string[]>([]);
+  const [mpFilter, setMpFilter] = useState<string | null>(null);
+  const [installing, setInstalling] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/marketplace")
+      .then((r) => r.json())
+      .then((d) => { setMarketplace(d.skills ?? []); setMpCategories(d.categories ?? []); })
+      .catch(() => {});
+  }, [modules]);
+
+  const handleMarketplaceInstall = async (skill: { id: string; name: string }) => {
+    setInstalling(skill.id);
+    try {
+      await fetch("/api/modules/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: skill.id, content: `Use ${skill.name} best practices and patterns.` }),
+      });
+      onRefresh();
+    } catch { /* ignore */ }
+    setInstalling(null);
+  };
+
   const [mode, setMode] = useState<InstallerMode>("closed");
   const [url, setUrl] = useState("");
   const [skillName, setSkillName] = useState("");
@@ -147,13 +173,75 @@ export function SkillsPanel({
   return (
     <>
       <div className="skills-panel-header">
-        <span className="skills-panel-title">Skills</span>
-        <span className="skills-panel-count">
-          {modules.length} module{modules.length !== 1 ? "s" : ""}
-        </span>
+        <div className="skills-tabs">
+          <button
+            className={`skills-tab ${tab === "installed" ? "skills-tab--active" : ""}`}
+            onClick={() => setTab("installed")}
+          >
+            Installed ({modules.length})
+          </button>
+          <button
+            className={`skills-tab ${tab === "marketplace" ? "skills-tab--active" : ""}`}
+            onClick={() => setTab("marketplace")}
+          >
+            Marketplace
+          </button>
+        </div>
       </div>
 
       <div className="skills-panel-body">
+        {/* Marketplace tab */}
+        {tab === "marketplace" && (
+          <>
+            <div className="mp-filters">
+              <button
+                className={`mp-filter ${!mpFilter ? "mp-filter--active" : ""}`}
+                onClick={() => setMpFilter(null)}
+              >
+                All
+              </button>
+              {mpCategories.map((cat) => (
+                <button
+                  key={cat}
+                  className={`mp-filter ${mpFilter === cat ? "mp-filter--active" : ""}`}
+                  onClick={() => setMpFilter(mpFilter === cat ? null : cat)}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            <div className="mp-grid">
+              {marketplace
+                .filter((s) => !mpFilter || s.category === mpFilter)
+                .map((skill) => (
+                  <div key={skill.id} className={`mp-card ${skill.installed ? "mp-card--installed" : ""}`}>
+                    <div className="mp-card-top">
+                      <span className="mp-card-name">{skill.name}</span>
+                      <span className="mp-card-category">{skill.category}</span>
+                    </div>
+                    <div className="mp-card-desc">{skill.description}</div>
+                    <div className="mp-card-bottom">
+                      {skill.installed ? (
+                        <span className="mp-card-installed">Installed</span>
+                      ) : (
+                        <button
+                          className="btn btn--primary btn--sm"
+                          onClick={() => handleMarketplaceInstall(skill)}
+                          disabled={installing === skill.id}
+                        >
+                          {installing === skill.id ? "..." : "Install"}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </>
+        )}
+
+        {/* Installed tab */}
+        {tab === "installed" && (
+        <>
         {/* Actions */}
         <div className="skills-panel-actions">
           <button
@@ -256,6 +344,8 @@ export function SkillsPanel({
             ))}
           </div>
         </div>
+        </>
+        )}
       </div>
     </>
   );

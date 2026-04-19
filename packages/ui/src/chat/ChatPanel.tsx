@@ -55,7 +55,7 @@ export function ChatPanel({
   isConnected,
   onSendMessage,
   onClearChat,
-  pmName = "Clara",
+  pmName = "Facu",
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
