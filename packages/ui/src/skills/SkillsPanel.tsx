@@ -26,6 +26,7 @@ export function SkillsPanel({
   const [addName, setAddName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const refreshAll = () => {
     fetch("/api/marketplace")
@@ -104,7 +105,10 @@ export function SkillsPanel({
     }
   }
 
-  const filtered = filter ? allSkills.filter((s) => s.category === filter) : allSkills;
+  const q = search.toLowerCase();
+  const filtered = allSkills
+    .filter((s) => !filter || s.category === filter)
+    .filter((s) => !q || s.name.toLowerCase().includes(q) || s.description.toLowerCase().includes(q) || s.id.toLowerCase().includes(q));
   const installedCount = modules.length;
 
   return (
@@ -115,8 +119,15 @@ export function SkillsPanel({
       </div>
 
       <div className="skills-panel-body">
-        {/* Add from GitHub */}
-        <div className="mp-add-row">
+        {/* Search + Add */}
+        <div className="mp-top-row">
+          <input
+            type="text"
+            className="kanban-search"
+            placeholder="Search skills..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
           <button
             className={`btn btn--ghost btn--sm ${showAdd ? "btn--active" : ""}`}
             onClick={() => setShowAdd(!showAdd)}

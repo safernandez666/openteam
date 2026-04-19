@@ -326,8 +326,13 @@ Respond with ONLY a JSON object mapping skill ID to metadata. No markdown. Examp
         const ai = aiResults[skillName];
 
         const finalName = ai?.name ?? skillName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
-        const fallbackDesc = content.split("\n").filter((l) => l.trim() && !l.startsWith("#")).slice(0, 1).join(" ").replace(/[*_`]/g, "").slice(0, 100);
-        const finalDesc = ai?.description ?? (fallbackDesc || `${skillName} skill`);
+        const fallbackLines = content.split("\n")
+          .filter((l) => l.trim() && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith("```") && l.trim() !== "---")
+          .map((l) => l.replace(/[*_`]/g, "").trim())
+          .filter((l) => l.length > 10);
+        const fallbackDesc = fallbackLines.slice(0, 2).join(" ").slice(0, 120);
+        const aiDesc = ai?.description && ai.description !== "---" ? ai.description : null;
+        const finalDesc = aiDesc ?? (fallbackDesc || `${skillName} skill`);
         const finalCategory = ai?.category ?? autoCategorize(skillName, content);
 
         const entry = marketplaceCatalog.add({

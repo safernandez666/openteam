@@ -159,13 +159,14 @@ export class SkillLoader {
         "readme.md", "license.md", "code_of_conduct.md", "contributing.md",
         "changelog.md", "security.md", "pull_request_template.md",
         "bug_report.md", "feature_request.md", "attack_coverage.md",
-        "claude.md",
+        "claude.md", "agents.md", "copilot-instructions.md",
       ]);
 
       // Skip directories that aren't skill content
       const SKIP_DIRS = new Set([
         ".github", ".git", "node_modules", "assets", "mappings",
         "docs", "examples", "tests", "__tests__", ".opencastle",
+        "references", "templates",
       ]);
 
       // Recursively find .md files (skip non-skill directories)
