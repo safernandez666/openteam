@@ -23,6 +23,8 @@ function AgentCard({
   onNameChange,
   onProviderChange,
   onEditSkill,
+  onRemove,
+  isPM,
 }: {
   role: string;
   skill?: SkillInfo;
@@ -33,6 +35,8 @@ function AgentCard({
   onNameChange: (role: string, name: string) => void;
   onProviderChange: (role: string, provider: "claude" | "kimi") => void;
   onEditSkill: (name: string) => void;
+  onRemove?: (role: string) => void;
+  isPM?: boolean;
 }) {
   const meta = getRoleMeta(role, agentNames);
   const [editingName, setEditingName] = useState(false);
@@ -74,6 +78,15 @@ function AgentCard({
               <span className="agent-card-active-dot" />
               {activeCount}
             </span>
+          )}
+          {onRemove && !isPM && (
+            <button
+              className="agent-card-remove"
+              onClick={(e) => { e.stopPropagation(); onRemove(role); }}
+              title="Remove from team"
+            >
+              &times;
+            </button>
           )}
         </div>
         <div className="agent-card-desc">{meta.description}</div>
@@ -310,7 +323,7 @@ export function WorkersPanel({
           )}
 
           <div className="agent-grid">
-            {/* PM card — always present */}
+            {/* PM card — always present, cannot be removed */}
             <AgentCard
               role="pm"
               activeCount={1}
@@ -320,6 +333,7 @@ export function WorkersPanel({
               onNameChange={handleNameChange}
               onProviderChange={handleProviderChange}
               onEditSkill={() => {}}
+              isPM
             />
 
             {/* Team member cards */}
@@ -335,6 +349,7 @@ export function WorkersPanel({
                 onNameChange={handleNameChange}
                 onProviderChange={handleProviderChange}
                 onEditSkill={setEditingSkill}
+                onRemove={onRemoveTeamMember}
               />
             ))}
           </div>

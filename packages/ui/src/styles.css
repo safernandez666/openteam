@@ -2529,6 +2529,32 @@ body {
   border-color: var(--accent);
 }
 
+.agent-card-remove {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
+}
+
+.agent-card:hover .agent-card-remove {
+  opacity: 1;
+}
+
+.agent-card-remove:hover {
+  color: var(--red);
+  background: var(--red-muted);
+}
+
 /* Workers section header */
 .workers-section-header {
   display: flex;
