@@ -84,11 +84,6 @@ interface SidebarProps {
   activeWorkerCount: number;
   pmStatus: "idle" | "working";
   isConnected: boolean;
-  // Project/workspace
-  projectName: string | null;
-  workspaces: WorkspaceItem[];
-  activeWorkspace: string | null;
-  onSwitchWorkspace: (workspaceId: string) => void;
   onOpenSettings: () => void;
 }
 
@@ -99,10 +94,6 @@ export function Sidebar({
   activeWorkerCount,
   pmStatus,
   isConnected,
-  projectName,
-  workspaces,
-  activeWorkspace,
-  onSwitchWorkspace,
   onOpenSettings,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(() => {
@@ -121,22 +112,7 @@ export function Sidebar({
         {!collapsed && <span className="sidebar-logo-text">OpenTeam</span>}
       </div>
 
-      {/* Workspaces of active project */}
-      {!collapsed && workspaces.length > 1 && (
-        <div className="sidebar-project-section">
-          {workspaces.map((ws) => (
-            <button
-              key={ws.id}
-              className={`sidebar-nav-item sidebar-nav-item--ws ${ws.id === activeWorkspace ? "sidebar-nav-item--active" : ""}`}
-              onClick={() => onSwitchWorkspace(ws.id)}
-            >
-              <span className="sidebar-ws-dot" />
-              {!collapsed && <span className="sidebar-nav-label">{ws.name}</span>}
-            </button>
-          ))}
-          <div className="sidebar-divider" />
-        </div>
-      )}
+      {/* No workspaces in sidebar — breadcrumb in header is enough */}
 
       {/* Navigation */}
       <nav className="sidebar-nav">

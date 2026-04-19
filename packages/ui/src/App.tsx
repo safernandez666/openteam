@@ -111,10 +111,6 @@ export function App() {
         activeWorkerCount={activeWorkers.length}
         pmStatus={pmStatus}
         isConnected={isConnected}
-        projectName={projects.find((p) => p.id === activeProject)?.name ?? null}
-        workspaces={workspaces}
-        activeWorkspace={activeWorkspace}
-        onSwitchWorkspace={(wsId) => activeProject && handleSwitchWorkspace(activeProject, wsId)}
         onOpenSettings={() => setShowWsSettings(true)}
       />
 
@@ -162,6 +158,7 @@ export function App() {
                 activeProjectId={activeProject}
                 activeWorkspaceId={activeWorkspace}
                 onSwitch={(projId, wsId) => handleSwitchWorkspace(projId, wsId)}
+                onRefresh={refreshWorkspaces}
               />
             </div>
           )}

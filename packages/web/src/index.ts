@@ -644,8 +644,8 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     res.json({ role: req.params.name, skills: moduleNames });
   });
 
-  // Skill loader — project-level (shared across workspaces)
-  const userSkillsDir = join(projectDir, "skills");
+  // Skill loader — workspace-level (each workspace has its own skills)
+  const userSkillsDir = join(dataDir, "skills");
   const skillLoader = new SkillLoader(userSkillsDir);
   const skills = skillLoader.list();
   console.log(`Loaded ${skills.length} skills: ${skills.map(s => s.name).join(", ")}`);
@@ -666,13 +666,13 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     console.log(`Project: ${project.name} (${project.workDir})`);
   }
 
-  // Team Config (project-level — shared across workspaces)
-  const teamConfig = new TeamConfigManager(projectDir);
+  // Team Config — workspace-level (each workspace has its own team)
+  const teamConfig = new TeamConfigManager(dataDir);
   const team = teamConfig.getMembers();
   console.log(`Team: ${team.map(m => m.name).join(", ")} + PM`);
 
-  // Agent Names (project-level)
-  const agentNames = new AgentNames(projectDir);
+  // Agent Names — workspace-level
+  const agentNames = new AgentNames(dataDir);
 
   // Knowledge Base — workspace-level
   const knowledgeBase = new KnowledgeBase(dataDir);
@@ -681,8 +681,8 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     console.log(`Loaded ${kbDocs.length} knowledge docs: ${kbDocs.map(d => d.name).join(", ")}`);
   }
 
-  // MCP Manager — project-level (shared across workspaces)
-  const mcpManager = new McpManager(projectDir);
+  // MCP Manager — workspace-level
+  const mcpManager = new McpManager(dataDir);
   const mcpServers = mcpManager.list();
   if (mcpServers.length > 0) {
     console.log(`Loaded ${mcpServers.length} MCP servers: ${mcpServers.map(s => s.name).join(", ")}`);

@@ -18,10 +18,12 @@ export function ProjectsPanel({
   activeProjectId,
   activeWorkspaceId,
   onSwitch,
+  onRefresh,
 }: {
   activeProjectId: string | null;
   activeWorkspaceId: string | null;
   onSwitch: (projectId: string, workspaceId: string) => void;
+  onRefresh: () => void;
 }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [workspacesByProject, setWorkspacesByProject] = useState<Record<string, Workspace[]>>({});
@@ -98,6 +100,7 @@ export function ProjectsPanel({
     await fetch(`/api/projects/${deletingProject}`, { method: "DELETE" });
     setDeletingProject(null);
     await refresh();
+    onRefresh();
   };
 
   const startEdit = (proj: Project) => {
