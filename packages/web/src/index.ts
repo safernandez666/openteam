@@ -76,11 +76,61 @@ export function startServer(port = PORT, host = HOST): Server {
     }
   }
 
-  const dbPath = join(dataDir, "openteam.db");
+  // Mutable state — swapped on workspace change
+  const state = {
+    dataDir,
+    db: openDatabase(join(dataDir, "openteam.db")),
+    taskStore: null as unknown as TaskStore,
+    eventLogger: null as unknown as EventLogger,
+    skillLoader: null as unknown as SkillLoader,
+    contextManager: null as unknown as ContextManager,
+    projectConfig: null as unknown as ProjectConfigManager,
+    teamConfig: null as unknown as TeamConfigManager,
+    agentNames: null as unknown as AgentNames,
+    knowledgeBase: null as unknown as KnowledgeBase,
+    mcpManager: null as unknown as McpManager,
+  };
 
-  const db = openDatabase(dbPath);
-  const taskStore = new TaskStore(db);
-  const eventLogger = new EventLogger(join(dataDir, "events.ndjson"));
+  function loadWorkspace(dir: string) {
+    state.dataDir = dir;
+    state.db = openDatabase(join(dir, "openteam.db"));
+    state.taskStore = new TaskStore(state.db);
+    state.eventLogger = new EventLogger(join(dir, "events.ndjson"));
+    state.skillLoader = new SkillLoader(join(dir, "skills"));
+    state.contextManager = new ContextManager(dir, state.taskStore);
+    state.projectConfig = new ProjectConfigManager(dir);
+    state.teamConfig = new TeamConfigManager(dir);
+    state.agentNames = new AgentNames(dir);
+    state.knowledgeBase = new KnowledgeBase(dir);
+    state.mcpManager = new McpManager(dir);
+  }
+
+  loadWorkspace(dataDir);
+
+  // Route handlers access state.X directly — these are swapped on workspace change
+  let taskStore = state.taskStore;
+  let eventLogger = state.eventLogger;
+  let db = state.db;
+  let skillLoader = state.skillLoader;
+  let contextManager = state.contextManager;
+  let projectConfig = state.projectConfig;
+  let teamConfig = state.teamConfig;
+  let agentNames = state.agentNames;
+  let knowledgeBase = state.knowledgeBase;
+  let mcpManager = state.mcpManager;
+
+  function reloadState() {
+    taskStore = state.taskStore;
+    eventLogger = state.eventLogger;
+    db = state.db;
+    skillLoader = state.skillLoader;
+    contextManager = state.contextManager;
+    projectConfig = state.projectConfig;
+    teamConfig = state.teamConfig;
+    agentNames = state.agentNames;
+    knowledgeBase = state.knowledgeBase;
+    mcpManager = state.mcpManager;
+  }
 
   // Task API
   app.get("/api/tasks", (_req, res) => {
@@ -269,7 +319,21 @@ export function startServer(port = PORT, host = HOST): Server {
       return;
     }
     projectManager.setActive(projectId, workspaceId);
-    res.json({ active: { projectId, workspaceId } });
+
+    // Hot-swap: reload all managers with new workspace data
+    const newDataDir = projectManager.getWorkspaceDir(projectId, workspaceId);
+    loadWorkspace(newDataDir);
+    reloadState();
+
+    // Update chat session provider
+    const newProject = state.projectConfig.get();
+    wsHandler.setProvider(newProject.provider);
+    wsHandler.setTeamInfo(state.teamConfig.getMembers());
+    wsHandler.resetChat();
+    wsHandler.broadcastTasks(state.taskStore.list());
+
+    console.log(`Hot-swapped to ${projectId}/${workspaceId} (${newDataDir})`);
+    res.json({ active: { projectId, workspaceId }, switched: true });
   });
 
   // Legacy Workspace API (backward compat)
@@ -644,14 +708,11 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     res.json({ role: req.params.name, skills: moduleNames });
   });
 
-  // Skill loader — workspace-level (each workspace has its own skills)
-  const userSkillsDir = join(dataDir, "skills");
-  const skillLoader = new SkillLoader(userSkillsDir);
+  // Skill loader — loaded by loadWorkspace()
   const skills = skillLoader.list();
   console.log(`Loaded ${skills.length} skills: ${skills.map(s => s.name).join(", ")}`);
 
-  // Context manager — workspace-level (each workspace has own context)
-  const contextManager = new ContextManager(dataDir, taskStore);
+  // Context manager — loaded by loadWorkspace()
   const workspace = contextManager.getWorkspace();
   if (workspace) {
     console.log(`Loaded WORKSPACE.md (${workspace.length} chars)`);
@@ -659,30 +720,23 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     console.log("No WORKSPACE.md found — workers will run without project context");
   }
 
-  // Project Config — workspace-level (workDir, repo, branch per workspace)
-  const projectConfig = new ProjectConfigManager(dataDir);
+  // Project Config — loaded by loadWorkspace()
   const project = projectConfig.get();
   if (project.name) {
     console.log(`Project: ${project.name} (${project.workDir})`);
   }
 
-  // Team Config — workspace-level (each workspace has its own team)
-  const teamConfig = new TeamConfigManager(dataDir);
+  // Team Config + Agent Names — loaded by loadWorkspace()
   const team = teamConfig.getMembers();
   console.log(`Team: ${team.map(m => m.name).join(", ")} + PM`);
 
-  // Agent Names — workspace-level
-  const agentNames = new AgentNames(dataDir);
-
-  // Knowledge Base — workspace-level
-  const knowledgeBase = new KnowledgeBase(dataDir);
+  // Knowledge Base — loaded by loadWorkspace()
   const kbDocs = knowledgeBase.list();
   if (kbDocs.length > 0) {
     console.log(`Loaded ${kbDocs.length} knowledge docs: ${kbDocs.map(d => d.name).join(", ")}`);
   }
 
-  // MCP Manager — workspace-level
-  const mcpManager = new McpManager(dataDir);
+  // MCP Manager — loaded by loadWorkspace()
   const mcpServers = mcpManager.list();
   if (mcpServers.length > 0) {
     console.log(`Loaded ${mcpServers.length} MCP servers: ${mcpServers.map(s => s.name).join(", ")}`);
