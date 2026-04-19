@@ -85,8 +85,14 @@ function WorkerCard({
         ? "Done"
         : "Error";
 
-  // Show last N chars of output for a compact live view
-  const liveOutput = output ? output.slice(-500) : "";
+  const [expanded, setExpanded] = useState(false);
+  const hasOutput = !!output && output.length > 0;
+  const isTruncated = hasOutput && output.length > 500;
+  const liveOutput = hasOutput
+    ? expanded
+      ? output
+      : output.slice(-500)
+    : "";
 
   return (
     <div className="worker-card">
@@ -105,9 +111,17 @@ function WorkerCard({
         <span className="worker-task-id">{worker.taskId}</span>
         <span className="worker-task-title">{worker.taskTitle}</span>
       </div>
-      {liveOutput && worker.status === "running" && (
-        <div className="worker-output">
+      {liveOutput && (
+        <div className={`worker-output ${expanded ? "worker-output--expanded" : ""}`}>
           <pre className="worker-output-text">{liveOutput}</pre>
+          {isTruncated && (
+            <button
+              className="worker-output-toggle"
+              onClick={() => setExpanded(!expanded)}
+            >
+              {expanded ? "Show less" : `Show full output (${(output.length / 1000).toFixed(1)}k chars)`}
+            </button>
+          )}
         </div>
       )}
       <div className="worker-meta">

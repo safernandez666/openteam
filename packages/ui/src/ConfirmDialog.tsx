@@ -29,11 +29,12 @@ export function ConfirmDialog({
         <div className="confirm-title">{title}</div>
         <div className="confirm-message">{message}</div>
         <div className="confirm-actions">
-          <button className="btn btn--ghost" onClick={onCancel}>Cancel</button>
+          <button className="btn btn--ghost" onClick={onCancel} autoFocus>
+            Cancel
+          </button>
           <button
             className={`btn ${danger ? "btn--danger-solid" : "btn--primary"}`}
             onClick={onConfirm}
-            autoFocus
           >
             {confirmLabel ?? "Confirm"}
           </button>

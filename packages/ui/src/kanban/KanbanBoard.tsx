@@ -205,6 +205,8 @@ export function KanbanBoard({
   const rejectedTasks = tasks.filter((t) => t.status === "rejected").length;
   const completionPct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [query, setQuery] = useState("");
+  const [filterAssignee, setFilterAssignee] = useState<string | null>(null);
 
   const handleDropTask = async (taskId: string, newStatus: string) => {
     try {
@@ -216,13 +218,51 @@ export function KanbanBoard({
     } catch { /* ignore — WS will push update */ }
   };
 
+  const assignees = Array.from(new Set(tasks.map((t) => t.assignee).filter(Boolean)));
+
+  const matchesFilter = (task: Task) => {
+    if (!query.trim() && !filterAssignee) return true;
+    const q = query.toLowerCase();
+    const matchesQuery =
+      !q ||
+      task.title.toLowerCase().includes(q) ||
+      task.id.toLowerCase().includes(q) ||
+      (task.description ?? "").toLowerCase().includes(q) ||
+      (task.assignee ?? "").toLowerCase().includes(q);
+    const matchesAssignee = !filterAssignee || task.assignee === filterAssignee;
+    return matchesQuery && matchesAssignee;
+  };
+
   return (
     <>
       <div className="kanban-header">
         <span className="kanban-title">Board</span>
-        <span className="kanban-count">
-          {totalTasks} task{totalTasks !== 1 ? "s" : ""}
-        </span>
+        <div className="kanban-header-right">
+          {assignees.length > 0 && (
+            <select
+              className="kanban-filter-select"
+              value={filterAssignee ?? ""}
+              onChange={(e) => setFilterAssignee(e.target.value || null)}
+            >
+              <option value="">All assignees</option>
+              {assignees.map((a) => (
+                <option key={a} value={a!}>
+                  {a}
+                </option>
+              ))}
+            </select>
+          )}
+          <input
+            type="text"
+            className="kanban-search"
+            placeholder="Search tasks..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <span className="kanban-count">
+            {totalTasks} task{totalTasks !== 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
 
       {/* Project stats */}
@@ -278,7 +318,7 @@ export function KanbanBoard({
             key={col.key}
             label={col.label}
             columnKey={col.key}
-            tasks={tasksByColumn[col.key] ?? []}
+            tasks={(tasksByColumn[col.key] ?? []).filter(matchesFilter)}
             getSubtasks={getSubtasks}
             onTaskClick={setSelectedTask}
             onDrop={handleDropTask}

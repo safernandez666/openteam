@@ -1,5 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Task } from "./useKanban";
+import { ConfirmDialog } from "../ConfirmDialog";
+
+const STATUS_OPTIONS = [
+  { key: "backlog", label: "Backlog" },
+  { key: "assigned", label: "Assigned" },
+  { key: "in_progress", label: "In Progress" },
+  { key: "blocked", label: "Blocked" },
+  { key: "review", label: "Review" },
+  { key: "done", label: "Done" },
+];
 
 function StatusBadge({ status }: { status: string }) {
   return <span className={`task-detail-status task-detail-status--${status}`}>{status}</span>;
@@ -14,6 +24,9 @@ export function TaskDetail({
   subtasks: Task[];
   onClose: () => void;
 }) {
+  const [saving, setSaving] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -21,6 +34,31 @@ export function TaskDetail({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
+
+  const handleStatusChange = async (newStatus: string) => {
+    setSaving(true);
+    try {
+      await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const handleDelete = async () => {
+    try {
+      await fetch(`/api/tasks/${encodeURIComponent(task.id)}`, { method: "DELETE" });
+      onClose();
+    } catch { /* ignore */ }
+  };
+
+  const handleRetry = async () => {
+    try {
+      await fetch(`/api/tasks/${encodeURIComponent(task.id)}/retry`, { method: "POST" });
+    } catch { /* ignore */ }
+  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -111,6 +149,44 @@ export function TaskDetail({
             </div>
           )}
         </div>
+
+        <div className="modal-footer">
+          <div className="modal-footer-left">
+            <select
+              className="task-status-select"
+              value={task.status}
+              onChange={(e) => handleStatusChange(e.target.value)}
+              disabled={saving}
+            >
+              {STATUS_OPTIONS.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+            {task.status === "rejected" && (
+              <button className="btn btn--ghost btn--sm" onClick={handleRetry} disabled={saving}>
+                Retry
+              </button>
+            )}
+          </div>
+          <div className="modal-actions">
+            <button className="btn btn--ghost btn--danger btn--sm" onClick={() => setConfirmDelete(true)}>
+              Delete
+            </button>
+          </div>
+        </div>
+
+        {confirmDelete && (
+          <ConfirmDialog
+            title="Delete Task"
+            message={`Delete task "${task.title}"? This cannot be undone.`}
+            confirmLabel="Delete"
+            danger
+            onConfirm={handleDelete}
+            onCancel={() => setConfirmDelete(false)}
+          />
+        )}
       </div>
     </div>
   );

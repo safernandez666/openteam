@@ -58,6 +58,15 @@ export function ChatPanel({
   pmName = "Clara",
 }: ChatPanelProps) {
   const [input, setInput] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  }, [input]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -70,6 +79,17 @@ export function ChatPanel({
     if (!trimmed || pmStatus === "working") return;
     onSendMessage(trimmed);
     setInput("");
+    // Reset height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   };
 
   const statusDotClass = !isConnected
@@ -114,11 +134,13 @@ export function ChatPanel({
 
       <div className="chat-input-area">
         <form onSubmit={handleSubmit} className="chat-input-form">
-          <input
-            type="text"
+          <textarea
+            ref={textareaRef}
+            rows={1}
             className="chat-input"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={
               pmStatus === "working" ? "PM is thinking..." : "Message..."
             }
