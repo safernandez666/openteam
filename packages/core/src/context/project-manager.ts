@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, rmSync, cpSync } from "node:fs";
 import { join } from "node:path";
 
 export interface ProjectInfo {
@@ -185,13 +185,11 @@ export class ProjectManager {
     }
 
     // Move each old workspace into the legacy project
-    const { execSync } = require("node:child_process");
     for (const entry of readdirSync(oldWsDir, { withFileTypes: true })) {
       if (!entry.isDirectory()) continue;
       const src = join(oldWsDir, entry.name);
       const dest = join(this.projectsDir, "legacy", "workspaces", entry.name);
-      mkdirSync(dest, { recursive: true });
-      execSync(`cp -r ${JSON.stringify(src + "/")}. ${JSON.stringify(dest + "/")}`);
+      cpSync(src, dest, { recursive: true });
 
       // Create workspace.json if missing
       const wsMeta = join(dest, "workspace.json");
@@ -211,7 +209,7 @@ export class ProjectManager {
       const src = join(this.baseDir, file);
       if (existsSync(src)) {
         const dest = join(this.projectsDir, "legacy", file);
-        execSync(`cp ${JSON.stringify(src)} ${JSON.stringify(dest)}`);
+        cpSync(src, dest);
       }
     }
 
@@ -219,7 +217,7 @@ export class ProjectManager {
     const oldSkillsDir = join(this.baseDir, "skills");
     if (existsSync(oldSkillsDir)) {
       const destSkills = join(this.projectsDir, "legacy", "skills");
-      execSync(`cp -r ${JSON.stringify(oldSkillsDir + "/")}. ${JSON.stringify(destSkills + "/")}`);
+      cpSync(oldSkillsDir, destSkills, { recursive: true });
     }
 
     // Set active
