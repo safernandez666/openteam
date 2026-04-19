@@ -91,23 +91,8 @@ export function App() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ projectId, workspaceId }),
     });
-
-    // Server restarts — poll until it's back
-    const poll = async () => {
-      for (let i = 0; i < 20; i++) {
-        await new Promise((r) => setTimeout(r, 500));
-        try {
-          const res = await fetch("/api/health");
-          if (res.ok) {
-            window.location.reload();
-            return;
-          }
-        } catch { /* server still restarting */ }
-      }
-      // After 10s, just reload anyway
-      window.location.reload();
-    };
-    poll();
+    // Workspace changed — need server restart to load new data
+    window.location.reload();
   };
   const { messages, streamingContent, pmStatus, sendMessage, clearChat } = useChat(
     subscribe,
