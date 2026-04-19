@@ -1,149 +1,176 @@
-# OpenTeam
+<p align="center">
+  <img src="screenshots/board.png" alt="OpenTeam Board" width="100%" />
+</p>
 
-AI-powered development team orchestrator. OpenTeam spawns a team of AI agents — each a real Claude Code CLI session — that collaborate to build your project.
+<h1 align="center">OpenTeam</h1>
 
-You talk to **Clara** (the PM), she creates tasks, assigns them to specialized workers (**Lucas** the developer, **Sofia** the designer, **Max** the tester, **Ana** the reviewer), and they execute autonomously with real-time output streaming.
+<p align="center">
+  <strong>Your AI development team, ready to ship.</strong><br/>
+  Spawn autonomous agents that write code, design UI, run tests, and review PRs — all orchestrated from a single dashboard.
+</p>
 
-## Features
+<p align="center">
+  <a href="#quick-start">Quick Start</a> &bull;
+  <a href="#features">Features</a> &bull;
+  <a href="#architecture">Architecture</a> &bull;
+  <a href="#the-team">The Team</a> &bull;
+  <a href="#configuration">Configuration</a> &bull;
+  <a href="#cli">CLI</a>
+</p>
 
-- **Kanban Board** — visual task management with stats dashboard
-- **AI Workers** — autonomous Claude Code sessions with role-specific prompts
-- **Skills System** — modular skills (React, Tailwind, Prisma, etc.) assignable to any agent
-- **MCP Integration** — connect workers to Chrome DevTools, databases, APIs
-- **Knowledge Base** — docs with selective keyword injection into worker prompts
-- **Subtasks & Dependencies** — task hierarchies with cycle detection and auto-unblock
-- **Error Handling** — automatic retry with configurable max attempts
-- **Session Persistence** — chat history survives server restarts
-- **Live Streaming** — watch worker output in real-time
+---
 
-## Requirements
+## What is OpenTeam?
 
-- **Node.js** >= 20
-- **pnpm** >= 9
-- **Claude Code CLI** — `npm install -g @anthropic-ai/claude-code`
-- **Anthropic API key** — set `ANTHROPIC_API_KEY` in your environment
+OpenTeam is an **AI agent orchestration framework** that gives you a virtual development team. Each agent is a real CLI session (Claude Code or Kimi Code) with role-specific expertise, modular skills, and MCP tool access.
 
-## Installation
+You talk to **Clara** (the PM). She creates tasks, assigns them to the right agent, and they execute autonomously — with real-time output streaming to your browser.
 
-```bash
-# Clone the repository
-git clone https://github.com/yourusername/openteam.git
-cd openteam
-
-# Install dependencies
-pnpm install
-
-# Build all packages
-pnpm build
-
-# Start the server
-pnpm start
-```
-
-Open http://localhost:4200 in your browser.
+No prompting. No copy-pasting. Just describe what you need and watch your team build it.
 
 ## Quick Start
 
-1. **Start the server** with `pnpm start`
-2. **Open the UI** at http://localhost:4200
-3. **Chat with Clara** — describe your project, she'll set up the WORKSPACE.md
-4. **Ask Clara to create tasks** — "Create a task for Lucas to build a REST API for users"
-5. **Watch the board** — tasks move through Backlog > Assigned > In Progress > Done
-6. **See live output** — go to Workers tab to watch agents work in real-time
+```bash
+# Clone and install
+git clone https://github.com/safernandez666/openteam.git
+cd openteam && pnpm install
 
-### Example conversation
-
-```
-You: "We're building a Next.js app with Prisma and PostgreSQL. 
-      Create a task for Lucas to set up the project structure."
-
-Clara: "Got it! I've set up the workspace context and created a task:
-        T-1: Set up Next.js project structure (assigned to Lucas, developer)
-        Lucas will get started right away!"
+# Build and run
+pnpm build && pnpm start
 ```
 
-## Project Structure
+Open **http://localhost:4200** and start chatting with Clara.
 
-```
-openteam/
-  packages/
-    core/          # Database, TaskStore, Orchestrator, SkillLoader, MCP, Context
-    web/           # Express + WebSocket server
-    ui/            # React (Vite) — Board, Workers, Skills, MCP, Chat
-    cli/           # CLI tool
-```
+### Requirements
+
+- Node.js >= 20
+- pnpm >= 9
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or [Kimi Code](https://kimi.ai) CLI installed
+
+## Features
+
+### Kanban Board with Live Dashboard
+
+Full-width kanban with drag & drop, search, and filters. The dashboard shows completion percentage, tasks by role with progress bars, active workers, and recent activity — all updating in real-time.
+
+<p align="center">
+  <img src="screenshots/board.png" alt="Board" width="90%" />
+</p>
+
+### AI Agent Team
+
+Five agents with unique avatars, editable names, and independent AI provider selection. Each agent can run on Claude or Kimi — mix providers for cross-model verification.
+
+<p align="center">
+  <img src="screenshots/workers.png" alt="Workers" width="90%" />
+</p>
+
+Double-click any name to edit it. Toggle between Claude and Kimi per agent with one click.
+
+### Modular Skills
+
+Install skills from GitHub or create them inline. Assign any combination of skills to any agent — give your designer Tailwind + Figma knowledge, your developer React + Prisma expertise.
+
+<p align="center">
+  <img src="screenshots/skills.png" alt="Skills" width="90%" />
+</p>
+
+8 built-in skills: React, Tailwind, Next.js, Figma, Vitest, Prisma, Docker, PostgreSQL.
+
+### MCP Integration
+
+Connect your agents to external tools — Chrome DevTools for UI testing, databases, APIs, and more. Each workspace has its own MCP configuration.
+
+<p align="center">
+  <img src="screenshots/mcp.png" alt="MCP" width="90%" />
+</p>
+
+### Chat with Clara
+
+Natural conversation with your PM. She creates tasks, checks status, manages the workspace context, and coordinates the team — all in your language.
+
+<p align="center">
+  <img src="screenshots/chat.png" alt="Chat" width="90%" />
+</p>
+
+### Multi-Workspace
+
+Each client or project gets its own isolated workspace with separate database, skills, MCP servers, and team configuration. Switch between projects instantly.
+
+### And more...
+
+- **Task dependencies & subtasks** with cycle detection
+- **Error handling with automatic retry** (configurable max attempts)
+- **Worker output streaming** in real-time
+- **Knowledge base** with keyword-triggered document injection
+- **Auto-updating WORKSPACE.md** — workers learn from each other
+- **Session persistence** — chat survives server restarts
+- **Drag & drop** kanban with toast notifications
+
+## The Team
+
+| Avatar | Name | Role | What they do |
+|--------|------|------|-------------|
+| Clara | PM | Project Manager | Coordinates the team, manages tasks, talks to you |
+| Lucas | Developer | Code & Features | Writes code, implements features, fixes bugs |
+| Sofia | Designer | UI/UX | Designs interfaces, components, visual polish |
+| Max | Tester | Quality | Writes tests, validates behavior, ensures quality |
+| Ana | Reviewer | Code Review | Reviews for security, performance, correctness |
+
+All names are customizable. Each agent can independently use Claude Code or Kimi Code.
 
 ## Architecture
 
 ```
-User <-> Chat (Clara/PM) <-> MCP Tools <-> TaskStore (SQLite)
+You <-> Clara (PM Chat) <-> MCP Tools <-> TaskStore (SQLite)
                                               |
                                     Orchestrator (polls every 3s)
                                               |
-                                    WorkerRunner (Claude CLI)
+                                    WorkerRunner (Claude/Kimi CLI)
                                               |
                                     PTY (pseudo-terminal)
 ```
 
-- **Clara (PM)** receives messages via chat, creates/manages tasks using MCP tools
-- **Orchestrator** picks up assigned tasks, checks dependencies, spawns workers
-- **Workers** are Claude Code CLI sessions with role prompts + skills + knowledge + MCP config
-- **Results** flow back through WebSocket to the UI in real-time
+**Monorepo structure:**
+
+```
+packages/
+  core/     SQLite, TaskStore, Orchestrator, SkillLoader, McpManager, KnowledgeBase
+  web/      Express + WebSocket server
+  ui/       React + Vite (Board, Workers, Skills, MCP, Chat)
+  cli/      CLI entry point
+```
 
 ## Configuration
 
-All config is stored in `~/.openteam/`:
+Each workspace stores its config in `~/.openteam/workspaces/<name>/`:
 
 | File | Purpose |
 |------|---------|
-| `openteam.db` | SQLite database (tasks, chat, updates) |
-| `WORKSPACE.md` | Project context injected into all workers |
+| `openteam.db` | Tasks, chat history, updates |
+| `WORKSPACE.md` | Project context for all workers |
+| `project-config.json` | Working directory, repo, branch, provider |
+| `agent-config.json` | Agent names and per-agent provider |
 | `skills/` | User-installed role prompts |
-| `skills/modules/` | Modular skills assignable to agents |
-| `skills/role-skills.json` | Which modules are assigned to which role |
-| `knowledge/` | Knowledge docs with `read_when` keyword injection |
+| `skills/modules/` | Modular skills |
+| `skills/role-skills.json` | Skill-to-role assignments |
+| `knowledge/` | Docs with `read_when` keyword injection |
 | `mcp-servers.json` | MCP server configurations |
-| `agent-names.json` | Custom names for agents |
-| `project-config.json` | Project directory and repo settings |
-| `events.ndjson` | Event log |
-
-## UI Views
-
-### Board
-Full-width Kanban with stats bar showing total tasks, completion percentage, active workers, and blocked items.
-
-### Workers
-Team roster showing all agents (Sofia, Lucas, Ana, Max, Clara) with their status. Click any agent to edit their system prompt and assign modular skills.
-
-### Skills
-Library of modular skills. Install from GitHub or create inline. Assign to any agent.
-
-### MCP
-Manage MCP servers (Chrome DevTools, databases, APIs). Workers automatically receive MCP tools.
-
-### Chat
-Full conversation with Clara. Messages persist across restarts.
 
 ## Skills System
 
-**Roles** are the base agent prompts (developer, designer, tester, reviewer).
+**Roles** are base agent prompts. **Modules** are reusable knowledge blocks.
 
-**Modules** are reusable knowledge blocks assignable to any role:
-- Built-in: react, tailwind, nextjs, figma, vitest, prisma, docker, postgresql
-- Custom: install from GitHub or create inline
-
-Install a skill from GitHub:
 ```bash
-# Via CLI
+# Install from GitHub
 openteam skills add https://github.com/user/skill-repo
 
-# Via UI
-Skills > "+ From GitHub" > paste URL > name it > Install
+# Or from the UI: Skills > "+ From GitHub"
 ```
 
-## Knowledge Base
+### Knowledge Base
 
-Create `.md` files in `~/.openteam/knowledge/` with a `read_when` frontmatter:
+Create `.md` files in the workspace's `knowledge/` directory:
 
 ```markdown
 ---
@@ -151,63 +178,61 @@ read_when: auth, login, session, jwt
 ---
 
 Our auth uses NextAuth.js v5 with JWT strategy.
-Session tokens expire after 24h.
 Always use the `auth()` helper, never read cookies directly.
 ```
 
-When a task title/description matches any keyword, the doc is automatically injected into the worker's prompt.
+When a task matches any keyword, the doc is automatically injected into the worker's prompt.
 
 ## CLI
 
 ```bash
-openteam start              # Start the server
-openteam tasks              # List all tasks
-openteam task create "title" --role developer
-openteam skills             # List skills
-openteam skills add <url>   # Install from GitHub
-openteam status             # Show system status
+openteam start                    # Start server on port 4200
+openteam tasks                    # List all tasks
+openteam task create "title"      # Create a task
+openteam skills                   # List skills
+openteam skills add <url>         # Install from GitHub
+openteam status                   # System status
 ```
 
-## Development
+## Multi-Provider Support
+
+OpenTeam supports both **Claude Code** and **Kimi Code** as AI providers. You can:
+
+- Set a default provider per workspace (Settings)
+- Override per agent (Workers panel)
+- Mix providers for cross-model verification
+
+This means Lucas can write code with Claude while Ana reviews it with Kimi — diversity of perspective built into your workflow.
+
+## Deployment
 
 ```bash
-# Install dependencies
-pnpm install
+# npm (after publishing)
+npm install -g @openteam/cli && openteam start
 
-# Build all packages
-pnpm build
+# Docker
+docker build -t openteam . && docker run -p 4200:4200 openteam
 
-# Run tests (64 tests)
-pnpm test
-
-# Development mode (rebuild on changes)
-pnpm -r run build --watch   # In one terminal
-pnpm start                  # In another
+# From source
+pnpm install && pnpm build && pnpm start
 ```
 
 ## Tech Stack
 
-- **Runtime**: Node.js + TypeScript
-- **Database**: SQLite (better-sqlite3) with WAL mode
-- **Server**: Express + WebSocket (ws)
-- **UI**: React + Vite
-- **AI**: Claude Code CLI (`claude --print`)
-- **Build**: tsup (core/web/cli), Vite (ui)
-- **Tests**: Vitest
-- **Package Manager**: pnpm workspaces
-
-## Agent Names
-
-Default names (configurable via UI or `~/.openteam/agent-names.json`):
-
-| Role | Name | Emoji |
-|------|------|-------|
-| PM | Clara | :clipboard: |
-| Developer | Lucas | :wrench: |
-| Designer | Sofia | :art: |
-| Tester | Max | :test_tube: |
-| Reviewer | Ana | :mag: |
+- **Runtime:** Node.js + TypeScript
+- **Database:** SQLite (better-sqlite3, WAL mode)
+- **Server:** Express + WebSocket (ws)
+- **UI:** React + Vite
+- **AI:** Claude Code CLI / Kimi Code CLI via PTY
+- **Build:** tsup + Vite, pnpm workspaces
+- **Tests:** Vitest (64 tests)
 
 ## License
 
 MIT
+
+---
+
+<p align="center">
+  Built with Claude Code + Kimi Code
+</p>
