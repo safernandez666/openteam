@@ -121,18 +121,17 @@ export function Sidebar({
         {!collapsed && <span className="sidebar-logo-text">OpenTeam</span>}
       </div>
 
-      {/* Active project workspaces (expanded only, when >1 workspace) */}
-      {!collapsed && projectName && workspaces.length > 0 && (
+      {/* Workspaces of active project */}
+      {!collapsed && workspaces.length > 1 && (
         <div className="sidebar-project-section">
-          <div className="sidebar-section-label">{projectName}</div>
           {workspaces.map((ws) => (
             <button
               key={ws.id}
-              className={`sidebar-workspace ${ws.id === activeWorkspace ? "sidebar-workspace--active" : ""}`}
+              className={`sidebar-nav-item sidebar-nav-item--ws ${ws.id === activeWorkspace ? "sidebar-nav-item--active" : ""}`}
               onClick={() => onSwitchWorkspace(ws.id)}
             >
-              {ws.name}
-              {ws.id === activeWorkspace && <span className="sidebar-ws-check">&#10003;</span>}
+              <span className="sidebar-ws-dot" />
+              {!collapsed && <span className="sidebar-nav-label">{ws.name}</span>}
             </button>
           ))}
           <div className="sidebar-divider" />

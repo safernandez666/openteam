@@ -124,60 +124,6 @@ export function App() {
           <div className="header-left">
             <span className="header-logo">OpenTeam</span>
             <span className="header-version">v0.1.0</span>
-            <button
-              className="header-settings-btn"
-              onClick={() => setShowWsSettings(true)}
-              title="Workspace settings"
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.68 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-              </svg>
-            </button>
-            <div
-              className="workspace-selector"
-              onClick={() => setShowWsMenu(!showWsMenu)}
-            >
-              <span className="workspace-name">
-                {activeProject && activeWorkspace
-                  ? `${projects.find((p) => p.id === activeProject)?.name ?? activeProject} / ${workspaces.find((w) => w.id === activeWorkspace)?.name ?? activeWorkspace}`
-                  : workspaces.find((w) => w.id === activeWorkspace)?.name ?? "..."
-                }
-              </span>
-              <span className="workspace-arrow">&#9662;</span>
-              {showWsMenu && (
-                <div className="workspace-menu" onClick={(e) => e.stopPropagation()}>
-                  {workspaces.map((ws) => (
-                    <div key={ws.id} className="workspace-menu-row">
-                      <button
-                        className={`workspace-menu-item ${ws.id === activeWorkspace ? "workspace-menu-item--active" : ""}`}
-                        onClick={() => { setShowWsMenu(false); handleSwitchWorkspace(ws.id); }}
-                      >
-                        {ws.name}
-                        {ws.id === activeWorkspace && <span className="workspace-check">&#10003;</span>}
-                      </button>
-                      {ws.id !== activeWorkspace && (
-                        <button
-                          className="workspace-delete"
-                          onClick={(e) => { e.stopPropagation(); handleDeleteWorkspace(ws.id); }}
-                          title="Delete workspace"
-                        >
-                          &times;
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <div className="workspace-menu-divider" />
-                  <button className="workspace-menu-item" onClick={() => { setShowWsMenu(false); setShowWsSettings(true); }}>
-                    Settings
-                  </button>
-                  <button className="workspace-menu-item workspace-menu-item--new" onClick={() => { setShowWsMenu(false); setShowNewWs(true); }}>
-
-                    + New Workspace
-                  </button>
-                </div>
-              )}
-            </div>
           </div>
           <div className="header-right">
             <span className="header-stat">

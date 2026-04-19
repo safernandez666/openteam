@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { ConfirmDialog } from "../ConfirmDialog";
 
 interface Project {
   id: string;
@@ -27,15 +28,19 @@ export function ProjectsPanel({
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
+  const [newWsName, setNewWsName] = useState("");
   const [creating, setCreating] = useState(false);
   const [addingWs, setAddingWs] = useState<string | null>(null);
-  const [newWsName, setNewWsName] = useState("");
+  const [addWsName, setAddWsName] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [deletingProject, setDeletingProject] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     const res = await fetch("/api/projects");
     const data = await res.json();
     setProjects(data.projects ?? []);
-    // Load workspaces for each project
     const wsMap: Record<string, Workspace[]> = {};
     for (const proj of data.projects ?? []) {
       const wsRes = await fetch(`/api/projects/${proj.id}/workspaces`);
@@ -47,33 +52,71 @@ export function ProjectsPanel({
   useEffect(() => { refresh(); }, [refresh]);
 
   const handleCreate = async () => {
-    if (!newName.trim()) return;
+    if (!newName.trim() || !newWsName.trim()) return;
     setCreating(true);
-    const id = newName.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
+    const projId = newName.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
+    const wsId = newWsName.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
+
+    // Create project (auto-creates "main" workspace)
     await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, name: newName.trim(), description: newDesc.trim() }),
+      body: JSON.stringify({ id: projId, name: newName.trim(), description: newDesc.trim() }),
     });
+
+    // Rename the auto-created "main" workspace or create new one
+    if (wsId !== "main") {
+      await fetch(`/api/projects/${projId}/workspaces`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: wsId, name: newWsName.trim() }),
+      });
+    }
+
     setNewName("");
     setNewDesc("");
+    setNewWsName("");
     setShowCreate(false);
     setCreating(false);
     await refresh();
-    // Auto-switch to the new project
-    onSwitch(id, "main");
+    onSwitch(projId, wsId !== "main" ? wsId : "main");
   };
 
   const handleAddWorkspace = async (projectId: string) => {
-    if (!newWsName.trim()) return;
-    const id = newWsName.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
+    if (!addWsName.trim()) return;
+    const id = addWsName.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
     await fetch(`/api/projects/${projectId}/workspaces`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, name: newWsName.trim() }),
+      body: JSON.stringify({ id, name: addWsName.trim() }),
     });
-    setNewWsName("");
+    setAddWsName("");
     setAddingWs(null);
+    await refresh();
+  };
+
+  const handleDeleteProject = async () => {
+    if (!deletingProject) return;
+    await fetch(`/api/projects/${deletingProject}`, { method: "DELETE" });
+    setDeletingProject(null);
+    await refresh();
+  };
+
+  const startEdit = (proj: Project) => {
+    setEditing(proj.id);
+    setEditName(proj.name);
+    setEditDesc(proj.description);
+  };
+
+  const saveEdit = async (projId: string) => {
+    // For now we don't have a PUT endpoint for projects — save via re-creation would be destructive
+    // Just update the project.json directly via a new endpoint
+    await fetch(`/api/projects/${projId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: editName.trim(), description: editDesc.trim() }),
+    });
+    setEditing(null);
     await refresh();
   };
 
@@ -92,7 +135,7 @@ export function ProjectsPanel({
             <div className="skills-panel-form-label">Create Project</div>
             <input
               className="skill-installer-input"
-              placeholder="Project name (e.g. Empresa X)"
+              placeholder="Project name"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               autoFocus
@@ -103,8 +146,14 @@ export function ProjectsPanel({
               value={newDesc}
               onChange={(e) => setNewDesc(e.target.value)}
             />
+            <input
+              className="skill-installer-input"
+              placeholder="First workspace name (e.g. SIEM, Frontend)"
+              value={newWsName}
+              onChange={(e) => setNewWsName(e.target.value)}
+            />
             <div className="skill-installer-row">
-              <button className="btn btn--primary btn--sm" onClick={handleCreate} disabled={creating || !newName.trim()}>
+              <button className="btn btn--primary btn--sm" onClick={handleCreate} disabled={creating || !newName.trim() || !newWsName.trim()}>
                 {creating ? "Creating..." : "Create"}
               </button>
               <button className="btn btn--ghost btn--sm" onClick={() => setShowCreate(false)}>Cancel</button>
@@ -123,14 +172,46 @@ export function ProjectsPanel({
           {projects.map((proj) => {
             const wsList = workspacesByProject[proj.id] ?? [];
             const isActive = proj.id === activeProjectId;
+            const isEditing = editing === proj.id;
             return (
               <div key={proj.id} className={`project-card ${isActive ? "project-card--active" : ""}`}>
                 <div className="project-card-header">
-                  <span className="project-card-name">{proj.name}</span>
-                  {isActive && <span className="project-card-badge">Active</span>}
+                  {isEditing ? (
+                    <input
+                      className="skill-installer-input"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      autoFocus
+                      style={{ flex: 1, fontSize: 15, fontWeight: 700 }}
+                    />
+                  ) : (
+                    <span className="project-card-name" onDoubleClick={() => startEdit(proj)} title="Double-click to edit">
+                      {proj.name}
+                    </span>
+                  )}
+                  <div className="project-card-actions">
+                    {isActive && <span className="project-card-badge">Active</span>}
+                    {isEditing ? (
+                      <button className="btn btn--primary btn--sm" onClick={() => saveEdit(proj.id)}>Save</button>
+                    ) : (
+                      <button
+                        className="module-card-delete"
+                        onClick={() => setDeletingProject(proj.id)}
+                        title="Delete project"
+                      >&times;</button>
+                    )}
+                  </div>
                 </div>
-                {proj.description && (
-                  <div className="project-card-desc">{proj.description}</div>
+                {isEditing ? (
+                  <input
+                    className="skill-installer-input"
+                    value={editDesc}
+                    onChange={(e) => setEditDesc(e.target.value)}
+                    placeholder="Description"
+                    style={{ fontSize: 12 }}
+                  />
+                ) : (
+                  proj.description && <div className="project-card-desc">{proj.description}</div>
                 )}
                 <div className="project-card-workspaces">
                   <div className="project-card-ws-label">
@@ -159,12 +240,12 @@ export function ProjectsPanel({
                       <input
                         className="skill-installer-input"
                         placeholder="Workspace name"
-                        value={newWsName}
-                        onChange={(e) => setNewWsName(e.target.value)}
+                        value={addWsName}
+                        onChange={(e) => setAddWsName(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleAddWorkspace(proj.id)}
                         autoFocus
                       />
-                      <button className="btn btn--primary btn--sm" onClick={() => handleAddWorkspace(proj.id)} disabled={!newWsName.trim()}>
+                      <button className="btn btn--primary btn--sm" onClick={() => handleAddWorkspace(proj.id)} disabled={!addWsName.trim()}>
                         Add
                       </button>
                     </div>
@@ -175,6 +256,17 @@ export function ProjectsPanel({
           })}
         </div>
       </div>
+
+      {deletingProject && (
+        <ConfirmDialog
+          title="Delete Project"
+          message="This will permanently delete the project and all its workspaces, tasks, and chat history."
+          confirmLabel="Delete"
+          danger
+          onConfirm={handleDeleteProject}
+          onCancel={() => setDeletingProject(null)}
+        />
+      )}
     </>
   );
 }

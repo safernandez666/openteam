@@ -569,13 +569,20 @@ body {
   padding: 4px 8px 0;
 }
 
-.sidebar-section-label {
-  font-size: 9px;
-  font-weight: 700;
-  color: var(--orange);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 6px 10px 4px;
+.sidebar-ws-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.sidebar-nav-item--active .sidebar-ws-dot {
+  background: var(--accent);
+}
+
+.sidebar-nav-item--ws {
+  padding-left: 16px;
 }
 
 /* ===== PROJECTS PANEL ===== */
@@ -631,6 +638,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+}
+
+.project-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .project-card-name {

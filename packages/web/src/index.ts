@@ -1,7 +1,7 @@
 import express, { type Express } from "express";
 import { createServer, type Server } from "node:http";
 import { join, dirname } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager } from "@openteam/core";
@@ -218,6 +218,21 @@ export function startServer(port = PORT, host = HOST): Server {
       res.json(proj);
     } catch (err) {
       res.status(400).json({ error: (err as Error).message });
+    }
+  });
+
+  app.put("/api/projects/:id", (req, res) => {
+    const { name, description } = req.body as { name?: string; description?: string };
+    const projDir = projectManager.getProjectDir(req.params.id);
+    const metaPath = join(projDir, "project.json");
+    try {
+      const existing = JSON.parse(readFileSync(metaPath, "utf-8"));
+      if (name) existing.name = name;
+      if (description !== undefined) existing.description = description;
+      writeFileSync(metaPath, JSON.stringify(existing, null, 2), "utf-8");
+      res.json(existing);
+    } catch {
+      res.status(404).json({ error: "Project not found" });
     }
   });
 
