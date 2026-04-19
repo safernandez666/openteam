@@ -309,7 +309,7 @@ export function startServer(port = PORT, host = HOST): Server {
 {"name": "Short Title (2-4 words)", "description": "Max 60 chars, like: UI animation, transitions, scroll effects", "category": "one of: Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom"}
 
 Skill content (${installedNames.length} files combined):
-${allContent.slice(0, 1500)}`;
+${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
         const result = exec(
           `${providerCmd} --print -p ${JSON.stringify(prompt)}`,
@@ -321,7 +321,12 @@ ${allContent.slice(0, 1500)}`;
           const parsed = JSON.parse(jsonMatch[0]);
           if (parsed.name) aiName = parsed.name;
           if (parsed.description && parsed.description !== "---" && parsed.description.length > 5) {
-            aiDesc = parsed.description.replace(/^["']|["']$/g, "").slice(0, 80);
+            let d = parsed.description;
+            // Strip YAML-style prefix: "name: xxx description: "
+            d = d.replace(/^name:\s*[\w:.-]+\s*description:\s*/i, "");
+            // Strip quotes
+            d = d.replace(/^["']|["']$/g, "").trim();
+            if (d.length > 5) aiDesc = d.slice(0, 80);
           }
           if (parsed.category) aiCategory = parsed.category;
         }
