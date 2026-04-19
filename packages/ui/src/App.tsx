@@ -24,6 +24,8 @@ interface WorkspaceInfo {
 export function App() {
   const [activeView, setActiveView] = useState<View>("board");
   const { isConnected, subscribe, send } = useWebSocket();
+  const [projects, setProjects] = useState<Array<{ id: string; name: string }>>([]);
+  const [activeProject, setActiveProject] = useState<string | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([]);
   const [activeWorkspace, setActiveWorkspace] = useState<string | null>(null);
   const [showWsMenu, setShowWsMenu] = useState(false);
@@ -33,10 +35,24 @@ export function App() {
 
   const refreshWorkspaces = useCallback(async () => {
     try {
-      const res = await fetch("/api/workspaces");
-      const data = await res.json();
-      setWorkspaces(data.workspaces);
-      setActiveWorkspace(data.active);
+      // Try new projects API
+      const projRes = await fetch("/api/projects");
+      const projData = await projRes.json();
+      setProjects(projData.projects ?? []);
+      if (projData.active) {
+        setActiveProject(projData.active.projectId);
+        setActiveWorkspace(projData.active.workspaceId);
+        // Load workspaces for active project
+        const wsRes = await fetch(`/api/projects/${projData.active.projectId}/workspaces`);
+        const wsData = await wsRes.json();
+        setWorkspaces(wsData);
+      } else {
+        // Fallback to legacy
+        const res = await fetch("/api/workspaces");
+        const data = await res.json();
+        setWorkspaces(data.workspaces ?? []);
+        setActiveWorkspace(data.active);
+      }
     } catch { /* ignore */ }
   }, []);
 
@@ -117,7 +133,10 @@ export function App() {
               onClick={() => setShowWsMenu(!showWsMenu)}
             >
               <span className="workspace-name">
-                {workspaces.find((w) => w.id === activeWorkspace)?.name ?? activeWorkspace ?? "..."}
+                {activeProject && activeWorkspace
+                  ? `${projects.find((p) => p.id === activeProject)?.name ?? activeProject} / ${workspaces.find((w) => w.id === activeWorkspace)?.name ?? activeWorkspace}`
+                  : workspaces.find((w) => w.id === activeWorkspace)?.name ?? "..."
+                }
               </span>
               <span className="workspace-arrow">&#9662;</span>
               {showWsMenu && (

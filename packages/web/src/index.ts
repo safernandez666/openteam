@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize } from "@openteam/core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager } from "@openteam/core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -25,17 +25,56 @@ export function startServer(port = PORT, host = HOST): Server {
   const cwd = process.cwd();
   const baseDir = join(homedir(), ".openteam");
 
-  // Workspace management
+  // Project > Workspace management
+  const projectManager = new ProjectManager(baseDir);
+  // Keep old WorkspaceManager for backward compat during transition
   const workspaceManager = new WorkspaceManager(baseDir);
-  let activeWs = workspaceManager.getActive();
-  if (!activeWs) {
-    // First run — create default workspace
-    workspaceManager.create("default", "Default Workspace");
-    workspaceManager.setActive("default");
-    activeWs = "default";
+
+  // Try new hierarchy first, fall back to legacy
+  let active = projectManager.getActive();
+  let projectDir: string;
+  let dataDir: string;
+
+  if (active) {
+    projectDir = projectManager.getProjectDir(active.projectId);
+    dataDir = projectManager.getWorkspaceDir(active.projectId, active.workspaceId);
+    console.log(`Project: ${active.projectId} | Workspace: ${active.workspaceId}`);
+  } else {
+    // Try legacy migration
+    const migrated = projectManager.migrateFromLegacy();
+    if (migrated) {
+      active = projectManager.getActive();
+      if (active) {
+        projectDir = projectManager.getProjectDir(active.projectId);
+        dataDir = projectManager.getWorkspaceDir(active.projectId, active.workspaceId);
+        console.log(`Migrated! Project: ${active.projectId} | Workspace: ${active.workspaceId}`);
+      } else {
+        // Migration failed to set active — create default
+        projectManager.createProject("default", "Default Project");
+        projectManager.createWorkspace("default", "main", "Main");
+        projectManager.setActive("default", "main");
+        projectDir = projectManager.getProjectDir("default");
+        dataDir = projectManager.getWorkspaceDir("default", "main");
+      }
+    } else {
+      // No legacy data — first run
+      let activeWs = workspaceManager.getActive();
+      if (activeWs && activeWs !== "__legacy__") {
+        // Old workspace system still active — use it for now
+        dataDir = workspaceManager.getWorkspaceDir(activeWs);
+        projectDir = dataDir; // Same dir for legacy
+        console.log(`Legacy workspace: ${activeWs} (${dataDir})`);
+      } else {
+        // Brand new install
+        projectManager.createProject("default", "Default Project");
+        projectManager.createWorkspace("default", "main", "Main");
+        projectManager.setActive("default", "main");
+        projectDir = projectManager.getProjectDir("default");
+        dataDir = projectManager.getWorkspaceDir("default", "main");
+        console.log(`New install — Project: default | Workspace: main`);
+      }
+    }
   }
-  const dataDir = workspaceManager.getWorkspaceDir(activeWs);
-  console.log(`Active workspace: ${activeWs} (${dataDir})`);
 
   const dbPath = join(dataDir, "openteam.db");
 
@@ -158,7 +197,68 @@ export function startServer(port = PORT, host = HOST): Server {
     res.json(modules);
   });
 
-  // Workspace API
+  // Projects API
+  app.get("/api/projects", (_req, res) => {
+    res.json({
+      active: projectManager.getActive(),
+      projects: projectManager.listProjects(),
+    });
+  });
+
+  app.post("/api/projects", (req, res) => {
+    const { id, name, description } = req.body as { id?: string; name?: string; description?: string };
+    if (!id || !name) {
+      res.status(400).json({ error: "id and name are required" });
+      return;
+    }
+    try {
+      const proj = projectManager.createProject(id, name, description);
+      // Auto-create a "main" workspace
+      projectManager.createWorkspace(proj.id, "main", "Main");
+      res.json(proj);
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+    }
+  });
+
+  app.delete("/api/projects/:id", (req, res) => {
+    const removed = projectManager.deleteProject(req.params.id);
+    if (!removed) {
+      res.status(404).json({ error: "Project not found" });
+      return;
+    }
+    res.json({ ok: true });
+  });
+
+  app.get("/api/projects/:projectId/workspaces", (req, res) => {
+    res.json(projectManager.listWorkspaces(req.params.projectId));
+  });
+
+  app.post("/api/projects/:projectId/workspaces", (req, res) => {
+    const { id, name } = req.body as { id?: string; name?: string };
+    if (!id) {
+      res.status(400).json({ error: "id is required" });
+      return;
+    }
+    try {
+      const ws = projectManager.createWorkspace(req.params.projectId, id, name);
+      res.json(ws);
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+    }
+  });
+
+  app.put("/api/active", (req, res) => {
+    const { projectId, workspaceId } = req.body as { projectId?: string; workspaceId?: string };
+    if (!projectId || !workspaceId) {
+      res.status(400).json({ error: "projectId and workspaceId are required" });
+      return;
+    }
+    projectManager.setActive(projectId, workspaceId);
+    res.json({ active: { projectId, workspaceId }, restart: true });
+  });
+
+  // Legacy Workspace API (backward compat)
   app.get("/api/workspaces", (_req, res) => {
     res.json({
       active: workspaceManager.getActive(),
@@ -530,13 +630,13 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     res.json({ role: req.params.name, skills: moduleNames });
   });
 
-  // Skill loader — loads role-specific system prompts for workers
-  const userSkillsDir = join(dataDir, "skills");
+  // Skill loader — project-level (shared across workspaces)
+  const userSkillsDir = join(projectDir, "skills");
   const skillLoader = new SkillLoader(userSkillsDir);
   const skills = skillLoader.list();
   console.log(`Loaded ${skills.length} skills: ${skills.map(s => s.name).join(", ")}`);
 
-  // Context manager — project context + worker result memory
+  // Context manager — workspace-level (each workspace has own context)
   const contextManager = new ContextManager(dataDir, taskStore);
   const workspace = contextManager.getWorkspace();
   if (workspace) {
@@ -545,37 +645,38 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     console.log("No WORKSPACE.md found — workers will run without project context");
   }
 
-  // Project Config
+  // Project Config — workspace-level (workDir, repo, branch per workspace)
   const projectConfig = new ProjectConfigManager(dataDir);
   const project = projectConfig.get();
   if (project.name) {
     console.log(`Project: ${project.name} (${project.workDir})`);
   }
 
-  // Team Config
-  const teamConfig = new TeamConfigManager(dataDir);
+  // Team Config (project-level — shared across workspaces)
+  const teamConfig = new TeamConfigManager(projectDir);
   const team = teamConfig.getMembers();
   console.log(`Team: ${team.map(m => m.name).join(", ")} + PM`);
 
-  // Agent Names
-  const agentNames = new AgentNames(dataDir);
+  // Agent Names (project-level)
+  const agentNames = new AgentNames(projectDir);
 
-  // Knowledge Base
+  // Knowledge Base — workspace-level
   const knowledgeBase = new KnowledgeBase(dataDir);
   const kbDocs = knowledgeBase.list();
   if (kbDocs.length > 0) {
     console.log(`Loaded ${kbDocs.length} knowledge docs: ${kbDocs.map(d => d.name).join(", ")}`);
   }
 
-  // MCP Manager
-  const mcpManager = new McpManager(dataDir);
+  // MCP Manager — project-level (shared across workspaces)
+  const mcpManager = new McpManager(projectDir);
   const mcpServers = mcpManager.list();
   if (mcpServers.length > 0) {
     console.log(`Loaded ${mcpServers.length} MCP servers: ${mcpServers.map(s => s.name).join(", ")}`);
   }
 
   // WebSocket handler
-  const wsHandler = createWsHandler(httpServer, cwd, taskStore, skillLoader, db, activeWs, project.provider);
+  const activeLabel = active ? `${active.projectId}/${active.workspaceId}` : "default";
+  const wsHandler = createWsHandler(httpServer, cwd, taskStore, skillLoader, db, activeLabel, project.provider);
 
   // Orchestrator — picks up "assigned" tasks and spawns workers
   const orchestrator = new Orchestrator({
