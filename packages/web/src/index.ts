@@ -71,8 +71,8 @@ export function startServer(port = PORT, host = HOST): Server {
       }
     } else {
       // No projects at all — create default
-      projectManager.createProject("default", "Default Project");
-      projectManager.createWorkspace("default", "main", "Main");
+      try { projectManager.createProject("default", "Default Project"); } catch { /* already exists */ }
+      try { projectManager.createWorkspace("default", "main", "Main"); } catch { /* already exists */ }
       projectManager.setActive("default", "main");
       projectDir = projectManager.getProjectDir("default");
       dataDir = projectManager.getWorkspaceDir("default", "main");
@@ -95,12 +95,15 @@ export function startServer(port = PORT, host = HOST): Server {
     mcpManager: null as unknown as McpManager,
   };
 
+  // Global skills directory — shared across all workspaces
+  const globalSkillsDir = join(baseDir, "skills");
+
   function loadWorkspace(dir: string) {
     state.dataDir = dir;
     state.db = openDatabase(join(dir, "openteam.db"));
     state.taskStore = new TaskStore(state.db);
     state.eventLogger = new EventLogger(join(dir, "events.ndjson"));
-    state.skillLoader = new SkillLoader(join(dir, "skills"));
+    state.skillLoader = new SkillLoader(globalSkillsDir);
     state.contextManager = new ContextManager(dir, state.taskStore);
     state.projectConfig = new ProjectConfigManager(dir);
     state.teamConfig = new TeamConfigManager(dir);

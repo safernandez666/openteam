@@ -25,6 +25,8 @@ function AgentCard({
   onEditSkill,
   onRemove,
   isPM,
+  initialAvatarSeed,
+  onAvatarSeedChange,
 }: {
   role: string;
   skill?: SkillInfo;

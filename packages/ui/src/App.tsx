@@ -109,7 +109,7 @@ export function App() {
     isConnected,
   );
   const { tasks, tasksByColumn, getSubtasks } = useKanban(subscribe);
-  const { toasts } = useToasts(subscribe);
+  const { toasts, dismissToast } = useToasts(subscribe);
   const { workers, activeWorkers, completedWorkers, skills, modules, roleSkillsMap, setRoleSkillsMap, getWorkerOutput, refreshModules, agentNames, updateAgentNames, team, roleCatalog, addTeamMember, removeTeamMember, updateTeamMember } = useWorkers(subscribe);
 
   return (
@@ -250,7 +250,7 @@ export function App() {
           )}
 
           {/* Persistent chat sidebar — visible on all views except chat and board */}
-          {activeView !== "chat" && activeView !== "board" && (
+          {activeView !== "chat" && activeView !== "board" && activeView !== "skills" && (
             <div className="chat-sidebar">
               <ChatPanel
                 messages={messages}
@@ -288,7 +288,7 @@ export function App() {
         />
       )}
 
-      <ToastContainer toasts={toasts} />
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
   );
 }

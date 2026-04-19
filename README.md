@@ -89,7 +89,7 @@ Install skill packs from GitHub or create them inline. AI auto-categorizes each 
 
 ### MCP Integration
 
-Connect your agents to external tools via Model Context Protocol (MCP) — Chrome DevTools for UI testing, databases, APIs, and more. Each workspace has its own MCP configuration.
+Connect your agents to external tools via Model Context Protocol (MCP) — Chrome DevTools for UI testing, databases, APIs, and more. Quick Add lets you paste a GitHub URL or npm package name and it auto-configures. Each workspace has its own MCP configuration.
 
 <p align="center">
   <img src="screenshots/mcp.png" alt="MCP" width="90%" />
@@ -163,7 +163,16 @@ packages/
 
 ## Configuration
 
-Each workspace stores its config in `~/.openteam/projects/<project>/workspaces/<workspace>/`:
+**Global** (shared across all projects and workspaces) in `~/.openteam/`:
+
+| File | Purpose |
+|------|---------|
+| `skills/` | Role prompts (built-in + user-installed) |
+| `skills/modules/` | Modular skills from marketplace |
+| `skills/role-skills.json` | Skill-to-role assignments |
+| `marketplace.json` | User-curated skill catalog |
+
+**Per workspace** in `~/.openteam/projects/<project>/workspaces/<workspace>/`:
 
 | File | Purpose |
 |------|---------|
@@ -171,10 +180,7 @@ Each workspace stores its config in `~/.openteam/projects/<project>/workspaces/<
 | `WORKSPACE.md` | Project context for all workers |
 | `project-config.json` | Working directory, repo, branch, provider |
 | `team.json` | Team composition (roles + names + providers) |
-| `agent-config.json` | Agent names and per-agent provider |
-| `skills/` | User-installed role prompts |
-| `skills/modules/` | Modular skills |
-| `skills/role-skills.json` | Skill-to-role assignments |
+| `agent-config.json` | Agent names, providers, avatar seeds |
 | `knowledge/` | Docs with `read_when` keyword injection |
 | `mcp-servers.json` | MCP server configurations |
 
