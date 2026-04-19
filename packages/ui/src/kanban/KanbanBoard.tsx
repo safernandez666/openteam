@@ -281,16 +281,63 @@ export function KanbanBoard({
         </div>
       </div>
 
-      {/* Active workers strip */}
-      {activeWorkers.length > 0 && (
-        <div className="board-workers-strip">
-          {activeWorkers.map((w) => (
-            <div key={w.taskId} className="board-worker-chip">
-              <span className="board-worker-dot" />
-              <span className="board-worker-name">{w.name}</span>
-              <span className="board-worker-task">{w.taskId}</span>
+      {/* Dashboard summary row */}
+      {(activeWorkers.length > 0 || completedWorkers.length > 0 || totalTasks > 0) && (
+        <div className="board-dashboard">
+          {/* Active workers */}
+          {activeWorkers.length > 0 && (
+            <div className="dashboard-card">
+              <div className="dashboard-card-title">Active Workers</div>
+              {activeWorkers.map((w) => (
+                <div key={w.taskId} className="dashboard-worker">
+                  <span className="dashboard-worker-dot" />
+                  <span className="dashboard-worker-name">{w.name}</span>
+                  <span className="dashboard-worker-task">{w.taskId}: {w.taskTitle}</span>
+                </div>
+              ))}
             </div>
-          ))}
+          )}
+
+          {/* Recent completions */}
+          {completedWorkers.length > 0 && (
+            <div className="dashboard-card">
+              <div className="dashboard-card-title">Recent Activity</div>
+              {completedWorkers.slice(0, 5).map((w) => (
+                <div key={w.taskId} className="dashboard-activity">
+                  <span className={`dashboard-activity-dot dashboard-activity-dot--${w.status}`} />
+                  <span className="dashboard-activity-name">{w.name}</span>
+                  <span className="dashboard-activity-task">{w.taskTitle}</span>
+                  <span className={`dashboard-activity-status dashboard-activity-status--${w.status}`}>
+                    {w.status === "completed" ? "done" : "error"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Agent summary */}
+          {totalTasks > 0 && (
+            <div className="dashboard-card">
+              <div className="dashboard-card-title">By Role</div>
+              {["developer", "designer", "tester", "reviewer"].map((role) => {
+                const roleTasks = tasks.filter((t) => t.role === role);
+                if (roleTasks.length === 0) return null;
+                const done = roleTasks.filter((t) => t.status === "done").length;
+                return (
+                  <div key={role} className="dashboard-role">
+                    <span className="dashboard-role-name">{role}</span>
+                    <div className="dashboard-role-bar">
+                      <div
+                        className="dashboard-role-fill"
+                        style={{ width: `${(done / roleTasks.length) * 100}%` }}
+                      />
+                    </div>
+                    <span className="dashboard-role-count">{done}/{roleTasks.length}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
