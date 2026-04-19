@@ -311,8 +311,9 @@ export function startServer(port = PORT, host = HOST): Server {
 Skill content (${installedNames.length} files combined):
 ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
+        const quietFlag = providerCmd === "kimi" ? "--quiet" : "--print";
         const result = exec(
-          `${providerCmd} --print -p ${JSON.stringify(prompt)}`,
+          `${providerCmd} ${quietFlag} -p ${JSON.stringify(prompt)}`,
           { timeout: 30000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
         );
 
