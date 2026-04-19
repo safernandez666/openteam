@@ -337,10 +337,16 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
       if (!aiDesc) {
         const lines = allContent.split("\n")
-          .filter((l) => l.trim() && !l.startsWith("#") && !l.startsWith("---") && l.length > 10)
+          .filter((l) => {
+            const t = l.trim();
+            return t && !t.startsWith("#") && !t.startsWith("---") && !t.startsWith("name:") && !t.startsWith("description:") && t.length > 15;
+          })
           .map((l) => l.replace(/[*_`]/g, "").trim());
-        aiDesc = lines.slice(0, 1).join(" ").slice(0, 80) || `${repoName} skill`;
+        aiDesc = lines.slice(0, 1).join(" ").slice(0, 80) || `${aiName} skill pack`;
       }
+      // Final safety: clean any remaining YAML-like content
+      aiDesc = aiDesc.replace(/^name:\s*[\w:.-]+\s*/i, "").replace(/^description:\s*/i, "").replace(/^["']|["']$/g, "").trim();
+      if (aiDesc.length < 5) aiDesc = `${aiName} skill pack`;
 
       const entry = marketplaceCatalog.add({
         id: repoName,
