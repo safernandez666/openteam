@@ -566,7 +566,16 @@ body {
 .sidebar-settings-btn:hover { background: var(--bg-hover); color: var(--text-secondary); }
 
 .sidebar-project-section {
-  padding: 8px 8px 0;
+  padding: 4px 8px 0;
+}
+
+.sidebar-section-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--orange);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 10px 4px;
 }
 
 /* ===== PROJECTS PANEL ===== */

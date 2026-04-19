@@ -136,10 +136,10 @@ export function ProjectsPanel({
                   <div className="project-card-ws-label">
                     Workspaces ({wsList.length})
                     <button
-                      className="sidebar-project-add"
-                      style={{ opacity: 1 }}
+                      className="btn btn--ghost btn--sm"
+                      style={{ padding: "1px 6px", fontSize: 10 }}
                       onClick={() => setAddingWs(addingWs === proj.id ? null : proj.id)}
-                    >+</button>
+                    >+ Add</button>
                   </div>
                   {wsList.map((ws) => {
                     const isWsActive = isActive && ws.id === activeWorkspaceId;

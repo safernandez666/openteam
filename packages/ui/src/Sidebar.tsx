@@ -121,13 +121,10 @@ export function Sidebar({
         {!collapsed && <span className="sidebar-logo-text">OpenTeam</span>}
       </div>
 
-      {/* Active project + workspaces (expanded only) */}
-      {!collapsed && projectName && (
+      {/* Active project workspaces (expanded only, when >1 workspace) */}
+      {!collapsed && projectName && workspaces.length > 0 && (
         <div className="sidebar-project-section">
-          <div className="sidebar-project-header sidebar-project-header--active">
-            <span className="sidebar-project-icon">📁</span>
-            <span className="sidebar-project-name">{projectName}</span>
-          </div>
+          <div className="sidebar-section-label">{projectName}</div>
           {workspaces.map((ws) => (
             <button
               key={ws.id}
@@ -138,10 +135,9 @@ export function Sidebar({
               {ws.id === activeWorkspace && <span className="sidebar-ws-check">&#10003;</span>}
             </button>
           ))}
+          <div className="sidebar-divider" />
         </div>
       )}
-
-      {!collapsed && <div className="sidebar-divider" />}
 
       {/* Navigation */}
       <nav className="sidebar-nav">
