@@ -297,15 +297,16 @@ export function startServer(port = PORT, host = HOST): Server {
         const { execSync: exec } = await import("node:child_process");
         const batch = skillsToAnalyze.map((s) => `- ID: "${s.id}"\n  Content: ${s.content.split("\n").slice(0, 5).join(" ").slice(0, 200)}`).join("\n\n");
 
-        const prompt = `Analyze these ${skillsToAnalyze.length} skill files. For each, provide name, description (max 80 chars), and category.
-
-Categories: Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom
+        const prompt = `Analyze these ${skillsToAnalyze.length} skill files. For each, provide:
+- name: short human-readable title (2-4 words)
+- description: ONE short sentence, max 60 chars, describing the skill's purpose. Like "Unit tests, mocks, coverage" or "CI/CD, Docker, deployments". NO yaml, NO quotes, NO metadata.
+- category: one of Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom
 
 Skills:
 ${batch}
 
-Respond with ONLY a JSON object mapping skill ID to metadata. No markdown. Example:
-{"skill-id": {"name": "Name", "description": "What it does", "category": "Security"}}`;
+Respond with ONLY valid JSON. No markdown. No explanation.
+{"skill-id": {"name": "Short Name", "description": "Brief purpose, max 60 chars", "category": "Category"}}`;
 
         const result = exec(
           `${providerCmd} --print -p ${JSON.stringify(prompt)}`,
@@ -331,7 +332,18 @@ Respond with ONLY a JSON object mapping skill ID to metadata. No markdown. Examp
           .map((l) => l.replace(/[*_`]/g, "").trim())
           .filter((l) => l.length > 10);
         const fallbackDesc = fallbackLines.slice(0, 2).join(" ").slice(0, 120);
-        const aiDesc = ai?.description && ai.description !== "---" ? ai.description : null;
+        // Clean AI description — remove YAML frontmatter artifacts
+        let aiDesc: string | null = null;
+        if (ai?.description) {
+          let d = ai.description;
+          // Remove "name: xxx description: " prefix pattern
+          d = d.replace(/^name:\s*[\w:-]+\s*description:\s*/i, "");
+          // Remove quotes
+          d = d.replace(/^["']|["']$/g, "");
+          // Remove "---"
+          if (d === "---" || d.length < 5) d = "";
+          if (d) aiDesc = d.slice(0, 80);
+        }
         const finalDesc = aiDesc ?? (fallbackDesc || `${skillName} skill`);
         const finalCategory = ai?.category ?? autoCategorize(skillName, content);
 
