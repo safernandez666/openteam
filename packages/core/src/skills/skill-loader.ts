@@ -174,7 +174,10 @@ export class SkillLoader {
         if (!existsSync(dir)) return [];
         const results: Array<{ filePath: string; fileName: string }> = [];
         for (const entry of readdirSync(dir, { withFileTypes: true })) {
-          if (entry.isDirectory() && !entry.name.startsWith(".") && !SKIP_DIRS.has(entry.name.toLowerCase())) {
+          const dirName = entry.name.toLowerCase();
+          // Allow .claude directory (contains skills), skip other dot dirs
+          const isSkippedDotDir = entry.name.startsWith(".") && dirName !== ".claude";
+          if (entry.isDirectory() && !isSkippedDotDir && !SKIP_DIRS.has(dirName)) {
             results.push(...findMdFiles(join(dir, entry.name)));
           } else if (entry.isFile() && extname(entry.name) === ".md") {
             results.push({ filePath: join(dir, entry.name), fileName: entry.name });
