@@ -44,11 +44,28 @@ export function SkillsPanel({
     if (!addUrl.trim()) return;
     setLoading(true);
     setError(null);
+
+    // Parse npx skills add format: "npx skills add owner/repo --skill name"
+    let url = addUrl.trim();
+    let name = addName.trim() || undefined;
+
+    // Parse npx skills add format
+    const npxMatch = url.match(/npx\s+skills?\s+add\s+([\S]+?)(?:\s+--skill\s+([\S]+))?$/i);
+    if (npxMatch) {
+      const source = npxMatch[1];
+      url = source.startsWith("http") ? source : `https://github.com/${source}`;
+      if (npxMatch[2] && !name) name = npxMatch[2];
+    }
+    // Handle owner/repo format (no https://)
+    else if (/^[\w-]+\/[\w.-]+$/.test(url)) {
+      url = `https://github.com/${url}`;
+    }
+
     try {
       const res = await fetch("/api/marketplace/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: addUrl.trim(), name: addName.trim() || undefined }),
+        body: JSON.stringify({ url, name }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -138,9 +155,9 @@ export function SkillsPanel({
 
         {showAdd && (
           <div className="skills-panel-form">
-            <div className="skills-panel-form-label">Add skill from GitHub</div>
+            <div className="skills-panel-form-label">Add skill</div>
             <div className="skills-panel-form-hint">
-              Paste a repo URL. OpenTeam downloads, installs, and auto-categorizes it.
+              Paste a GitHub URL, owner/repo, or a skills.sh command (npx skills add ...).
             </div>
             <input
               className="skill-installer-input"
@@ -152,7 +169,7 @@ export function SkillsPanel({
             <div className="skill-installer-row">
               <input
                 className="skill-installer-input"
-                placeholder="https://github.com/user/skill-repo"
+                placeholder="npx skills add owner/repo --skill name  or  https://github.com/..."
                 value={addUrl}
                 onChange={(e) => setAddUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAdd()}
