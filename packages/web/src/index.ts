@@ -288,14 +288,26 @@ export function startServer(port = PORT, host = HOST): Server {
         const content = mod?.content ?? "";
         const category = autoCategorize(skillName, content);
 
-        // Extract first line as description
-        const firstLine = content.split("\n").find((l) => l.trim() && !l.startsWith("#") && !l.startsWith("---"))?.trim() ?? "";
-        const description = firstLine.slice(0, 100);
+        // Extract description from content:
+        // 1. Look for first paragraph after any frontmatter/heading
+        // 2. Combine first meaningful lines
+        const lines = content.split("\n")
+          .filter((l) => l.trim())
+          .filter((l) => !l.startsWith("#"))
+          .filter((l) => !l.startsWith("---"))
+          .filter((l) => !l.startsWith("```"));
+
+        // Take first 2 meaningful lines, clean up markdown
+        const descLines = lines.slice(0, 2)
+          .map((l) => l.replace(/\*\*/g, "").replace(/[_*`]/g, "").trim())
+          .filter(Boolean);
+
+        const description = descLines.join(" ").slice(0, 150) || `${skillName} skill`;
 
         const entry = marketplaceCatalog.add({
           id: skillName,
           name: skillName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" "),
-          description: description || `${skillName} skill`,
+          description,
           source: url,
           category,
           content,

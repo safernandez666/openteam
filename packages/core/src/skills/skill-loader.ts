@@ -156,12 +156,13 @@ export class SkillLoader {
       const installed: string[] = [];
       const searchDirs = [tmpDir, join(tmpDir, "skills"), join(tmpDir, "modules")];
 
+      const SKIP_FILES = new Set(["readme.md", "license.md", "code_of_conduct.md", "contributing.md", "changelog.md"]);
+
       for (const dir of searchDirs) {
         if (!existsSync(dir)) continue;
         for (const file of readdirSync(dir)) {
           if (extname(file) !== ".md") continue;
-          if (file.toLowerCase() === "readme.md") continue;
-          if (file.toLowerCase() === "license.md") continue;
+          if (SKIP_FILES.has(file.toLowerCase())) continue;
 
           const originalName = basename(file, ".md").toLowerCase();
           const content = readFileSync(join(dir, file), "utf-8").trim();
