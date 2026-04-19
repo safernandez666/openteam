@@ -107,51 +107,28 @@ export function startServer(port = PORT, host = HOST): Server {
 
   loadWorkspace(dataDir);
 
-  // Route handlers access state.X directly — these are swapped on workspace change
-  let taskStore = state.taskStore;
-  let eventLogger = state.eventLogger;
-  let db = state.db;
-  let skillLoader = state.skillLoader;
-  let contextManager = state.contextManager;
-  let projectConfig = state.projectConfig;
-  let teamConfig = state.teamConfig;
-  let agentNames = state.agentNames;
-  let knowledgeBase = state.knowledgeBase;
-  let mcpManager = state.mcpManager;
-
-  function reloadState() {
-    taskStore = state.taskStore;
-    eventLogger = state.eventLogger;
-    db = state.db;
-    skillLoader = state.skillLoader;
-    contextManager = state.contextManager;
-    projectConfig = state.projectConfig;
-    teamConfig = state.teamConfig;
-    agentNames = state.agentNames;
-    knowledgeBase = state.knowledgeBase;
-    mcpManager = state.mcpManager;
-  }
+  // All route handlers must use state.X to read current workspace data
 
   // Task API
   app.get("/api/tasks", (_req, res) => {
-    const tasks = taskStore.list();
+    const tasks = state.taskStore.list();
     res.json(tasks);
   });
 
   app.patch("/api/tasks/:id", (req, res) => {
     const updates = req.body as Record<string, unknown>;
-    const task = taskStore.update(req.params.id, updates as import("@openteam/core").UpdateTaskInput);
+    const task = state.taskStore.update(req.params.id, updates as import("@openteam/core").UpdateTaskInput);
     if (!task) {
       res.status(404).json({ error: "Task not found" });
       return;
     }
-    wsHandler.broadcastTasks(taskStore.list());
+    wsHandler.broadcastTasks(state.taskStore.list());
     res.json(task);
   });
 
   // Skills API
   app.get("/api/skills", (_req, res) => {
-    const skills = skillLoader.list().map((s) => ({
+    const skills = state.skillLoader.list().map((s) => ({
       name: s.name,
       content: s.content,
       source: s.source,
@@ -160,7 +137,7 @@ export function startServer(port = PORT, host = HOST): Server {
   });
 
   app.get("/api/skills/:name", (req, res) => {
-    const skill = skillLoader.get(req.params.name);
+    const skill = state.skillLoader.get(req.params.name);
     if (!skill) {
       res.status(404).json({ error: "Skill not found" });
       return;
@@ -175,10 +152,10 @@ export function startServer(port = PORT, host = HOST): Server {
       return;
     }
     try {
-      skillLoader.save(req.params.name, content);
-      const skill = skillLoader.get(req.params.name)!;
+      state.skillLoader.save(req.params.name, content);
+      const skill = state.skillLoader.get(req.params.name)!;
       // Broadcast updated roster
-      const skills = skillLoader.list().map((s) => ({ name: s.name, source: s.source }));
+      const skills = state.skillLoader.list().map((s) => ({ name: s.name, source: s.source }));
       wsHandler.broadcastSkills(skills);
       res.json({ name: skill.name, content: skill.content, source: skill.source });
     } catch (err) {
@@ -187,12 +164,12 @@ export function startServer(port = PORT, host = HOST): Server {
   });
 
   app.delete("/api/skills/:name", (req, res) => {
-    const removed = skillLoader.remove(req.params.name);
+    const removed = state.skillLoader.remove(req.params.name);
     if (!removed) {
       res.status(404).json({ error: "Skill not found or is built-in" });
       return;
     }
-    const skills = skillLoader.list().map((s) => ({ name: s.name, source: s.source }));
+    const skills = state.skillLoader.list().map((s) => ({ name: s.name, source: s.source }));
     wsHandler.broadcastSkills(skills);
     res.json({ ok: true });
   });
@@ -205,8 +182,8 @@ export function startServer(port = PORT, host = HOST): Server {
       return;
     }
     try {
-      const installed = skillLoader.installModules(source, name);
-      const modules = skillLoader.listModules().map((m) => ({ name: m.name, source: m.source }));
+      const installed = state.skillLoader.installModules(source, name);
+      const modules = state.skillLoader.listModules().map((m) => ({ name: m.name, source: m.source }));
       res.json({ installed, modules });
     } catch (err) {
       res.status(400).json({ error: (err as Error).message });
@@ -220,8 +197,8 @@ export function startServer(port = PORT, host = HOST): Server {
       return;
     }
     try {
-      skillLoader.saveModule(name, content);
-      const modules = skillLoader.listModules().map((m) => ({ name: m.name, source: m.source }));
+      state.skillLoader.saveModule(name, content);
+      const modules = state.skillLoader.listModules().map((m) => ({ name: m.name, source: m.source }));
       res.json({ name, modules });
     } catch (err) {
       res.status(500).json({ error: (err as Error).message });
@@ -229,17 +206,17 @@ export function startServer(port = PORT, host = HOST): Server {
   });
 
   app.delete("/api/modules/:name", (req, res) => {
-    const removed = skillLoader.removeModule(req.params.name);
+    const removed = state.skillLoader.removeModule(req.params.name);
     if (!removed) {
       res.status(404).json({ error: "Module not found or is built-in" });
       return;
     }
-    const modules = skillLoader.listModules().map((m) => ({ name: m.name, source: m.source }));
+    const modules = state.skillLoader.listModules().map((m) => ({ name: m.name, source: m.source }));
     res.json({ ok: true, modules });
   });
 
   app.get("/api/modules", (_req, res) => {
-    const modules = skillLoader.listModules().map((m) => ({
+    const modules = state.skillLoader.listModules().map((m) => ({
       name: m.name,
       content: m.content,
       source: m.source,
@@ -323,7 +300,6 @@ export function startServer(port = PORT, host = HOST): Server {
     // Hot-swap: reload all managers with new workspace data
     const newDataDir = projectManager.getWorkspaceDir(projectId, workspaceId);
     loadWorkspace(newDataDir);
-    reloadState();
 
     // Update chat session provider
     const newProject = state.projectConfig.get();
@@ -379,11 +355,11 @@ export function startServer(port = PORT, host = HOST): Server {
 
   // Workspace Reset
   app.post("/api/workspace/reset", (_req, res) => {
-    db.exec("DELETE FROM task_dependencies");
-    db.exec("DELETE FROM task_updates");
-    db.exec("DELETE FROM tasks");
-    db.exec("DELETE FROM team_updates");
-    db.exec("DELETE FROM chat_messages");
+    state.db.exec("DELETE FROM task_dependencies");
+    state.db.exec("DELETE FROM task_updates");
+    state.db.exec("DELETE FROM tasks");
+    state.db.exec("DELETE FROM team_updates");
+    state.db.exec("DELETE FROM chat_messages");
     wsHandler.resetChat();
     wsHandler.broadcastTasks([]);
     res.json({ ok: true });
@@ -419,12 +395,12 @@ export function startServer(port = PORT, host = HOST): Server {
 
   // Project Config API
   app.get("/api/project", (_req, res) => {
-    res.json(projectConfig.get());
+    res.json(state.projectConfig.get());
   });
 
   app.put("/api/project", (req, res) => {
     const updates = req.body as Record<string, unknown>;
-    const result = projectConfig.update(updates as Partial<import("@openteam/core").ProjectConfig>);
+    const result = state.projectConfig.update(updates as Partial<import("@openteam/core").ProjectConfig>);
     // Hot-reload provider if changed
     if (updates.provider && typeof updates.provider === "string") {
       wsHandler.setProvider(updates.provider);
@@ -436,7 +412,7 @@ export function startServer(port = PORT, host = HOST): Server {
   const marketplaceCatalog = new MarketplaceCatalog(baseDir);
 
   app.get("/api/marketplace", (_req, res) => {
-    const installed = skillLoader.listModules().map((m) => m.name);
+    const installed = state.skillLoader.listModules().map((m) => m.name);
     const allSkills = marketplaceCatalog.getAll();
     const skills = allSkills.map((s) => ({
       ...s,
@@ -453,7 +429,7 @@ export function startServer(port = PORT, host = HOST): Server {
     }
     try {
       // Install the skill from GitHub as modules
-      const installedNames = skillLoader.installModules(url, name);
+      const installedNames = state.skillLoader.installModules(url, name);
       if (installedNames.length === 0) {
         res.status(400).json({ error: "No .md files found in repository" });
         return;
@@ -465,15 +441,15 @@ export function startServer(port = PORT, host = HOST): Server {
 
       // Combine all installed files into ONE module
       const allContent = installedNames.map((n) => {
-        const mod = skillLoader.getModule(n);
+        const mod = state.skillLoader.getModule(n);
         return mod?.content ?? "";
       }).join("\n\n---\n\n");
 
       // Remove individual modules, create one combined
       for (const n of installedNames) {
-        if (n !== repoName) skillLoader.removeModule(n);
+        if (n !== repoName) state.skillLoader.removeModule(n);
       }
-      skillLoader.saveModule(repoName, allContent);
+      state.skillLoader.saveModule(repoName, allContent);
 
       // AI analysis for the combined skill
       const providerCmd = project.provider === "kimi" ? "kimi" : "claude";
@@ -557,7 +533,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
   // Team API
   app.get("/api/team", (_req, res) => {
-    res.json({ members: teamConfig.getMembers() });
+    res.json({ members: state.teamConfig.getMembers() });
   });
 
   app.post("/api/team/members", (req, res) => {
@@ -567,28 +543,28 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       return;
     }
     const role = ROLE_CATALOG.find((r) => r.id === roleId);
-    const member = teamConfig.addMember(
+    const member = state.teamConfig.addMember(
       roleId,
       name ?? role?.defaultName ?? roleId,
       (provider as "claude" | "kimi") ?? "claude",
     );
-    wsHandler.setTeamInfo(teamConfig.getMembers());
+    wsHandler.setTeamInfo(state.teamConfig.getMembers());
     res.json(member);
   });
 
   app.delete("/api/team/members/:roleId", (req, res) => {
-    const removed = teamConfig.removeMember(req.params.roleId);
+    const removed = state.teamConfig.removeMember(req.params.roleId);
     if (!removed) {
       res.status(404).json({ error: "Member not found" });
       return;
     }
-    wsHandler.setTeamInfo(teamConfig.getMembers());
+    wsHandler.setTeamInfo(state.teamConfig.getMembers());
     res.json({ ok: true });
   });
 
   app.put("/api/team/members/:roleId", (req, res) => {
     const updates = req.body as { name?: string; provider?: string };
-    const member = teamConfig.updateMember(req.params.roleId, {
+    const member = state.teamConfig.updateMember(req.params.roleId, {
       name: updates.name,
       provider: updates.provider as "claude" | "kimi",
     });
@@ -596,34 +572,34 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       res.status(404).json({ error: "Member not found" });
       return;
     }
-    wsHandler.setTeamInfo(teamConfig.getMembers());
+    wsHandler.setTeamInfo(state.teamConfig.getMembers());
     res.json(member);
   });
 
   // Agent Names API
   app.get("/api/agent-names", (_req, res) => {
-    res.json(agentNames.getAll());
+    res.json(state.agentNames.getAll());
   });
 
   app.put("/api/agent-names", (req, res) => {
     const updates = req.body as Record<string, string>;
-    const result = agentNames.update(updates);
+    const result = state.agentNames.update(updates);
     res.json(result);
   });
 
   app.get("/api/agent-providers", (_req, res) => {
-    res.json(agentNames.getAllProviders());
+    res.json(state.agentNames.getAllProviders());
   });
 
   app.put("/api/agent-providers", (req, res) => {
     const updates = req.body as Record<string, string>;
-    const result = agentNames.updateProviders(updates as Record<string, "claude" | "kimi">);
+    const result = state.agentNames.updateProviders(updates as Record<string, "claude" | "kimi">);
     res.json(result);
   });
 
   // Knowledge Base API
   app.get("/api/knowledge", (_req, res) => {
-    res.json(knowledgeBase.list());
+    res.json(state.knowledgeBase.list());
   });
 
   app.post("/api/knowledge", (req, res) => {
@@ -632,12 +608,12 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       res.status(400).json({ error: "name and content are required" });
       return;
     }
-    knowledgeBase.save(name, content, read_when ?? []);
-    res.json(knowledgeBase.get(name));
+    state.knowledgeBase.save(name, content, read_when ?? []);
+    res.json(state.knowledgeBase.get(name));
   });
 
   app.delete("/api/knowledge/:name", (req, res) => {
-    const removed = knowledgeBase.remove(req.params.name);
+    const removed = state.knowledgeBase.remove(req.params.name);
     if (!removed) {
       res.status(404).json({ error: "Knowledge doc not found" });
       return;
@@ -647,7 +623,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
   // MCP Servers API
   app.get("/api/mcp-servers", (_req, res) => {
-    res.json(mcpManager.list());
+    res.json(state.mcpManager.list());
   });
 
   app.post("/api/mcp-servers", (req, res) => {
@@ -660,7 +636,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       res.status(400).json({ error: "name and config are required" });
       return;
     }
-    const entry = mcpManager.set(name, config as import("@openteam/core").McpServerConfig, enabled ?? true);
+    const entry = state.mcpManager.set(name, config as import("@openteam/core").McpServerConfig, enabled ?? true);
     res.json(entry);
   });
 
@@ -670,7 +646,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       res.status(400).json({ error: "enabled is required" });
       return;
     }
-    const entry = mcpManager.toggle(req.params.name, enabled);
+    const entry = state.mcpManager.toggle(req.params.name, enabled);
     if (!entry) {
       res.status(404).json({ error: "MCP server not found" });
       return;
@@ -679,7 +655,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   });
 
   app.delete("/api/mcp-servers/:name", (req, res) => {
-    const removed = mcpManager.remove(req.params.name);
+    const removed = state.mcpManager.remove(req.params.name);
     if (!removed) {
       res.status(404).json({ error: "MCP server not found" });
       return;
@@ -689,8 +665,8 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
   // Role-skills mapping API
   app.get("/api/roles/:name/skills", (req, res) => {
-    const assigned = skillLoader.getRoleSkills(req.params.name);
-    const allModules = skillLoader.listModules().map((m) => ({
+    const assigned = state.skillLoader.getRoleSkills(req.params.name);
+    const allModules = state.skillLoader.listModules().map((m) => ({
       name: m.name,
       source: m.source,
       assigned: assigned.includes(m.name),
@@ -704,16 +680,16 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       res.status(400).json({ error: "skills must be an array of module names" });
       return;
     }
-    skillLoader.setRoleSkills(req.params.name, moduleNames);
+    state.skillLoader.setRoleSkills(req.params.name, moduleNames);
     res.json({ role: req.params.name, skills: moduleNames });
   });
 
   // Skill loader — loaded by loadWorkspace()
-  const skills = skillLoader.list();
+  const skills = state.skillLoader.list();
   console.log(`Loaded ${skills.length} skills: ${skills.map(s => s.name).join(", ")}`);
 
   // Context manager — loaded by loadWorkspace()
-  const workspace = contextManager.getWorkspace();
+  const workspace = state.contextManager.getWorkspace();
   if (workspace) {
     console.log(`Loaded WORKSPACE.md (${workspace.length} chars)`);
   } else {
@@ -721,48 +697,49 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   }
 
   // Project Config — loaded by loadWorkspace()
-  const project = projectConfig.get();
-  if (project.name) {
-    console.log(`Project: ${project.name} (${project.workDir})`);
+  const initProject = state.projectConfig.get();
+  if (initProject.name) {
+    console.log(`Project: ${initProject.name} (${initProject.workDir})`);
   }
 
   // Team Config + Agent Names — loaded by loadWorkspace()
-  const team = teamConfig.getMembers();
+  const team = state.teamConfig.getMembers();
   console.log(`Team: ${team.map(m => m.name).join(", ")} + PM`);
 
   // Knowledge Base — loaded by loadWorkspace()
-  const kbDocs = knowledgeBase.list();
+  const kbDocs = state.knowledgeBase.list();
   if (kbDocs.length > 0) {
     console.log(`Loaded ${kbDocs.length} knowledge docs: ${kbDocs.map(d => d.name).join(", ")}`);
   }
 
   // MCP Manager — loaded by loadWorkspace()
-  const mcpServers = mcpManager.list();
+  const mcpServers = state.mcpManager.list();
   if (mcpServers.length > 0) {
     console.log(`Loaded ${mcpServers.length} MCP servers: ${mcpServers.map(s => s.name).join(", ")}`);
   }
 
   // WebSocket handler
   const activeLabel = active ? `${active.projectId}/${active.workspaceId}` : "default";
-  const wsHandler = createWsHandler(httpServer, cwd, taskStore, skillLoader, db, activeLabel, project.provider);
+  const wsHandler = createWsHandler(httpServer, cwd, state.taskStore, state.skillLoader, state.db, activeLabel, state.projectConfig.get().provider);
 
   // Orchestrator — picks up "assigned" tasks and spawns workers
+  const project = state.projectConfig.get();
   const orchestrator = new Orchestrator({
-    taskStore,
-    eventLogger,
+    taskStore: state.taskStore,
+    eventLogger: state.eventLogger,
     cwd,
-    skillLoader,
-    contextManager,
-    mcpManager,
-    agentNames,
-    knowledgeBase,
+    skillLoader: state.skillLoader,
+    contextManager: state.contextManager,
+    mcpManager: state.mcpManager,
+    agentNames: state.agentNames,
+    knowledgeBase: state.knowledgeBase,
     provider: project.provider as "claude" | "kimi",
     maxConcurrentWorkers: 3,
     pollIntervalMs: 3000,
   });
 
   orchestrator.on("task_updated", () => {
-    const tasks = taskStore.list();
+    const tasks = state.taskStore.list();
     wsHandler.broadcastTasks(tasks);
   });
 
@@ -780,7 +757,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   });
 
   // Update Clara's team knowledge
-  wsHandler.setTeamInfo(teamConfig.getMembers());
+  wsHandler.setTeamInfo(state.teamConfig.getMembers());
 
   orchestrator.start();
   console.log("Orchestrator started — watching for assigned tasks");
@@ -801,7 +778,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   // Poll for task changes every 2s and push to clients
   let lastTaskHash = "";
   setInterval(() => {
-    const tasks = taskStore.list();
+    const tasks = state.taskStore.list();
     const hash = JSON.stringify(tasks);
     if (hash !== lastTaskHash) {
       lastTaskHash = hash;
