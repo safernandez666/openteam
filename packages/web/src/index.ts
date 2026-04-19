@@ -281,53 +281,60 @@ export function startServer(port = PORT, host = HOST): Server {
         return;
       }
 
-      // Auto-catalog each installed skill using AI
+      // Auto-catalog all installed skills in ONE AI call
       const added = [];
       const providerCmd = project.provider === "kimi" ? "kimi" : "claude";
+
+      // Build batch for AI analysis
+      const skillsToAnalyze = installedNames.map((skillName) => {
+        const mod = skillLoader.getModule(skillName);
+        return { id: skillName, content: (mod?.content ?? "").slice(0, 500) };
+      });
+
+      let aiResults: Record<string, { name: string; description: string; category: string }> = {};
+
+      try {
+        const { execSync: exec } = await import("node:child_process");
+        const batch = skillsToAnalyze.map((s) => `- ID: "${s.id}"\n  Content: ${s.content.split("\n").slice(0, 5).join(" ").slice(0, 200)}`).join("\n\n");
+
+        const prompt = `Analyze these ${skillsToAnalyze.length} skill files. For each, provide name, description (max 80 chars), and category.
+
+Categories: Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom
+
+Skills:
+${batch}
+
+Respond with ONLY a JSON object mapping skill ID to metadata. No markdown. Example:
+{"skill-id": {"name": "Name", "description": "What it does", "category": "Security"}}`;
+
+        const result = exec(
+          `${providerCmd} --print -p ${JSON.stringify(prompt)}`,
+          { timeout: 45000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
+        );
+
+        const jsonMatch = result.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          aiResults = JSON.parse(jsonMatch[0]);
+        }
+      } catch {
+        // AI failed — will use fallback below
+      }
 
       for (const skillName of installedNames) {
         const mod = skillLoader.getModule(skillName);
         const content = mod?.content ?? "";
+        const ai = aiResults[skillName];
 
-        let aiName = skillName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
-        let aiDescription = "";
-        let aiCategory = autoCategorize(skillName, content);
-
-        // Try AI analysis
-        try {
-          const { execSync: exec } = await import("node:child_process");
-          const prompt = `Analyze this skill/instruction file and respond with ONLY a JSON object (no markdown, no explanation):
-{"name": "short human-readable name", "description": "one sentence max 100 chars describing what this skill teaches an AI agent", "category": "one of: Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom"}
-
-Content to analyze:
-${content.slice(0, 2000)}`;
-
-          const result = exec(
-            `${providerCmd} --print -p ${JSON.stringify(prompt)}`,
-            { timeout: 30000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
-          );
-
-          // Extract JSON from response
-          const jsonMatch = result.match(/\{[\s\S]*?\}/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            if (parsed.name) aiName = parsed.name;
-            if (parsed.description) aiDescription = parsed.description.slice(0, 150);
-            if (parsed.category) aiCategory = parsed.category;
-          }
-        } catch {
-          // AI failed — fall back to content extraction
-          const lines = content.split("\n")
-            .filter((l) => l.trim() && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith("```"));
-          aiDescription = lines.slice(0, 2).map((l) => l.replace(/\*\*/g, "").replace(/[_*`]/g, "").trim()).join(" ").slice(0, 150);
-        }
+        const finalName = ai?.name ?? skillName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+        const finalDesc = ai?.description ?? content.split("\n").filter((l) => l.trim() && !l.startsWith("#")).slice(0, 1).join(" ").replace(/[*_`]/g, "").slice(0, 100) || `${skillName} skill`;
+        const finalCategory = ai?.category ?? autoCategorize(skillName, content);
 
         const entry = marketplaceCatalog.add({
           id: skillName,
-          name: aiName,
-          description: aiDescription || `${skillName} skill`,
+          name: finalName,
+          description: finalDesc,
           source: url,
-          category: aiCategory,
+          category: finalCategory,
           content,
         });
         added.push(entry);
