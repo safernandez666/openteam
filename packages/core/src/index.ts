@@ -52,8 +52,8 @@ export { SkillLoader, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize
 export type { Skill, MarketplaceSkill } from "./skills/index.js";
 
 // Context
-export { ContextManager, KnowledgeBase, ProjectConfigManager, WorkspaceManager } from "./context/index.js";
-export type { KnowledgeDoc, ProjectConfig, WorkspaceInfo } from "./context/index.js";
+export { ContextManager, KnowledgeBase, ProjectConfigManager, WorkspaceManager, ProjectManager } from "./context/index.js";
+export type { KnowledgeDoc, ProjectConfig, WorkspaceInfo, ProjectInfo, ActiveSelection } from "./context/index.js";
 
 // MCP Server
 export { createMcpServer, startMcpServer, McpManager } from "./mcp-server/index.js";
