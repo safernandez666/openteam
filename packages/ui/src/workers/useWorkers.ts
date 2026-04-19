@@ -23,6 +23,7 @@ export interface ModuleInfo {
 }
 
 const ROLE_STATIC: Record<string, { emoji: string; description: string }> = {
+  pm: { emoji: "📋", description: "Project manager, coordination, chat" },
   developer: { emoji: "🔧", description: "Code, features, bug fixes" },
   designer: { emoji: "🎨", description: "UI/UX, components, visual polish" },
   tester: { emoji: "🧪", description: "Tests, validation, quality" },

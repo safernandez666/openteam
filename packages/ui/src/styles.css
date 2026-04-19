@@ -540,7 +540,6 @@ body {
 .sidebar-nav-item--active {
   background: var(--accent-muted);
   color: var(--accent);
-  box-shadow: inset 2px 0 0 var(--accent);
 }
 
 .sidebar-nav-item--active:hover {
