@@ -124,6 +124,17 @@ export function App() {
           <div className="header-left">
             <span className="header-logo">OpenTeam</span>
             <span className="header-version">v0.1.0</span>
+            {activeProject && (
+              <span className="header-breadcrumb">
+                <span className="header-breadcrumb-project">{projects.find((p) => p.id === activeProject)?.name ?? activeProject}</span>
+                {activeWorkspace && (
+                  <>
+                    <span className="header-breadcrumb-sep">/</span>
+                    <span className="header-breadcrumb-ws">{workspaces.find((w) => w.id === activeWorkspace)?.name ?? activeWorkspace}</span>
+                  </>
+                )}
+              </span>
+            )}
           </div>
           <div className="header-right">
             <span className="header-stat">

@@ -57,21 +57,19 @@ export function ProjectsPanel({
     const projId = newName.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
     const wsId = newWsName.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
 
-    // Create project (auto-creates "main" workspace)
+    // Create project
     await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: projId, name: newName.trim(), description: newDesc.trim() }),
     });
 
-    // Rename the auto-created "main" workspace or create new one
-    if (wsId !== "main") {
-      await fetch(`/api/projects/${projId}/workspaces`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: wsId, name: newWsName.trim() }),
-      });
-    }
+    // Create the first workspace with user's name
+    await fetch(`/api/projects/${projId}/workspaces`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: wsId, name: newWsName.trim() }),
+    });
 
     setNewName("");
     setNewDesc("");

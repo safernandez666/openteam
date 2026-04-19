@@ -347,6 +347,28 @@ body {
   font-weight: 600;
 }
 
+.header-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  margin-left: 4px;
+}
+
+.header-breadcrumb-project {
+  color: var(--orange);
+  font-weight: 600;
+}
+
+.header-breadcrumb-sep {
+  color: var(--text-muted);
+}
+
+.header-breadcrumb-ws {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
 .header-right {
   display: flex;
   align-items: center;

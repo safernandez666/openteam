@@ -213,8 +213,7 @@ export function startServer(port = PORT, host = HOST): Server {
     }
     try {
       const proj = projectManager.createProject(id, name, description);
-      // Auto-create a "main" workspace
-      projectManager.createWorkspace(proj.id, "main", "Main");
+      // No auto-create — user names the first workspace in the UI
       res.json(proj);
     } catch (err) {
       res.status(400).json({ error: (err as Error).message });
