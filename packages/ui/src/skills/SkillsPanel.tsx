@@ -1,60 +1,15 @@
 import { useState, useEffect } from "react";
 import type { ModuleInfo } from "../workers/useWorkers";
 
-function ModuleCard({
-  mod,
-  onDelete,
-}: {
-  mod: ModuleInfo;
-  onDelete: (name: string) => void;
-}) {
-  const [content, setContent] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
-
-  const toggleExpand = async () => {
-    if (!expanded && content === null) {
-      try {
-        const res = await fetch(`/api/modules`);
-        const all = await res.json();
-        const found = all.find((m: { name: string; content?: string }) => m.name === mod.name);
-        setContent(found?.content ?? "(no content)");
-      } catch {
-        setContent("(failed to load)");
-      }
-    }
-    setExpanded(!expanded);
-  };
-
-  return (
-    <div className="module-card">
-      <div className="module-card-header" onClick={toggleExpand}>
-        <span className="module-card-name">{mod.name}</span>
-        <div className="module-card-actions">
-          <span className={`module-card-source module-card-source--${mod.source}`}>
-            {mod.source}
-          </span>
-          {mod.source === "user" && (
-            <button
-              className="module-card-delete"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(mod.name);
-              }}
-              title="Delete"
-            >
-              &times;
-            </button>
-          )}
-        </div>
-      </div>
-      {expanded && content !== null && (
-        <pre className="module-card-content">{content}</pre>
-      )}
-    </div>
-  );
+interface MarketplaceSkill {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  source: string;
+  installed: boolean;
+  custom?: boolean;
 }
-
-type InstallerMode = "closed" | "github" | "create";
 
 export function SkillsPanel({
   modules,
@@ -63,371 +18,206 @@ export function SkillsPanel({
   modules: ModuleInfo[];
   onRefresh: () => void;
 }) {
-  const [tab, setTab] = useState<"installed" | "marketplace">("installed");
-  const [marketplace, setMarketplace] = useState<Array<{ id: string; name: string; description: string; category: string; source: string; installed: boolean }>>([]);
-  const [mpCategories, setMpCategories] = useState<string[]>([]);
-  const [mpFilter, setMpFilter] = useState<string | null>(null);
-  const [installing, setInstalling] = useState<string | null>(null);
+  const [marketplace, setMarketplace] = useState<MarketplaceSkill[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [filter, setFilter] = useState<string | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
   const [addUrl, setAddUrl] = useState("");
   const [addName, setAddName] = useState("");
-  const [addingToCatalog, setAddingToCatalog] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const refreshMarketplace = () => {
+  const refreshAll = () => {
     fetch("/api/marketplace")
       .then((r) => r.json())
-      .then((d) => { setMarketplace(d.skills ?? []); setMpCategories(d.categories ?? []); })
+      .then((d) => {
+        setMarketplace(d.skills ?? []);
+        setCategories(d.categories ?? []);
+      })
       .catch(() => {});
   };
 
-  useEffect(() => {
-    refreshMarketplace();
-  }, [modules]);
+  useEffect(() => { refreshAll(); }, [modules]);
 
-  const handleMarketplaceInstall = async (skill: { id: string; name: string; source: string }) => {
-    setInstalling(skill.id);
-    try {
-      if (skill.source === "built-in") {
-        // Built-in skills are already available as modules
-        setInstalling(null);
-        return;
-      }
-      // Install from the source repo
-      await fetch("/api/modules/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: skill.id, content: `Use ${skill.name} best practices and patterns.` }),
-      });
-      onRefresh();
-    } catch { /* ignore */ }
-    setInstalling(null);
-  };
-
-  const handleAddToCatalog = async () => {
+  const handleAdd = async () => {
     if (!addUrl.trim()) return;
-    setAddingToCatalog(true);
+    setLoading(true);
+    setError(null);
     try {
       const res = await fetch("/api/marketplace/add", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: addUrl.trim(), name: addName.trim() || undefined }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error);
-      } else {
-        setAddUrl("");
-        setAddName("");
-        setShowAddForm(false);
-        refreshMarketplace();
-        onRefresh();
-      }
-    } catch (err) {
-      setError((err as Error).message);
-    }
-    setAddingToCatalog(false);
-  };
-
-  const [mode, setMode] = useState<InstallerMode>("closed");
-  const [url, setUrl] = useState("");
-  const [skillName, setSkillName] = useState("");
-  const [name, setName] = useState("");
-  const [content, setContent] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-
-  const reset = () => {
-    setMode("closed");
-    setUrl("");
-    setSkillName("");
-    setName("");
-    setContent("");
-    setError(null);
-    setSuccess(null);
-  };
-
-  const handleInstall = async () => {
-    if (!url.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/modules/install", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: url.trim(), name: skillName.trim() || undefined }),
-      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setSuccess(`Installed: ${data.installed.join(", ")}`);
+      setAddUrl("");
+      setAddName("");
+      setShowAdd(false);
       onRefresh();
-      setTimeout(reset, 2500);
+      refreshAll();
     } catch (err) {
       setError((err as Error).message);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
-  const handleCreate = async () => {
-    if (!name.trim() || !content.trim()) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/modules/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), content: content.trim() }),
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/modules/${encodeURIComponent(id)}`, { method: "DELETE" });
+    await fetch(`/api/marketplace/${encodeURIComponent(id)}`, { method: "DELETE" });
+    onRefresh();
+    refreshAll();
+  };
+
+  const handleInstall = async (skill: MarketplaceSkill) => {
+    await fetch("/api/modules/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: skill.id, content: `Use ${skill.name} best practices and patterns.` }),
+    });
+    onRefresh();
+    refreshAll();
+  };
+
+  // Merge: installed modules + marketplace catalog
+  const allSkills: Array<MarketplaceSkill & { installedModule?: boolean }> = [];
+  const seen = new Set<string>();
+
+  // Add marketplace items
+  for (const s of marketplace) {
+    seen.add(s.id);
+    allSkills.push({ ...s });
+  }
+
+  // Add installed modules not in marketplace
+  for (const mod of modules) {
+    if (!seen.has(mod.name)) {
+      allSkills.push({
+        id: mod.name,
+        name: mod.name.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" "),
+        description: "",
+        category: "Custom",
+        source: mod.source,
+        installed: true,
+        installedModule: true,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setSuccess(`Created: ${name.trim()}`);
-      onRefresh();
-      setTimeout(reset, 2500);
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
     }
-  };
+  }
 
-  const handleDelete = async (modName: string) => {
-    try {
-      const res = await fetch(`/api/modules/${encodeURIComponent(modName)}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error);
-      }
-      onRefresh();
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  };
-
-  const builtIn = modules.filter((m) => m.source === "built-in");
-  const custom = modules.filter((m) => m.source === "user");
+  const filtered = filter ? allSkills.filter((s) => s.category === filter) : allSkills;
+  const installedCount = modules.length;
 
   return (
     <>
       <div className="skills-panel-header">
-        <div className="skills-tabs">
-          <button
-            className={`skills-tab ${tab === "installed" ? "skills-tab--active" : ""}`}
-            onClick={() => setTab("installed")}
-          >
-            Installed ({modules.length})
-          </button>
-          <button
-            className={`skills-tab ${tab === "marketplace" ? "skills-tab--active" : ""}`}
-            onClick={() => setTab("marketplace")}
-          >
-            Marketplace
-          </button>
-        </div>
+        <span className="skills-panel-title">Skills</span>
+        <span className="skills-panel-count">{installedCount} installed</span>
       </div>
 
       <div className="skills-panel-body">
-        {/* Marketplace tab */}
-        {tab === "marketplace" && (
-          <>
-            {/* Add to catalog */}
-            <div className="mp-add-row">
-              <button
-                className={`btn btn--ghost btn--sm ${showAddForm ? "btn--active" : ""}`}
-                onClick={() => setShowAddForm(!showAddForm)}
-              >
-                + Add from GitHub
-              </button>
-            </div>
-
-            {showAddForm && (
-              <div className="skills-panel-form">
-                <div className="skills-panel-form-label">Add skill to your catalog</div>
-                <div className="skills-panel-form-hint">
-                  Paste a GitHub repo URL. OpenTeam will download, install, and auto-categorize it.
-                </div>
-                <input
-                  className="skill-installer-input"
-                  placeholder="Skill name (optional)"
-                  value={addName}
-                  onChange={(e) => setAddName(e.target.value)}
-                  autoFocus
-                />
-                <div className="skill-installer-row">
-                  <input
-                    className="skill-installer-input"
-                    placeholder="https://github.com/user/skill-repo"
-                    value={addUrl}
-                    onChange={(e) => setAddUrl(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleAddToCatalog()}
-                  />
-                  <button
-                    className="btn btn--primary btn--sm"
-                    onClick={handleAddToCatalog}
-                    disabled={addingToCatalog || !addUrl.trim()}
-                  >
-                    {addingToCatalog ? "Adding..." : "Add"}
-                  </button>
-                </div>
-                {error && <div className="skill-installer-error">{error}</div>}
-              </div>
-            )}
-
-            <div className="mp-filters">
-              <button
-                className={`mp-filter ${!mpFilter ? "mp-filter--active" : ""}`}
-                onClick={() => setMpFilter(null)}
-              >
-                All
-              </button>
-              {mpCategories.map((cat) => (
-                <button
-                  key={cat}
-                  className={`mp-filter ${mpFilter === cat ? "mp-filter--active" : ""}`}
-                  onClick={() => setMpFilter(mpFilter === cat ? null : cat)}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-            <div className="mp-grid">
-              {marketplace
-                .filter((s) => !mpFilter || s.category === mpFilter)
-                .map((skill) => (
-                  <div key={skill.id} className={`mp-card ${skill.installed ? "mp-card--installed" : ""}`}>
-                    <div className="mp-card-top">
-                      <span className="mp-card-name">{skill.name}</span>
-                      <span className="mp-card-category">{skill.category}</span>
-                    </div>
-                    <div className="mp-card-desc">{skill.description}</div>
-                    <div className="mp-card-bottom">
-                      {skill.installed ? (
-                        <span className="mp-card-installed">Installed</span>
-                      ) : (
-                        <button
-                          className="btn btn--primary btn--sm"
-                          onClick={() => handleMarketplaceInstall(skill)}
-                          disabled={installing === skill.id}
-                        >
-                          {installing === skill.id ? "..." : "Install"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </>
-        )}
-
-        {/* Installed tab */}
-        {tab === "installed" && (
-        <>
-        {/* Actions */}
-        <div className="skills-panel-actions">
+        {/* Add from GitHub */}
+        <div className="mp-add-row">
           <button
-            className={`btn btn--ghost btn--sm ${mode === "github" ? "btn--active" : ""}`}
-            onClick={() => setMode(mode === "github" ? "closed" : "github")}
+            className={`btn btn--ghost btn--sm ${showAdd ? "btn--active" : ""}`}
+            onClick={() => setShowAdd(!showAdd)}
           >
-            + From GitHub
-          </button>
-          <button
-            className={`btn btn--ghost btn--sm ${mode === "create" ? "btn--active" : ""}`}
-            onClick={() => setMode(mode === "create" ? "closed" : "create")}
-          >
-            + Create
+            + Add from GitHub
           </button>
         </div>
 
-        {/* Install form */}
-        {mode === "github" && (
+        {showAdd && (
           <div className="skills-panel-form">
-            <div className="skills-panel-form-label">Install from GitHub</div>
+            <div className="skills-panel-form-label">Add skill from GitHub</div>
             <div className="skills-panel-form-hint">
-              Paste a repo URL. All .md files will be installed as skill modules.
+              Paste a repo URL. OpenTeam downloads, installs, and auto-categorizes it.
             </div>
             <input
               className="skill-installer-input"
-              placeholder="Skill name (e.g. ui-ux-pro-max)"
-              value={skillName}
-              onChange={(e) => setSkillName(e.target.value)}
+              placeholder="Skill name (optional)"
+              value={addName}
+              onChange={(e) => setAddName(e.target.value)}
               autoFocus
             />
             <div className="skill-installer-row">
               <input
                 className="skill-installer-input"
                 placeholder="https://github.com/user/skill-repo"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleInstall()}
+                value={addUrl}
+                onChange={(e) => setAddUrl(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               />
               <button
                 className="btn btn--primary btn--sm"
-                onClick={handleInstall}
-                disabled={loading || !url.trim() || !skillName.trim()}
+                onClick={handleAdd}
+                disabled={loading || !addUrl.trim()}
               >
-                {loading ? "Installing..." : "Install"}
+                {loading ? "Adding..." : "Add"}
               </button>
             </div>
+            {error && <div className="skill-installer-error">{error}</div>}
           </div>
         )}
 
-        {/* Create form */}
-        {mode === "create" && (
-          <div className="skills-panel-form">
-            <div className="skills-panel-form-label">Create new skill</div>
-            <input
-              className="skill-installer-input"
-              placeholder="Skill name (e.g. drizzle, supabase)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
-            <textarea
-              className="skill-installer-textarea"
-              placeholder="Skill content — instructions the agent will follow when this skill is assigned..."
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-            />
-            <div className="skill-installer-row">
+        {/* Category filters */}
+        <div className="mp-filters">
+          <button
+            className={`mp-filter ${!filter ? "mp-filter--active" : ""}`}
+            onClick={() => setFilter(null)}
+          >
+            All ({allSkills.length})
+          </button>
+          {categories.map((cat) => {
+            const count = allSkills.filter((s) => s.category === cat).length;
+            if (count === 0) return null;
+            return (
               <button
-                className="btn btn--primary btn--sm"
-                onClick={handleCreate}
-                disabled={loading || !name.trim() || !content.trim()}
+                key={cat}
+                className={`mp-filter ${filter === cat ? "mp-filter--active" : ""}`}
+                onClick={() => setFilter(filter === cat ? null : cat)}
               >
-                {loading ? "Creating..." : "Create"}
+                {cat} ({count})
               </button>
-            </div>
-          </div>
-        )}
-
-        {error && <div className="skill-installer-error">{error}</div>}
-        {success && <div className="skill-installer-success">{success}</div>}
-
-        {/* Custom modules */}
-        {custom.length > 0 && (
-          <div className="skills-panel-section">
-            <div className="skills-panel-section-label">Custom</div>
-            <div className="skills-panel-grid">
-              {custom.map((mod) => (
-                <ModuleCard key={mod.name} mod={mod} onDelete={handleDelete} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Built-in modules */}
-        <div className="skills-panel-section">
-          <div className="skills-panel-section-label">Built-in</div>
-          <div className="skills-panel-grid">
-            {builtIn.map((mod) => (
-              <ModuleCard key={mod.name} mod={mod} onDelete={handleDelete} />
-            ))}
-          </div>
+            );
+          })}
         </div>
-        </>
-        )}
+
+        {/* Skills grid */}
+        <div className="mp-grid">
+          {filtered.map((skill) => (
+            <div key={skill.id} className={`mp-card ${skill.installed ? "mp-card--installed" : ""}`}>
+              <div className="mp-card-top">
+                <span className="mp-card-name">{skill.name}</span>
+                <span className="mp-card-category">{skill.category}</span>
+              </div>
+              {skill.description && (
+                <div className="mp-card-desc">{skill.description}</div>
+              )}
+              <div className="mp-card-bottom">
+                {skill.installed ? (
+                  <div className="mp-card-actions">
+                    <span className="mp-card-installed">Installed</span>
+                    {skill.custom && (
+                      <button
+                        className="module-card-delete"
+                        onClick={() => handleDelete(skill.id)}
+                        title="Remove"
+                      >
+                        &times;
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    className="btn btn--primary btn--sm"
+                    onClick={() => handleInstall(skill)}
+                  >
+                    Install
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </>
   );

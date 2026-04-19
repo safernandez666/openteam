@@ -3008,6 +3008,16 @@ body {
   letter-spacing: 0.04em;
 }
 
+.mp-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mp-card--installed {
+  opacity: 0.85;
+}
+
 .skills-panel-title {
   font-size: 13px;
   font-weight: 600;
