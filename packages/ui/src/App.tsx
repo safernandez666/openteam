@@ -84,11 +84,11 @@ export function App() {
     refreshWorkspaces();
   };
 
-  const handleSwitchWorkspace = async (id: string) => {
-    await fetch("/api/workspaces/active", {
+  const handleSwitchWorkspace = async (projectId: string, workspaceId: string) => {
+    await fetch("/api/active", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id }),
+      body: JSON.stringify({ projectId, workspaceId }),
     });
     window.location.reload();
   };
@@ -110,6 +110,14 @@ export function App() {
         activeWorkerCount={activeWorkers.length}
         pmStatus={pmStatus}
         isConnected={isConnected}
+        projects={projects}
+        workspaces={workspaces}
+        activeProject={activeProject}
+        activeWorkspace={activeWorkspace}
+        onSwitchWorkspace={handleSwitchWorkspace}
+        onCreateProject={handleCreateWorkspace}
+        onCreateWorkspace={() => setShowNewWs(true)}
+        onOpenSettings={() => setShowWsSettings(true)}
       />
 
       <div className="app-main">

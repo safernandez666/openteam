@@ -63,22 +63,15 @@ function NavIcon({ type }: { type: string }) {
   return null;
 }
 
-function CollapseIcon({ collapsed }: { collapsed: boolean }) {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ transform: collapsed ? "rotate(180deg)" : "none", transition: "transform 0.2s" }}
-    >
-      <polyline points="11 4 7 8 11 12" />
-    </svg>
-  );
+export interface ProjectItem {
+  id: string;
+  name: string;
+}
+
+export interface WorkspaceItem {
+  id: string;
+  name: string;
+  projectId: string;
 }
 
 interface SidebarProps {
@@ -88,9 +81,32 @@ interface SidebarProps {
   activeWorkerCount: number;
   pmStatus: "idle" | "working";
   isConnected: boolean;
+  projects: ProjectItem[];
+  workspaces: WorkspaceItem[];
+  activeProject: string | null;
+  activeWorkspace: string | null;
+  onSwitchWorkspace: (projectId: string, workspaceId: string) => void;
+  onCreateProject: () => void;
+  onCreateWorkspace: (projectId: string) => void;
+  onOpenSettings: () => void;
 }
 
-export function Sidebar({ activeView, onViewChange, taskCount, activeWorkerCount, pmStatus, isConnected }: SidebarProps) {
+export function Sidebar({
+  activeView,
+  onViewChange,
+  taskCount,
+  activeWorkerCount,
+  pmStatus,
+  isConnected,
+  projects,
+  workspaces,
+  activeProject,
+  activeWorkspace,
+  onSwitchWorkspace,
+  onCreateProject,
+  onCreateWorkspace,
+  onOpenSettings,
+}: SidebarProps) {
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem("sidebar-collapsed") === "true";
   });
@@ -101,11 +117,50 @@ export function Sidebar({ activeView, onViewChange, taskCount, activeWorkerCount
 
   return (
     <aside className={`sidebar ${collapsed ? "sidebar--collapsed" : "sidebar--expanded"}`}>
-      <div className="sidebar-logo" onClick={() => setCollapsed(!collapsed)} title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+      {/* Logo */}
+      <div className="sidebar-logo" onClick={() => setCollapsed(!collapsed)}>
         <span className="sidebar-logo-mark">O</span>
         {!collapsed && <span className="sidebar-logo-text">OpenTeam</span>}
       </div>
 
+      {/* Projects & Workspaces */}
+      {!collapsed && (
+        <div className="sidebar-projects">
+          {projects.map((proj) => (
+            <div key={proj.id} className="sidebar-project">
+              <div className={`sidebar-project-header ${proj.id === activeProject ? "sidebar-project-header--active" : ""}`}>
+                <span className="sidebar-project-icon">📁</span>
+                <span className="sidebar-project-name">{proj.name}</span>
+                <button
+                  className="sidebar-project-add"
+                  onClick={(e) => { e.stopPropagation(); onCreateWorkspace(proj.id); }}
+                  title="Add workspace"
+                >
+                  +
+                </button>
+              </div>
+              {proj.id === activeProject && workspaces.map((ws) => (
+                <button
+                  key={ws.id}
+                  className={`sidebar-workspace ${ws.id === activeWorkspace ? "sidebar-workspace--active" : ""}`}
+                  onClick={() => onSwitchWorkspace(proj.id, ws.id)}
+                >
+                  {ws.name}
+                  {ws.id === activeWorkspace && <span className="sidebar-ws-check">&#10003;</span>}
+                </button>
+              ))}
+            </div>
+          ))}
+          <button className="sidebar-new-project" onClick={onCreateProject}>
+            + New Project
+          </button>
+        </div>
+      )}
+
+      {/* Divider */}
+      <div className="sidebar-divider" />
+
+      {/* Navigation */}
       <nav className="sidebar-nav">
         {NAV_ITEMS.map((item) => (
           <button
@@ -129,14 +184,16 @@ export function Sidebar({ activeView, onViewChange, taskCount, activeWorkerCount
         ))}
       </nav>
 
+      {/* Bottom */}
       <div className="sidebar-bottom">
-        <button
-          className="sidebar-collapse-btn"
-          onClick={() => setCollapsed(!collapsed)}
-          title={collapsed ? "Expand" : "Collapse"}
-        >
-          <CollapseIcon collapsed={collapsed} />
-        </button>
+        {!collapsed && (
+          <button className="sidebar-settings-btn" onClick={onOpenSettings} title="Settings">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.68 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.32 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </button>
+        )}
         <div className={`sidebar-connection ${isConnected ? "sidebar-connection--on" : ""}`}>
           <span className={`status-dot ${isConnected ? "status-dot--connected" : "status-dot--disconnected"}`} />
         </div>
