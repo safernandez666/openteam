@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { WorkerInfo, SkillInfo, ModuleInfo, AgentNamesMap } from "./useWorkers";
-import { getRoleMeta } from "./useWorkers";
+import { getRoleMeta, getAvatarUrl } from "./useWorkers";
 import { SkillEditor } from "./SkillEditor";
 import { NameEditor } from "./NameEditor";
 
@@ -30,7 +30,9 @@ function SkillCard({
   const meta = getRoleMeta(skill.name, agentNames);
   return (
     <div className="skill-card skill-card--clickable" onClick={() => onEdit(skill.name)}>
-      <div className="skill-card-avatar">{meta.emoji}</div>
+      <div className="skill-card-avatar">
+        <img src={meta.avatarUrl} alt={meta.displayName} className="agent-avatar" />
+      </div>
       <div className="skill-card-info">
         <div className="skill-card-name">
           {meta.displayName}
@@ -97,7 +99,9 @@ function WorkerCard({
   return (
     <div className="worker-card">
       <div className="worker-card-header">
-        <div className="worker-avatar">{meta.emoji}</div>
+        <div className="worker-avatar">
+          <img src={getAvatarUrl(worker.name)} alt={worker.name} className="agent-avatar agent-avatar--sm" />
+        </div>
         <div className="worker-identity">
           <span className="worker-name">{worker.name}</span>
           {worker.role && <span className="worker-role">{worker.role}</span>}
@@ -209,7 +213,9 @@ export function WorkersPanel({
 
           {/* PM is always part of the team */}
           <div className="skill-card skill-card--pm">
-            <div className="skill-card-avatar">📋</div>
+            <div className="skill-card-avatar">
+              <img src={`https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${encodeURIComponent(agentNames.pm ?? "Clara")}&backgroundColor=transparent`} alt="PM" className="agent-avatar" />
+            </div>
             <div className="skill-card-info">
               <div className="skill-card-name">
                 {agentNames.pm ?? "Clara"}

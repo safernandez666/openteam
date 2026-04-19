@@ -1840,17 +1840,7 @@ body {
   border-color: var(--accent-muted);
 }
 
-.skill-card-avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-md);
-  background: var(--bg-tertiary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 15px;
-  flex-shrink: 0;
-}
+/* old avatar style overridden above */
 
 .skill-card-info {
   flex: 1;
@@ -1956,6 +1946,32 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+/* Agent Avatars */
+.agent-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.agent-avatar--sm {
+  width: 28px;
+  height: 28px;
+}
+
+.skill-card-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 2px solid var(--border-default);
 }
 
 .skill-card-role {
