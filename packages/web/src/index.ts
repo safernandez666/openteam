@@ -234,6 +234,8 @@ export function startServer(port = PORT, host = HOST): Server {
 
     workspaceManager.setActive(switchTo);
     workspaceManager.remove(current);
+    // Clear chat memory so new workspace starts clean
+    wsHandler.resetChat();
     res.json({ ok: true, switchedTo: switchTo, restart: true });
   });
 
