@@ -269,6 +269,26 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
       .run(msg.role, msg.content, msg.timestamp);
   }
 
+  /** Update the team info in the system prompt. Called when team changes. */
+  setTeamInfo(members: Array<{ roleId: string; name: string }>): void {
+    const teamLines = members.map((m) => `- **${m.name}** (${m.roleId})`).join("\n");
+    const roleList = members.map((m) => `"${m.roleId}"`).join(", ");
+    const teamSection = `## Your Team
+You manage a team of AI worker agents:
+${teamLines}
+
+These are the worker roles in the current team. When the user asks about "the team" or "agents", refer to them by their names.
+Use their names naturally: "Le asigné a ${members[0]?.name ?? "the developer"}" instead of role names.
+
+Available roles for task assignment: ${roleList}`;
+
+    // Replace the team section in the system prompt
+    this.systemPrompt = this.systemPrompt.replace(
+      /## Your Team[\s\S]*?(?=## MCP Tools)/,
+      teamSection + "\n\n",
+    );
+  }
+
   /** Change the AI provider at runtime. Updates system prompt too. */
   setProvider(provider: ProviderType): void {
     this.provider = provider;

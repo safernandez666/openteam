@@ -276,6 +276,7 @@ export function startServer(port = PORT, host = HOST): Server {
       name ?? role?.defaultName ?? roleId,
       (provider as "claude" | "kimi") ?? "claude",
     );
+    wsHandler.setTeamInfo(teamConfig.getMembers());
     res.json(member);
   });
 
@@ -285,6 +286,7 @@ export function startServer(port = PORT, host = HOST): Server {
       res.status(404).json({ error: "Member not found" });
       return;
     }
+    wsHandler.setTeamInfo(teamConfig.getMembers());
     res.json({ ok: true });
   });
 
@@ -298,6 +300,7 @@ export function startServer(port = PORT, host = HOST): Server {
       res.status(404).json({ error: "Member not found" });
       return;
     }
+    wsHandler.setTeamInfo(teamConfig.getMembers());
     res.json(member);
   });
 
@@ -488,6 +491,9 @@ export function startServer(port = PORT, host = HOST): Server {
     console.log(`Worker completed task ${taskId}: ${result.slice(0, 100)}`);
     wsHandler.broadcastWorkerDone(taskId);
   });
+
+  // Update Clara's team knowledge
+  wsHandler.setTeamInfo(teamConfig.getMembers());
 
   orchestrator.start();
   console.log("Orchestrator started — watching for assigned tasks");

@@ -1575,8 +1575,8 @@ body {
 }
 
 .message-bubble--user {
-  background: var(--accent);
-  color: white;
+  background: #0e7490;
+  color: #f0fdfa;
   border-bottom-right-radius: 4px;
 }
 
