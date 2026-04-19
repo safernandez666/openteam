@@ -11,12 +11,8 @@ export interface TeamConfig {
   members: TeamMember[];
 }
 
-const DEFAULT_TEAM: TeamMember[] = [
-  { roleId: "developer", name: "Lucas", provider: "claude" },
-  { roleId: "designer", name: "Sofia", provider: "claude" },
-  { roleId: "tester", name: "Max", provider: "claude" },
-  { roleId: "reviewer", name: "Ana", provider: "claude" },
-];
+// New workspaces start with no agents — user builds the team
+const DEFAULT_TEAM: TeamMember[] = [];
 
 /**
  * Manages the team composition for a workspace.
