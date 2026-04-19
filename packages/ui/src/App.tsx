@@ -249,8 +249,8 @@ export function App() {
             </div>
           )}
 
-          {/* Persistent chat sidebar — visible on all views except chat full */}
-          {activeView !== "chat" && (
+          {/* Persistent chat sidebar — visible on all views except chat and board */}
+          {activeView !== "chat" && activeView !== "board" && (
             <div className="chat-sidebar">
               <ChatPanel
                 messages={messages}
