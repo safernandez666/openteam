@@ -274,91 +274,76 @@ export function startServer(port = PORT, host = HOST): Server {
       return;
     }
     try {
-      // Install the skill from GitHub as a module
+      // Install the skill from GitHub as modules
       const installedNames = skillLoader.installModules(url, name);
       if (installedNames.length === 0) {
         res.status(400).json({ error: "No .md files found in repository" });
         return;
       }
 
-      // Auto-catalog all installed skills in ONE AI call
-      const added = [];
+      // Extract repo name from URL for the catalog entry
+      const repoMatch = url.match(/github\.com\/[\w-]+\/([\w.-]+)/);
+      const repoName = name ?? repoMatch?.[1]?.replace(/\.git$/, "") ?? installedNames[0];
+
+      // Combine all installed files into ONE module
+      const allContent = installedNames.map((n) => {
+        const mod = skillLoader.getModule(n);
+        return mod?.content ?? "";
+      }).join("\n\n---\n\n");
+
+      // Remove individual modules, create one combined
+      for (const n of installedNames) {
+        if (n !== repoName) skillLoader.removeModule(n);
+      }
+      skillLoader.saveModule(repoName, allContent);
+
+      // AI analysis for the combined skill
       const providerCmd = project.provider === "kimi" ? "kimi" : "claude";
-
-      // Build batch for AI analysis
-      const skillsToAnalyze = installedNames.map((skillName) => {
-        const mod = skillLoader.getModule(skillName);
-        return { id: skillName, content: (mod?.content ?? "").slice(0, 500) };
-      });
-
-      let aiResults: Record<string, { name: string; description: string; category: string }> = {};
+      let aiName = repoName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+      let aiDesc = "";
+      let aiCategory = autoCategorize(repoName, allContent);
 
       try {
         const { execSync: exec } = await import("node:child_process");
-        const batch = skillsToAnalyze.map((s) => `- ID: "${s.id}"\n  Content: ${s.content.split("\n").slice(0, 5).join(" ").slice(0, 200)}`).join("\n\n");
+        const prompt = `Analyze this skill and respond with ONLY JSON, no markdown:
+{"name": "Short Title (2-4 words)", "description": "Max 60 chars, like: UI animation, transitions, scroll effects", "category": "one of: Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom"}
 
-        const prompt = `Analyze these ${skillsToAnalyze.length} skill files. For each, provide:
-- name: short human-readable title (2-4 words)
-- description: ONE short sentence, max 60 chars, describing the skill's purpose. Like "Unit tests, mocks, coverage" or "CI/CD, Docker, deployments". NO yaml, NO quotes, NO metadata.
-- category: one of Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom
-
-Skills:
-${batch}
-
-Respond with ONLY valid JSON. No markdown. No explanation.
-{"skill-id": {"name": "Short Name", "description": "Brief purpose, max 60 chars", "category": "Category"}}`;
+Skill content (${installedNames.length} files combined):
+${allContent.slice(0, 1500)}`;
 
         const result = exec(
           `${providerCmd} --print -p ${JSON.stringify(prompt)}`,
-          { timeout: 45000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
+          { timeout: 30000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
         );
 
-        const jsonMatch = result.match(/\{[\s\S]*\}/);
+        const jsonMatch = result.match(/\{[\s\S]*?\}/);
         if (jsonMatch) {
-          aiResults = JSON.parse(jsonMatch[0]);
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (parsed.name) aiName = parsed.name;
+          if (parsed.description && parsed.description !== "---" && parsed.description.length > 5) {
+            aiDesc = parsed.description.replace(/^["']|["']$/g, "").slice(0, 80);
+          }
+          if (parsed.category) aiCategory = parsed.category;
         }
-      } catch {
-        // AI failed — will use fallback below
+      } catch { /* fallback */ }
+
+      if (!aiDesc) {
+        const lines = allContent.split("\n")
+          .filter((l) => l.trim() && !l.startsWith("#") && !l.startsWith("---") && l.length > 10)
+          .map((l) => l.replace(/[*_`]/g, "").trim());
+        aiDesc = lines.slice(0, 1).join(" ").slice(0, 80) || `${repoName} skill`;
       }
 
-      for (const skillName of installedNames) {
-        const mod = skillLoader.getModule(skillName);
-        const content = mod?.content ?? "";
-        const ai = aiResults[skillName];
+      const entry = marketplaceCatalog.add({
+        id: repoName,
+        name: aiName,
+        description: aiDesc,
+        source: url,
+        category: aiCategory,
+        content: allContent,
+      });
 
-        const finalName = ai?.name ?? skillName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
-        const fallbackLines = content.split("\n")
-          .filter((l) => l.trim() && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith("```") && l.trim() !== "---")
-          .map((l) => l.replace(/[*_`]/g, "").trim())
-          .filter((l) => l.length > 10);
-        const fallbackDesc = fallbackLines.slice(0, 2).join(" ").slice(0, 120);
-        // Clean AI description — remove YAML frontmatter artifacts
-        let aiDesc: string | null = null;
-        if (ai?.description) {
-          let d = ai.description;
-          // Remove "name: xxx description: " prefix pattern
-          d = d.replace(/^name:\s*[\w:-]+\s*description:\s*/i, "");
-          // Remove quotes
-          d = d.replace(/^["']|["']$/g, "");
-          // Remove "---"
-          if (d === "---" || d.length < 5) d = "";
-          if (d) aiDesc = d.slice(0, 80);
-        }
-        const finalDesc = aiDesc ?? (fallbackDesc || `${skillName} skill`);
-        const finalCategory = ai?.category ?? autoCategorize(skillName, content);
-
-        const entry = marketplaceCatalog.add({
-          id: skillName,
-          name: finalName,
-          description: finalDesc,
-          source: url,
-          category: finalCategory,
-          content,
-        });
-        added.push(entry);
-      }
-
-      res.json({ added, installed: installedNames });
+      res.json({ added: [entry], installed: [repoName] });
     } catch (err) {
       res.status(400).json({ error: (err as Error).message });
     }

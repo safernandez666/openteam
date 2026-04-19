@@ -149,7 +149,7 @@ export function SkillsPanel({
             className={`btn btn--ghost btn--sm ${showAdd ? "btn--active" : ""}`}
             onClick={() => setShowAdd(!showAdd)}
           >
-            + Add from GitHub
+            + Add Skill
           </button>
         </div>
 
