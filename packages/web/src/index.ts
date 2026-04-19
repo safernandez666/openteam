@@ -267,7 +267,7 @@ export function startServer(port = PORT, host = HOST): Server {
     res.json({ skills, categories: MARKETPLACE_CATEGORIES });
   });
 
-  app.post("/api/marketplace/add", (req, res) => {
+  app.post("/api/marketplace/add", async (req, res) => {
     const { url, name } = req.body as { url?: string; name?: string };
     if (!url) {
       res.status(400).json({ error: "url is required" });
@@ -281,35 +281,53 @@ export function startServer(port = PORT, host = HOST): Server {
         return;
       }
 
-      // Auto-catalog each installed skill
+      // Auto-catalog each installed skill using AI
       const added = [];
+      const providerCmd = project.provider === "kimi" ? "kimi" : "claude";
+
       for (const skillName of installedNames) {
         const mod = skillLoader.getModule(skillName);
         const content = mod?.content ?? "";
-        const category = autoCategorize(skillName, content);
 
-        // Extract description from content:
-        // 1. Look for first paragraph after any frontmatter/heading
-        // 2. Combine first meaningful lines
-        const lines = content.split("\n")
-          .filter((l) => l.trim())
-          .filter((l) => !l.startsWith("#"))
-          .filter((l) => !l.startsWith("---"))
-          .filter((l) => !l.startsWith("```"));
+        let aiName = skillName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+        let aiDescription = "";
+        let aiCategory = autoCategorize(skillName, content);
 
-        // Take first 2 meaningful lines, clean up markdown
-        const descLines = lines.slice(0, 2)
-          .map((l) => l.replace(/\*\*/g, "").replace(/[_*`]/g, "").trim())
-          .filter(Boolean);
+        // Try AI analysis
+        try {
+          const { execSync: exec } = await import("node:child_process");
+          const prompt = `Analyze this skill/instruction file and respond with ONLY a JSON object (no markdown, no explanation):
+{"name": "short human-readable name", "description": "one sentence max 100 chars describing what this skill teaches an AI agent", "category": "one of: Frontend, Backend, Database, Testing, DevOps, Design, Security, Custom"}
 
-        const description = descLines.join(" ").slice(0, 150) || `${skillName} skill`;
+Content to analyze:
+${content.slice(0, 2000)}`;
+
+          const result = exec(
+            `${providerCmd} --print -p ${JSON.stringify(prompt)}`,
+            { timeout: 30000, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] },
+          );
+
+          // Extract JSON from response
+          const jsonMatch = result.match(/\{[\s\S]*?\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (parsed.name) aiName = parsed.name;
+            if (parsed.description) aiDescription = parsed.description.slice(0, 150);
+            if (parsed.category) aiCategory = parsed.category;
+          }
+        } catch {
+          // AI failed — fall back to content extraction
+          const lines = content.split("\n")
+            .filter((l) => l.trim() && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith("```"));
+          aiDescription = lines.slice(0, 2).map((l) => l.replace(/\*\*/g, "").replace(/[_*`]/g, "").trim()).join(" ").slice(0, 150);
+        }
 
         const entry = marketplaceCatalog.add({
           id: skillName,
-          name: skillName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" "),
-          description,
+          name: aiName,
+          description: aiDescription || `${skillName} skill`,
           source: url,
-          category,
+          category: aiCategory,
           content,
         });
         added.push(entry);

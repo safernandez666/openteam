@@ -151,7 +151,7 @@ export function SkillsPanel({
                 onClick={handleAdd}
                 disabled={loading || !addUrl.trim()}
               >
-                {loading ? "Adding..." : "Add"}
+                {loading ? "Analyzing with AI..." : "Add"}
               </button>
             </div>
             {error && <div className="skill-installer-error">{error}</div>}
