@@ -214,7 +214,7 @@ export function WorkersPanel({
           {/* PM is always part of the team */}
           <div className="skill-card skill-card--pm">
             <div className="skill-card-avatar">
-              <img src={`https://api.dicebear.com/9.x/avataaars-neutral/svg?seed=${encodeURIComponent(agentNames.pm ?? "Clara")}&backgroundColor=transparent`} alt="PM" className="agent-avatar" />
+              <img src={`https://api.dicebear.com/9.x/miniavs/svg?seed=${encodeURIComponent(agentNames.pm ?? "Clara")}`} alt="PM" className="agent-avatar" />
             </div>
             <div className="skill-card-info">
               <div className="skill-card-name">

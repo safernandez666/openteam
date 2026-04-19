@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { AgentNamesMap } from "./useWorkers";
+import { getAvatarUrl } from "./useWorkers";
 
 const ROLES = [
   { key: "pm", emoji: "📋", label: "Project Manager" },
@@ -25,9 +26,20 @@ export function NameEditor({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/agent-providers")
-      .then((r) => r.json())
-      .then((data) => { setProviders(data); setLoading(false); })
+    Promise.all([
+      fetch("/api/agent-providers").then((r) => r.json()),
+      fetch("/api/project").then((r) => r.json()),
+    ])
+      .then(([agentProviders, projectConfig]) => {
+        // Fill in defaults from project config for agents without specific provider
+        const defaultProvider = projectConfig.provider ?? "claude";
+        const merged: ProvidersMap = {};
+        for (const role of ROLES) {
+          merged[role.key] = agentProviders[role.key] ?? defaultProvider;
+        }
+        setProviders(merged);
+        setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, []);
 
@@ -74,7 +86,11 @@ export function NameEditor({
           <div className="name-editor-grid">
             {ROLES.map((role) => (
               <div key={role.key} className="name-editor-row">
-                <span className="name-editor-emoji">{role.emoji}</span>
+                <img
+                  src={getAvatarUrl(names[role.key] ?? role.label)}
+                  alt={role.label}
+                  className="name-editor-avatar"
+                />
                 <input
                   className="name-editor-input"
                   value={names[role.key] ?? ""}
