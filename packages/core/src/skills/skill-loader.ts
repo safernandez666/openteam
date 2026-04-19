@@ -156,7 +156,11 @@ export class SkillLoader {
       const installed: string[] = [];
       const searchDirs = [tmpDir, join(tmpDir, "skills"), join(tmpDir, "modules")];
 
-      const SKIP_FILES = new Set(["readme.md", "license.md", "code_of_conduct.md", "contributing.md", "changelog.md"]);
+      const SKIP_FILES = new Set([
+        "readme.md", "license.md", "code_of_conduct.md", "contributing.md",
+        "changelog.md", "security.md", "pull_request_template.md",
+        "bug_report.md", "feature_request.md", "attack_coverage.md",
+      ]);
 
       for (const dir of searchDirs) {
         if (!existsSync(dir)) continue;
@@ -166,6 +170,17 @@ export class SkillLoader {
 
           const originalName = basename(file, ".md").toLowerCase();
           const content = readFileSync(join(dir, file), "utf-8").trim();
+
+          // Skip files that look like repo docs, not skills
+          const looksLikeDoc =
+            content.includes("img.shields.io") ||
+            content.includes("<p align=") ||
+            content.includes("Supported |") ||
+            content.includes("## Contributing") ||
+            content.startsWith("# Code of") ||
+            content.length < 50;
+          if (looksLikeDoc) continue;
+
           // Use custom name for single-file repos, otherwise use file name
           const name = customName && installed.length === 0 ? customName.toLowerCase() : originalName;
           writeFileSync(join(modulesDir, `${name}.md`), content, "utf-8");
