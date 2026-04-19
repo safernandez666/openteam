@@ -2908,6 +2908,10 @@ body {
 }
 
 /* Marketplace */
+.mp-add-row {
+  margin-bottom: 10px;
+}
+
 .mp-filters {
   display: flex;
   gap: 4px;

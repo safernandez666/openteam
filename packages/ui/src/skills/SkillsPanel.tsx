@@ -68,17 +68,31 @@ export function SkillsPanel({
   const [mpCategories, setMpCategories] = useState<string[]>([]);
   const [mpFilter, setMpFilter] = useState<string | null>(null);
   const [installing, setInstalling] = useState<string | null>(null);
+  const [addUrl, setAddUrl] = useState("");
+  const [addName, setAddName] = useState("");
+  const [addingToCatalog, setAddingToCatalog] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
 
-  useEffect(() => {
+  const refreshMarketplace = () => {
     fetch("/api/marketplace")
       .then((r) => r.json())
       .then((d) => { setMarketplace(d.skills ?? []); setMpCategories(d.categories ?? []); })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshMarketplace();
   }, [modules]);
 
-  const handleMarketplaceInstall = async (skill: { id: string; name: string }) => {
+  const handleMarketplaceInstall = async (skill: { id: string; name: string; source: string }) => {
     setInstalling(skill.id);
     try {
+      if (skill.source === "built-in") {
+        // Built-in skills are already available as modules
+        setInstalling(null);
+        return;
+      }
+      // Install from the source repo
       await fetch("/api/modules/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -87,6 +101,31 @@ export function SkillsPanel({
       onRefresh();
     } catch { /* ignore */ }
     setInstalling(null);
+  };
+
+  const handleAddToCatalog = async () => {
+    if (!addUrl.trim()) return;
+    setAddingToCatalog(true);
+    try {
+      const res = await fetch("/api/marketplace/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: addUrl.trim(), name: addName.trim() || undefined }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error);
+      } else {
+        setAddUrl("");
+        setAddName("");
+        setShowAddForm(false);
+        refreshMarketplace();
+        onRefresh();
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    }
+    setAddingToCatalog(false);
   };
 
   const [mode, setMode] = useState<InstallerMode>("closed");
@@ -193,6 +232,49 @@ export function SkillsPanel({
         {/* Marketplace tab */}
         {tab === "marketplace" && (
           <>
+            {/* Add to catalog */}
+            <div className="mp-add-row">
+              <button
+                className={`btn btn--ghost btn--sm ${showAddForm ? "btn--active" : ""}`}
+                onClick={() => setShowAddForm(!showAddForm)}
+              >
+                + Add from GitHub
+              </button>
+            </div>
+
+            {showAddForm && (
+              <div className="skills-panel-form">
+                <div className="skills-panel-form-label">Add skill to your catalog</div>
+                <div className="skills-panel-form-hint">
+                  Paste a GitHub repo URL. OpenTeam will download, install, and auto-categorize it.
+                </div>
+                <input
+                  className="skill-installer-input"
+                  placeholder="Skill name (optional)"
+                  value={addName}
+                  onChange={(e) => setAddName(e.target.value)}
+                  autoFocus
+                />
+                <div className="skill-installer-row">
+                  <input
+                    className="skill-installer-input"
+                    placeholder="https://github.com/user/skill-repo"
+                    value={addUrl}
+                    onChange={(e) => setAddUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleAddToCatalog()}
+                  />
+                  <button
+                    className="btn btn--primary btn--sm"
+                    onClick={handleAddToCatalog}
+                    disabled={addingToCatalog || !addUrl.trim()}
+                  >
+                    {addingToCatalog ? "Adding..." : "Add"}
+                  </button>
+                </div>
+                {error && <div className="skill-installer-error">{error}</div>}
+              </div>
+            )}
+
             <div className="mp-filters">
               <button
                 className={`mp-filter ${!mpFilter ? "mp-filter--active" : ""}`}

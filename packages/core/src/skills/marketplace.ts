@@ -1,56 +1,27 @@
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+
 export interface MarketplaceSkill {
   id: string;
   name: string;
   description: string;
   category: string;
   source: string;
-  installs?: string;
+  custom?: boolean;
 }
 
 /**
- * Curated skill marketplace.
- * Each skill can be installed from GitHub with one click.
+ * Built-in curated skills.
  */
-export const MARKETPLACE: MarketplaceSkill[] = [
-  // Frontend
-  { id: "react", name: "React", description: "Functional components, hooks, state management", category: "Frontend", source: "built-in", installs: "built-in" },
-  { id: "nextjs", name: "Next.js", description: "App Router, Server Components, SSR/SSG", category: "Frontend", source: "built-in", installs: "built-in" },
-  { id: "tailwind", name: "Tailwind CSS", description: "Utility-first CSS framework patterns", category: "Frontend", source: "built-in", installs: "built-in" },
-  { id: "vue", name: "Vue.js", description: "Composition API, reactivity, SFC patterns", category: "Frontend", source: "anthropics/claude-code-skills" },
-  { id: "svelte", name: "Svelte", description: "Svelte 5 runes, SvelteKit, stores", category: "Frontend", source: "anthropics/claude-code-skills" },
-  { id: "angular", name: "Angular", description: "Components, services, RxJS, standalone APIs", category: "Frontend", source: "anthropics/claude-code-skills" },
-
-  // Backend
-  { id: "nodejs", name: "Node.js", description: "Express, Fastify, middleware, async patterns", category: "Backend", source: "anthropics/claude-code-skills" },
-  { id: "python", name: "Python", description: "FastAPI, Django, type hints, async", category: "Backend", source: "anthropics/claude-code-skills" },
-  { id: "go", name: "Go", description: "Standard library, goroutines, error handling", category: "Backend", source: "anthropics/claude-code-skills" },
-  { id: "rust", name: "Rust", description: "Ownership, lifetimes, async, error handling", category: "Backend", source: "anthropics/claude-code-skills" },
-
-  // Database
-  { id: "prisma", name: "Prisma", description: "ORM, migrations, schema design", category: "Database", source: "built-in", installs: "built-in" },
-  { id: "postgresql", name: "PostgreSQL", description: "SQL, indexes, CTEs, JSONB", category: "Database", source: "built-in", installs: "built-in" },
-  { id: "drizzle", name: "Drizzle ORM", description: "Type-safe SQL, migrations, relations", category: "Database", source: "anthropics/claude-code-skills" },
-  { id: "supabase", name: "Supabase", description: "Auth, RLS, realtime, edge functions", category: "Database", source: "anthropics/claude-code-skills" },
-  { id: "mongodb", name: "MongoDB", description: "Mongoose, aggregation, indexes", category: "Database", source: "anthropics/claude-code-skills" },
-
-  // Testing
-  { id: "vitest", name: "Vitest", description: "Unit tests, mocks, coverage", category: "Testing", source: "built-in", installs: "built-in" },
-  { id: "playwright", name: "Playwright", description: "E2E testing, browser automation", category: "Testing", source: "anthropics/claude-code-skills" },
-  { id: "cypress", name: "Cypress", description: "E2E and component testing", category: "Testing", source: "anthropics/claude-code-skills" },
-
-  // DevOps
-  { id: "docker", name: "Docker", description: "Containers, multi-stage builds, compose", category: "DevOps", source: "built-in", installs: "built-in" },
-  { id: "github-actions", name: "GitHub Actions", description: "CI/CD workflows, caching, secrets", category: "DevOps", source: "anthropics/claude-code-skills" },
-  { id: "terraform", name: "Terraform", description: "Infrastructure as code, AWS/GCP/Azure", category: "DevOps", source: "anthropics/claude-code-skills" },
-  { id: "kubernetes", name: "Kubernetes", description: "Deployments, services, helm charts", category: "DevOps", source: "anthropics/claude-code-skills" },
-
-  // Design
-  { id: "figma", name: "Figma to Code", description: "Translate Figma designs to components", category: "Design", source: "built-in", installs: "built-in" },
-  { id: "storybook", name: "Storybook", description: "Component documentation and testing", category: "Design", source: "anthropics/claude-code-skills" },
-
-  // Security
-  { id: "auth", name: "Authentication", description: "NextAuth, OAuth, JWT, session management", category: "Security", source: "anthropics/claude-code-skills" },
-  { id: "wazuh", name: "Wazuh", description: "SIEM rules, agent config, threat detection", category: "Security", source: "custom" },
+const BUILT_IN_MARKETPLACE: MarketplaceSkill[] = [
+  { id: "react", name: "React", description: "Functional components, hooks, state management", category: "Frontend", source: "built-in" },
+  { id: "nextjs", name: "Next.js", description: "App Router, Server Components, SSR/SSG", category: "Frontend", source: "built-in" },
+  { id: "tailwind", name: "Tailwind CSS", description: "Utility-first CSS framework patterns", category: "Frontend", source: "built-in" },
+  { id: "prisma", name: "Prisma", description: "ORM, migrations, schema design", category: "Database", source: "built-in" },
+  { id: "postgresql", name: "PostgreSQL", description: "SQL, indexes, CTEs, JSONB", category: "Database", source: "built-in" },
+  { id: "vitest", name: "Vitest", description: "Unit tests, mocks, coverage", category: "Testing", source: "built-in" },
+  { id: "docker", name: "Docker", description: "Containers, multi-stage builds, compose", category: "DevOps", source: "built-in" },
+  { id: "figma", name: "Figma to Code", description: "Translate Figma designs to components", category: "Design", source: "built-in" },
 ];
 
 export const MARKETPLACE_CATEGORIES = [
@@ -61,4 +32,93 @@ export const MARKETPLACE_CATEGORIES = [
   "DevOps",
   "Design",
   "Security",
+  "Custom",
 ];
+
+/**
+ * Auto-categorize a skill based on its content and name.
+ */
+export function autoCategorize(name: string, content: string): string {
+  const text = `${name} ${content}`.toLowerCase();
+  const keywords: Record<string, string[]> = {
+    Frontend: ["react", "vue", "svelte", "angular", "css", "tailwind", "component", "ui", "dom", "browser", "html"],
+    Backend: ["express", "fastapi", "django", "api", "server", "middleware", "route", "endpoint", "node"],
+    Database: ["sql", "prisma", "drizzle", "mongo", "postgres", "supabase", "migration", "schema", "orm", "query"],
+    Testing: ["test", "vitest", "jest", "playwright", "cypress", "assert", "mock", "coverage", "e2e"],
+    DevOps: ["docker", "ci", "cd", "deploy", "kubernetes", "terraform", "github actions", "pipeline", "nginx"],
+    Design: ["figma", "design", "storybook", "accessibility", "wcag", "color", "typography", "animation"],
+    Security: ["auth", "security", "csp", "cors", "jwt", "oauth", "wazuh", "vulnerability", "encryption"],
+  };
+  let best = "Custom";
+  let bestScore = 0;
+  for (const [cat, kws] of Object.entries(keywords)) {
+    const score = kws.filter((kw) => text.includes(kw)).length;
+    if (score > bestScore) {
+      bestScore = score;
+      best = cat;
+    }
+  }
+  return best;
+}
+
+/**
+ * Manages the user's custom marketplace catalog.
+ * Persisted globally in ~/.openteam/marketplace-catalog.json
+ */
+export class MarketplaceCatalog {
+  private catalog: MarketplaceSkill[] = [];
+  private catalogPath: string;
+
+  constructor(baseDir: string) {
+    this.catalogPath = join(baseDir, "marketplace-catalog.json");
+    this.load();
+  }
+
+  private load(): void {
+    if (!existsSync(this.catalogPath)) return;
+    try {
+      this.catalog = JSON.parse(readFileSync(this.catalogPath, "utf-8"));
+    } catch { /* ignore */ }
+  }
+
+  private save(): void {
+    mkdirSync(join(this.catalogPath, ".."), { recursive: true });
+    writeFileSync(this.catalogPath, JSON.stringify(this.catalog, null, 2), "utf-8");
+  }
+
+  /** Get full marketplace: built-in + user custom */
+  getAll(): MarketplaceSkill[] {
+    return [...BUILT_IN_MARKETPLACE, ...this.catalog];
+  }
+
+  /** Add a skill to the catalog. Auto-categorizes if no category provided. */
+  add(skill: { id: string; name: string; description: string; source: string; category?: string; content?: string }): MarketplaceSkill {
+    const existing = this.catalog.find((s) => s.id === skill.id);
+    if (existing) return existing;
+
+    const category = skill.category || autoCategorize(skill.name, skill.content ?? skill.description);
+
+    const entry: MarketplaceSkill = {
+      id: skill.id,
+      name: skill.name,
+      description: skill.description,
+      category,
+      source: skill.source,
+      custom: true,
+    };
+    this.catalog.push(entry);
+    this.save();
+    return entry;
+  }
+
+  /** Remove a custom skill from the catalog. */
+  remove(id: string): boolean {
+    const before = this.catalog.length;
+    this.catalog = this.catalog.filter((s) => s.id !== id);
+    if (this.catalog.length !== before) {
+      this.save();
+      return true;
+    }
+    return false;
+  }
+}

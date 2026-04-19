@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE, MARKETPLACE_CATEGORIES } from "@openteam/core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize } from "@openteam/core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -255,13 +255,67 @@ export function startServer(port = PORT, host = HOST): Server {
   });
 
   // Marketplace API
+  const marketplaceCatalog = new MarketplaceCatalog(baseDir);
+
   app.get("/api/marketplace", (_req, res) => {
     const installed = skillLoader.listModules().map((m) => m.name);
-    const skills = MARKETPLACE.map((s) => ({
+    const allSkills = marketplaceCatalog.getAll();
+    const skills = allSkills.map((s) => ({
       ...s,
       installed: s.source === "built-in" || installed.includes(s.id),
     }));
     res.json({ skills, categories: MARKETPLACE_CATEGORIES });
+  });
+
+  app.post("/api/marketplace/add", (req, res) => {
+    const { url, name } = req.body as { url?: string; name?: string };
+    if (!url) {
+      res.status(400).json({ error: "url is required" });
+      return;
+    }
+    try {
+      // Install the skill from GitHub as a module
+      const installedNames = skillLoader.installModules(url, name);
+      if (installedNames.length === 0) {
+        res.status(400).json({ error: "No .md files found in repository" });
+        return;
+      }
+
+      // Auto-catalog each installed skill
+      const added = [];
+      for (const skillName of installedNames) {
+        const mod = skillLoader.getModule(skillName);
+        const content = mod?.content ?? "";
+        const category = autoCategorize(skillName, content);
+
+        // Extract first line as description
+        const firstLine = content.split("\n").find((l) => l.trim() && !l.startsWith("#") && !l.startsWith("---"))?.trim() ?? "";
+        const description = firstLine.slice(0, 100);
+
+        const entry = marketplaceCatalog.add({
+          id: skillName,
+          name: skillName.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" "),
+          description: description || `${skillName} skill`,
+          source: url,
+          category,
+          content,
+        });
+        added.push(entry);
+      }
+
+      res.json({ added, installed: installedNames });
+    } catch (err) {
+      res.status(400).json({ error: (err as Error).message });
+    }
+  });
+
+  app.delete("/api/marketplace/:id", (req, res) => {
+    const removed = marketplaceCatalog.remove(req.params.id);
+    if (!removed) {
+      res.status(404).json({ error: "Not found or is built-in" });
+      return;
+    }
+    res.json({ ok: true });
   });
 
   // Role Catalog API
