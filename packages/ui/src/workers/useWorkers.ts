@@ -32,8 +32,8 @@ const ROLE_STATIC: Record<string, { emoji: string; description: string }> = {
 export type AgentNamesMap = Record<string, string>;
 
 /** Generate a DiceBear avatar URL for an agent */
-export function getAvatarUrl(name: string, style = "miniavs"): string {
-  return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(name)}`;
+export function getAvatarUrl(name: string): string {
+  return `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(name)}&backgroundType=gradientLinear&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf`;
 }
 
 export function getRoleMeta(role: string, agentNames?: AgentNamesMap) {

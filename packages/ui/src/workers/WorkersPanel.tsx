@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { WorkerInfo, SkillInfo, ModuleInfo, AgentNamesMap } from "./useWorkers";
 import { getRoleMeta, getAvatarUrl } from "./useWorkers";
 import { SkillEditor } from "./SkillEditor";
-import { NameEditor } from "./NameEditor";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -13,52 +12,97 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(mins / 60)}h`;
 }
 
-/* ── Skill roster card ── */
-function SkillCard({
+/* ── Agent Card — inline editable ── */
+function AgentCard({
+  role,
   skill,
   activeCount,
   assignedModules,
-  onEdit,
   agentNames,
+  provider,
+  onNameChange,
+  onProviderChange,
+  onEditSkill,
 }: {
-  skill: SkillInfo;
+  role: string;
+  skill?: SkillInfo;
   activeCount: number;
   assignedModules: string[];
-  onEdit: (name: string) => void;
   agentNames: AgentNamesMap;
+  provider: "claude" | "kimi";
+  onNameChange: (role: string, name: string) => void;
+  onProviderChange: (role: string, provider: "claude" | "kimi") => void;
+  onEditSkill: (name: string) => void;
 }) {
-  const meta = getRoleMeta(skill.name, agentNames);
+  const meta = getRoleMeta(role, agentNames);
+  const [editingName, setEditingName] = useState(false);
+  const [nameInput, setNameInput] = useState(meta.displayName);
+
+  const handleNameSave = () => {
+    if (nameInput.trim() && nameInput.trim() !== meta.displayName) {
+      onNameChange(role, nameInput.trim());
+    }
+    setEditingName(false);
+  };
+
   return (
-    <div className="skill-card skill-card--clickable" onClick={() => onEdit(skill.name)}>
-      <div className="skill-card-avatar">
+    <div className="agent-card">
+      <div className="agent-card-avatar">
         <img src={meta.avatarUrl} alt={meta.displayName} className="agent-avatar" />
       </div>
-      <div className="skill-card-info">
-        <div className="skill-card-name">
-          {meta.displayName}
-          <span className="skill-card-role">{skill.name}</span>
-          {skill.source === "user" && (
-            <span className="skill-card-custom">custom</span>
+      <div className="agent-card-body">
+        <div className="agent-card-top">
+          {editingName ? (
+            <input
+              className="agent-card-name-input"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onBlur={handleNameSave}
+              onKeyDown={(e) => { if (e.key === "Enter") handleNameSave(); if (e.key === "Escape") setEditingName(false); }}
+              autoFocus
+            />
+          ) : (
+            <span className="agent-card-name" onDoubleClick={() => setEditingName(true)} title="Double-click to edit">
+              {meta.displayName}
+            </span>
+          )}
+          <span className="agent-card-role">{role}</span>
+          {activeCount > 0 && (
+            <span className="agent-card-active">
+              <span className="agent-card-active-dot" />
+              {activeCount}
+            </span>
           )}
         </div>
-        <div className="skill-card-desc">{meta.description}</div>
-        {assignedModules.length > 0 && (
-          <div className="skill-card-modules">
-            {assignedModules.map((m) => (
-              <span key={m} className="skill-card-module-chip">{m}</span>
-            ))}
+        <div className="agent-card-desc">{meta.description}</div>
+        <div className="agent-card-bottom">
+          <div className="agent-card-provider">
+            <button
+              className={`provider-pill ${provider === "claude" ? "provider-pill--active" : ""}`}
+              onClick={() => onProviderChange(role, "claude")}
+            >
+              Claude
+            </button>
+            <button
+              className={`provider-pill provider-pill--kimi ${provider === "kimi" ? "provider-pill--active" : ""}`}
+              onClick={() => onProviderChange(role, "kimi")}
+            >
+              Kimi
+            </button>
           </div>
-        )}
-      </div>
-      <div className="skill-card-right">
-        {activeCount > 0 ? (
-          <span className="skill-card-active">
-            <span className="skill-card-active-dot" />
-            {activeCount}
-          </span>
-        ) : (
-          <span className="skill-card-idle">idle</span>
-        )}
+          {assignedModules.length > 0 && (
+            <div className="agent-card-modules">
+              {assignedModules.map((m) => (
+                <span key={m} className="skill-card-module-chip">{m}</span>
+              ))}
+            </div>
+          )}
+          {skill && (
+            <button className="agent-card-edit-btn" onClick={() => onEditSkill(role)}>
+              Edit Skills
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -168,7 +212,35 @@ export function WorkersPanel({
   onUpdateAgentNames,
 }: WorkersPanelProps) {
   const [editingSkill, setEditingSkill] = useState<string | null>(null);
-  const [editingNames, setEditingNames] = useState(false);
+  const [providers, setProviders] = useState<Record<string, "claude" | "kimi">>({});
+
+  // Load providers on mount
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/agent-providers").then((r) => r.json()),
+      fetch("/api/project").then((r) => r.json()),
+    ]).then(([agentP, project]) => {
+      const defaultP = project.provider ?? "claude";
+      const merged: Record<string, "claude" | "kimi"> = {};
+      for (const role of ["pm", "developer", "designer", "tester", "reviewer"]) {
+        merged[role] = agentP[role] ?? defaultP;
+      }
+      setProviders(merged);
+    }).catch(() => {});
+  }, []);
+
+  const handleProviderChange = async (role: string, provider: "claude" | "kimi") => {
+    setProviders((prev) => ({ ...prev, [role]: provider }));
+    await fetch("/api/agent-providers", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ [role]: provider }),
+    });
+  };
+
+  const handleNameChange = (role: string, name: string) => {
+    onUpdateAgentNames({ [role]: name });
+  };
 
   // Count active workers per role
   const activeByRole: Record<string, number> = {};
@@ -181,54 +253,45 @@ export function WorkersPanel({
     <>
       <div className="workers-header">
         <span className="workers-title">Workers</span>
-        <div className="workers-header-right">
-          <button className="btn btn--ghost btn--sm" onClick={() => setEditingNames(true)}>
-            Edit Names
-          </button>
-          <span className="workers-count">
-            {activeWorkers.length > 0
-              ? `${activeWorkers.length} active`
-              : `${skills.length} roles`}
-          </span>
-        </div>
+        <span className="workers-count">
+          {activeWorkers.length > 0
+            ? `${activeWorkers.length} active`
+            : `${skills.length + 1} agents`}
+        </span>
       </div>
 
       <div className="workers-body">
-        {/* Team roster — always visible */}
+        {/* Team grid */}
         <div className="workers-section">
           <div className="workers-section-label">Team</div>
-          <div className="workers-section-subtitle">
-            Available worker roles. Assign a task with role to spawn one.
-          </div>
-          {skills.map((skill) => (
-            <SkillCard
-              key={skill.name}
-              skill={skill}
-              activeCount={activeByRole[skill.name] ?? 0}
-              assignedModules={roleSkillsMap[skill.name] ?? []}
-              onEdit={setEditingSkill}
+          <div className="agent-grid">
+            {/* PM card */}
+            <AgentCard
+              role="pm"
+              activeCount={1}
+              assignedModules={[]}
               agentNames={agentNames}
+              provider={providers.pm ?? "claude"}
+              onNameChange={handleNameChange}
+              onProviderChange={handleProviderChange}
+              onEditSkill={() => {}}
             />
-          ))}
 
-          {/* PM is always part of the team */}
-          <div className="skill-card skill-card--pm">
-            <div className="skill-card-avatar">
-              <img src={`https://api.dicebear.com/9.x/miniavs/svg?seed=${encodeURIComponent(agentNames.pm ?? "Clara")}`} alt="PM" className="agent-avatar" />
-            </div>
-            <div className="skill-card-info">
-              <div className="skill-card-name">
-                {agentNames.pm ?? "Clara"}
-                <span className="skill-card-role">PM</span>
-              </div>
-              <div className="skill-card-desc">
-                Project manager, coordination, chat
-              </div>
-            </div>
-            <span className="skill-card-active">
-              <span className="skill-card-active-dot skill-card-active-dot--pm" />
-              on
-            </span>
+            {/* Worker cards */}
+            {skills.map((skill) => (
+              <AgentCard
+                key={skill.name}
+                role={skill.name}
+                skill={skill}
+                activeCount={activeByRole[skill.name] ?? 0}
+                assignedModules={roleSkillsMap[skill.name] ?? []}
+                agentNames={agentNames}
+                provider={providers[skill.name] ?? "claude"}
+                onNameChange={handleNameChange}
+                onProviderChange={handleProviderChange}
+                onEditSkill={setEditingSkill}
+              />
+            ))}
           </div>
         </div>
 
@@ -252,14 +315,6 @@ export function WorkersPanel({
           </div>
         )}
       </div>
-
-      {editingNames && (
-        <NameEditor
-          agentNames={agentNames}
-          onSave={onUpdateAgentNames}
-          onClose={() => setEditingNames(false)}
-        />
-      )}
 
       {editingSkill && (
         <SkillEditor
