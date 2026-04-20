@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine, GateEngine, CheckpointManager, TierEngine, HealthChecker } from "openteam-core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine, GateEngine, CheckpointManager, TierEngine, HealthChecker, CompactionEngine } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -100,6 +100,7 @@ export function startServer(port = PORT, host = HOST): Server {
     gateEngine: null as unknown as GateEngine,
     checkpointManager: null as unknown as CheckpointManager,
     tierEngine: null as unknown as TierEngine,
+    compactionEngine: null as unknown as CompactionEngine,
   };
 
   // Global skills directory — shared across all workspaces
@@ -124,6 +125,7 @@ export function startServer(port = PORT, host = HOST): Server {
     state.gateEngine = new GateEngine(state.db);
     state.checkpointManager = new CheckpointManager(state.db);
     state.tierEngine = new TierEngine(state.db);
+    state.compactionEngine = new CompactionEngine(state.db);
   }
 
   loadWorkspace(dataDir);
@@ -423,6 +425,7 @@ export function startServer(port = PORT, host = HOST): Server {
       performanceTracker: state.performanceTracker,
       decisionStore: state.decisionStore,
       tierEngine: state.tierEngine,
+      compactionEngine: state.compactionEngine,
       provider: state.projectConfig.get().provider as "claude" | "kimi",
       maxConcurrentWorkers: 3,
       pollIntervalMs: 3000,
@@ -490,6 +493,7 @@ export function startServer(port = PORT, host = HOST): Server {
       performanceTracker: state.performanceTracker,
       decisionStore: state.decisionStore,
       tierEngine: state.tierEngine,
+      compactionEngine: state.compactionEngine,
       provider: state.projectConfig.get().provider as "claude" | "kimi",
       maxConcurrentWorkers: 3,
       pollIntervalMs: 3000,

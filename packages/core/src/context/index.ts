@@ -15,3 +15,5 @@ export { TierEngine } from "./tier-engine.js";
 export type { Tier, TierConfig } from "./tier-engine.js";
 export { HealthChecker } from "./health-checker.js";
 export type { HealthCheckResult } from "./health-checker.js";
+export { CompactionEngine } from "./compaction-engine.js";
+export type { CompactionResult } from "./compaction-engine.js";

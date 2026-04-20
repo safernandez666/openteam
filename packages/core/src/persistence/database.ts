@@ -240,6 +240,18 @@ const MIGRATION_V14 = `
   );
 `;
 
+const MIGRATION_V15 = `
+  CREATE TABLE IF NOT EXISTS task_compactions (
+    task_id       TEXT PRIMARY KEY,
+    files_changed TEXT NOT NULL DEFAULT '[]',
+    decisions     TEXT NOT NULL DEFAULT '[]',
+    verification  TEXT NOT NULL DEFAULT '{}',
+    blockers      TEXT NOT NULL DEFAULT '[]',
+    compact_text  TEXT NOT NULL DEFAULT '',
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`;
+
 export function openDatabase(dbPath: string): BetterSqlite3Database {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -302,6 +314,10 @@ export function openDatabase(dbPath: string): BetterSqlite3Database {
   if (version < 14) {
     db.exec(MIGRATION_V14);
     db.pragma("user_version = 14");
+  }
+  if (version < 15) {
+    db.exec(MIGRATION_V15);
+    db.pragma("user_version = 15");
   }
 
   return db;

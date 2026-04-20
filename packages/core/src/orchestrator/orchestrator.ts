@@ -10,6 +10,7 @@ import type { AgentMemory } from "../persistence/agent-memory.js";
 import type { PerformanceTracker } from "../persistence/performance-tracker.js";
 import type { DecisionStore } from "../persistence/decision-store.js";
 import type { TierEngine } from "../context/tier-engine.js";
+import type { CompactionEngine } from "../context/compaction-engine.js";
 import type { ProviderType, TokenUsage } from "./cli-provider.js";
 import { WorkerRunner } from "./worker-runner.js";
 
@@ -35,6 +36,7 @@ export interface OrchestratorOptions {
   performanceTracker?: PerformanceTracker;
   decisionStore?: DecisionStore;
   tierEngine?: TierEngine;
+  compactionEngine?: CompactionEngine;
   provider?: ProviderType;
   maxConcurrentWorkers?: number;
   pollIntervalMs?: number;
@@ -54,6 +56,7 @@ export class Orchestrator extends EventEmitter {
   private performanceTracker: PerformanceTracker | null;
   private decisionStore: DecisionStore | null;
   private tierEngine: TierEngine | null;
+  private compactionEngine: CompactionEngine | null;
   private provider: ProviderType;
   private maxWorkers: number;
   private pollIntervalMs: number;
@@ -79,6 +82,7 @@ export class Orchestrator extends EventEmitter {
     this.performanceTracker = options.performanceTracker ?? null;
     this.decisionStore = options.decisionStore ?? null;
     this.tierEngine = options.tierEngine ?? null;
+    this.compactionEngine = options.compactionEngine ?? null;
     this.provider = options.provider ?? "claude";
     this.maxWorkers = options.maxConcurrentWorkers ?? 3;
     this.pollIntervalMs = options.pollIntervalMs ?? 3000;
@@ -219,6 +223,12 @@ export class Orchestrator extends EventEmitter {
       if (usage && (usage.inputTokens > 0 || usage.outputTokens > 0)) {
         this.taskStore.updateTokens(task.id, usage.inputTokens, usage.outputTokens);
       }
+
+      // Compact the output for downstream workers
+      if (this.compactionEngine) {
+        this.compactionEngine.compact(task.id, result, task.title, task.role ?? "worker");
+      }
+
       this.activeWorkers.delete(task.id);
 
       const info = this.workerInfoMap.get(task.id);
