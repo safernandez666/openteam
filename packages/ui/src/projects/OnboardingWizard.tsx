@@ -105,7 +105,7 @@ export function OnboardingWizard({
               <label className="onboarding-label">Project name</label>
               <input
                 className="onboarding-input"
-                placeholder="e.g. Grupo Alemana, My SaaS, Personal Site"
+                placeholder="e.g. My SaaS, E-commerce, Personal Site"
                 value={data.projectName}
                 onChange={(e) => setData({ ...data, projectName: e.target.value })}
                 autoFocus
