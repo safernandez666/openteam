@@ -263,15 +263,56 @@ export function App() {
 
           {activeView === "chat" && (
             <div className="view-panel view-panel--chat-full">
-              <ChatPanel
-                messages={messages}
-                streamingContent={streamingContent}
-                pmStatus={pmStatus}
-                isConnected={isConnected}
-                onSendMessage={sendMessage}
-                onClearChat={clearChat}
-                pmName={agentNames.pm ?? "Facu"}
-              />
+              <div className="chat-team-panel">
+                <div className="chat-team-header">Team</div>
+                <div className="chat-team-member chat-team-member--pm">
+                  <span className="chat-team-dot chat-team-dot--idle" />
+                  <span className="chat-team-name">{agentNames.pm ?? "Facu"}</span>
+                  <span className="chat-team-role">PM</span>
+                  <span className={`chat-team-status chat-team-status--${pmStatus}`}>{pmStatus}</span>
+                </div>
+                {team.map((m) => {
+                  const isWorking = activeWorkers.some((w) => w.role === m.roleId);
+                  const workerInfo = activeWorkers.find((w) => w.role === m.roleId);
+                  return (
+                    <div key={m.roleId} className={`chat-team-member ${isWorking ? "chat-team-member--working" : ""}`}>
+                      <span className={`chat-team-dot ${isWorking ? "chat-team-dot--working" : "chat-team-dot--idle"}`} />
+                      <span className="chat-team-name">{m.name}</span>
+                      <span className="chat-team-role">{m.roleId}</span>
+                      <span className={`chat-team-status ${isWorking ? "chat-team-status--working" : "chat-team-status--idle"}`}>
+                        {isWorking ? "working" : "idle"}
+                      </span>
+                      {workerInfo && (
+                        <span className="chat-team-task">{workerInfo.taskTitle}</span>
+                      )}
+                    </div>
+                  );
+                })}
+                {completedWorkers.length > 0 && (
+                  <>
+                    <div className="chat-team-divider" />
+                    <div className="chat-team-header">Recent</div>
+                    {completedWorkers.slice(0, 5).map((w) => (
+                      <div key={w.taskId} className="chat-team-member">
+                        <span className={`chat-team-dot chat-team-dot--${w.status}`} />
+                        <span className="chat-team-name">{w.name}</span>
+                        <span className="chat-team-task">{w.taskTitle}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+              <div className="chat-main-area">
+                <ChatPanel
+                  messages={messages}
+                  streamingContent={streamingContent}
+                  pmStatus={pmStatus}
+                  isConnected={isConnected}
+                  onSendMessage={sendMessage}
+                  onClearChat={clearChat}
+                  pmName={agentNames.pm ?? "Facu"}
+                />
+              </div>
             </div>
           )}
 
