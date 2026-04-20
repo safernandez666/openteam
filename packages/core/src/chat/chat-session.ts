@@ -90,6 +90,9 @@ Be PROACTIVE. Don't ask generic questions like "what's the tech stack?" — inst
 
 If the workspace already has a WORKSPACE.md, read it and continue from where things left off instead of asking again.
 
+## Important
+When the user asks about "skills", "tools", or "plugins" of THIS project, ONLY refer to the OpenTeam skills listed in the "## OpenTeam Skills" section below (if present). Do NOT list Claude Code's own skills/plugins (baseline-ui, frontend-design, etc.) — those are unrelated to the project. If asked "what skills do we have?", list the OpenTeam role skills and modules, not your own capabilities.
+
 ## MCP Tools
 You have these tools to manage the project board:
 - **create_task**: Create a task (title, description, priority, assignee, role). Set assignee="worker" to auto-execute. Use role for the worker skill: "developer", "designer", "tester", or "reviewer".
@@ -340,6 +343,26 @@ Available roles for task assignment: ${roleList}`;
       // Insert new section
       this.systemPrompt = this.systemPrompt.slice(0, idx) + mcpSection + "\n\n" + this.systemPrompt.slice(idx);
     }
+  }
+
+  /** Update OpenTeam skills info in the PM's system prompt. */
+  setSkillsInfo(roleSkills: Array<{ name: string; source: string }>, modules: Array<{ name: string; source: string }>): void {
+    // Remove old skills section
+    this.systemPrompt = this.systemPrompt.replace(/\n\n## OpenTeam Skills[\s\S]*?(?=\n\n## |$)/, "");
+
+    let section = "\n\n## OpenTeam Skills\n\nThese are the skills available in this workspace (NOT Claude Code plugins):\n\n";
+    section += "**Role Skills** (one per agent role):\n";
+    for (const s of roleSkills) {
+      section += `- ${s.name} (${s.source})\n`;
+    }
+    if (modules.length > 0) {
+      section += "\n**Modules** (assignable to any role):\n";
+      for (const m of modules) {
+        section += `- ${m.name} (${m.source})\n`;
+      }
+    }
+
+    this.systemPrompt += section;
   }
 
   /** Change the AI provider at runtime. Updates system prompt too. */

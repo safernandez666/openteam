@@ -38,6 +38,7 @@ export interface WsHandler {
   setTeamInfo: (members: Array<{ roleId: string; name: string; provider?: string }>) => void;
   setMcpServers: (servers: Array<{ name: string; enabled: boolean }>) => void;
   getChatMessages: () => ReadonlyArray<{ role: string; content: string }>;
+  setSkillsInfo: (skills: Array<{ name: string; source: string }>, modules: Array<{ name: string; source: string }>) => void;
   resetChat: () => void;
 }
 
@@ -205,6 +206,9 @@ export function createWsHandler(
     },
     getChatMessages() {
       return chatSession.messages;
+    },
+    setSkillsInfo(skills: Array<{ name: string; source: string }>, modules: Array<{ name: string; source: string }>) {
+      chatSession.setSkillsInfo(skills, modules);
     },
   };
 }

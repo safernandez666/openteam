@@ -1407,9 +1407,13 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
   attachOrchestratorListeners(orchestrator);
 
-  // Update PM's team + MCP knowledge
+  // Update PM's team + MCP + skills knowledge
   wsHandler.setTeamInfo(state.teamConfig.getMembers());
   wsHandler.setMcpServers(state.mcpManager.list());
+  wsHandler.setSkillsInfo(
+    state.skillLoader.list().map((s) => ({ name: s.name, source: s.source })),
+    state.skillLoader.listModules().map((m) => ({ name: m.name, source: m.source })),
+  );
 
   orchestrator.start();
   console.log("Orchestrator started — watching for assigned tasks");
