@@ -16,6 +16,7 @@ import { NewWorkspaceModal } from "./NewWorkspaceModal";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { ProjectsPanel } from "./projects/ProjectsPanel";
 import "./styles.css";
+import { CloseIcon, WarningIcon } from "./icons";
 
 interface WorkspaceInfo {
   id: string;
@@ -163,13 +164,13 @@ export function App() {
 
         {workDirWarning && (
           <div className="workdir-warning">
-            <span className="workdir-warning-icon">&#9888;</span>
+            <span className="workdir-warning-icon"><WarningIcon /></span>
             <span className="workdir-warning-text">{workDirWarning}</span>
             <button className="workdir-warning-action" onClick={() => setShowWsSettings(true)}>
               Configure
             </button>
             <button className="workdir-warning-dismiss" aria-label="Dismiss" onClick={() => setWorkDirWarning(null)}>
-              &times;
+              <CloseIcon size={14} />
             </button>
           </div>
         )}

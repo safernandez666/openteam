@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Task } from "./useKanban";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { CloseIcon } from "../icons";
 
 const STATUS_OPTIONS = [
   { key: "backlog", label: "Backlog" },
@@ -69,7 +70,7 @@ export function TaskDetail({
             <StatusBadge status={task.status} />
             <span className={`task-priority task-priority--${task.priority}`}>{task.priority}</span>
           </div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}>&times;</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}><CloseIcon size={14} /></button>
         </div>
 
         <div className="modal-body">

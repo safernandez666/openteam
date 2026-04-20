@@ -3,6 +3,7 @@ import type { WorkerInfo, SkillInfo, ModuleInfo, AgentNamesMap, TeamMember, Role
 import { getRoleMeta, getAvatarUrl } from "./useWorkers";
 import { SkillEditor } from "./SkillEditor";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { CloseIcon, CheckmarkIcon } from "../icons";
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -96,7 +97,7 @@ function AgentCard({
               onClick={(e) => { e.stopPropagation(); onRemove(role); }}
               title="Remove from team"
             >
-              &times;
+              <CloseIcon size={14} />
             </button>
           )}
         </div>
@@ -339,7 +340,7 @@ export function WorkersPanel({
                     >
                       <span className="role-catalog-name">{role.name}</span>
                       <span className="role-catalog-desc">{role.description}</span>
-                      {inTeam && <span className="role-catalog-check">&#10003;</span>}
+                      {inTeam && <span className="role-catalog-check"><CheckmarkIcon /></span>}
                     </button>
                   );
                 })}

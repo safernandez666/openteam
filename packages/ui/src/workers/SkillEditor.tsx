@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import type { ModuleInfo } from "./useWorkers";
+import { CloseIcon } from "../icons";
 
 interface SkillData {
   name: string;
@@ -131,7 +132,7 @@ export function SkillEditor({
             </span>
           </div>
           <button className="modal-close" onClick={onClose}>
-            &times;
+            <CloseIcon size={14} />
           </button>
         </div>
 

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { CloseIcon } from "../icons";
 
 interface McpServerConfig {
   command?: string;
@@ -192,7 +193,7 @@ export function McpPanel() {
                       onClick={() => handleDelete(server.name)}
                       title="Remove"
                     >
-                      &times;
+                      <CloseIcon size={14} />
                     </button>
                   </div>
                 </div>

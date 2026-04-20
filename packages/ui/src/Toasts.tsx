@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { WsEvent } from "./useWebSocket";
+import { CloseIcon, ToastIcon } from "./icons";
 
 interface Toast {
   id: number;
@@ -111,12 +112,12 @@ export function ToastContainer({
           className={`toast toast--${toast.type} ${toast.dismissing ? "toast--dismissing" : ""}`}
         >
           <span className="toast-icon">
-            {toast.type === "success" ? "✓" : toast.type === "error" ? "!" : toast.type === "warning" ? "⚠" : "i"}
+            <ToastIcon type={toast.type} />
           </span>
           <span className="toast-message">{toast.message}</span>
           {onDismiss && (
             <button className="toast-dismiss" aria-label="Dismiss" onClick={() => onDismiss(toast.id)}>
-              &times;
+              <CloseIcon size={14} />
             </button>
           )}
         </div>

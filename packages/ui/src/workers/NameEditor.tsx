@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import type { AgentNamesMap } from "./useWorkers";
 import { getAvatarUrl } from "./useWorkers";
+import { CloseIcon, RoleIcon } from "../icons";
 
 const ROLES = [
-  { key: "pm", emoji: "📋", label: "Project Manager" },
-  { key: "developer", emoji: "🔧", label: "Developer" },
-  { key: "designer", emoji: "🎨", label: "Designer" },
-  { key: "tester", emoji: "🧪", label: "Tester" },
-  { key: "reviewer", emoji: "🔍", label: "Reviewer" },
+  { key: "pm", label: "Project Manager" },
+  { key: "developer", label: "Developer" },
+  { key: "designer", label: "Designer" },
+  { key: "tester", label: "Tester" },
+  { key: "reviewer", label: "Reviewer" },
 ];
 
 type ProvidersMap = Record<string, "claude" | "kimi">;
@@ -76,7 +77,7 @@ export function NameEditor({
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div className="modal-header">
           <div className="modal-title">Team Configuration</div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}>&times;</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}><CloseIcon size={14} /></button>
         </div>
 
         <div className="modal-body">

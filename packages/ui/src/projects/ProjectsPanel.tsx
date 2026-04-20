@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { CloseIcon, CheckmarkIcon, SettingsIcon } from "../icons";
 
 interface Project {
   id: string;
@@ -218,7 +219,7 @@ export function ProjectsPanel({
                       <button className="module-card-delete" aria-label="Delete"
                       onClick={() => setDeletingProject(proj.id)}
                         title="Delete project"
-                      >&times;</button>
+                      ><CloseIcon size={14} /></button>
                     )}
                   </div>
                 </div>
@@ -251,21 +252,21 @@ export function ProjectsPanel({
                           onClick={(e) => { e.stopPropagation(); onSwitch(proj.id, ws.id); }}
                         >
                           {ws.name}
-                          {isWsActive && <span className="sidebar-ws-check">&#10003;</span>}
+                          {isWsActive && <span className="sidebar-ws-check"><CheckmarkIcon /></span>}
                         </button>
                         {isWsActive && (
                           <button
                             className="project-ws-settings"
                             onClick={(e) => { e.stopPropagation(); onOpenSettings(); }}
                             title="Workspace settings"
-                          >&#9881;</button>
+                          ><SettingsIcon /></button>
                         )}
                         {!isWsActive && (
                           <button
                             className="project-ws-delete"
                             onClick={(e) => { e.stopPropagation(); setDeletingWs({ projectId: proj.id, wsId: ws.id }); }}
                             title="Delete workspace"
-                          >&times;</button>
+                          ><CloseIcon size={14} /></button>
                         )}
                       </div>
                     );

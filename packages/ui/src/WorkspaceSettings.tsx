@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { CloseIcon } from "./icons";
 
 interface ProjectConfig {
   workDir: string;
@@ -68,7 +69,7 @@ export function WorkspaceSettings({ onClose }: { onClose: () => void }) {
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div className="modal-header">
           <div className="modal-title">Workspace Settings</div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}>&times;</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}><CloseIcon size={14} /></button>
         </div>
 
         <div className="modal-body">

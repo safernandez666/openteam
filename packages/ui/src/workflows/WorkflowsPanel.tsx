@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { WorkflowCategoryIcon } from "../icons";
 
 interface WorkflowPhase {
   index: number;
@@ -28,14 +29,6 @@ interface WorkflowInstance {
   created_at: string;
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  bug_fix: "\uD83D\uDC1B",
-  feature: "\u2728",
-  quick_refinement: "\u26A1",
-  refactor: "\uD83D\uDD27",
-  security_audit: "\uD83D\uDD12",
-  custom: "\uD83D\uDCCB",
-};
 
 function PhaseTimeline({ phases, currentPhase, status, phaseData }: {
   phases: WorkflowPhase[];
@@ -103,11 +96,11 @@ export function WorkflowsPanel() {
             {activeInstances.map((inst) => {
               const tmpl = templates.find((t) => t.id === inst.template_id);
               if (!tmpl) return null;
-              const icon = CATEGORY_ICONS[tmpl.category] ?? "";
+              const category = tmpl.category;
               return (
                 <div key={inst.id} className="wf-instance-card">
                   <div className="wf-instance-header">
-                    <span className="wf-instance-icon">{icon}</span>
+                    <span className="wf-instance-icon"><WorkflowCategoryIcon category={category} size={16} /></span>
                     <span className="wf-instance-name">{tmpl.name}</span>
                     <span className="wf-instance-id">{inst.id}</span>
                     <span className="wf-instance-phase">
@@ -131,7 +124,7 @@ export function WorkflowsPanel() {
           <div className="wf-section-label">Templates</div>
           <div className="wf-template-grid">
             {templates.map((tmpl) => {
-              const icon = CATEGORY_ICONS[tmpl.category] ?? "";
+              const category = tmpl.category;
               const isSelected = selectedTemplate?.id === tmpl.id;
               return (
                 <button
@@ -140,7 +133,7 @@ export function WorkflowsPanel() {
                   onClick={() => setSelectedTemplate(isSelected ? null : tmpl)}
                 >
                   <div className="wf-template-top">
-                    <span className="wf-template-icon">{icon}</span>
+                    <span className="wf-template-icon"><WorkflowCategoryIcon category={category} size={16} /></span>
                     <span className="wf-template-name">{tmpl.name}</span>
                     {tmpl.is_builtin ? (
                       <span className="wf-template-badge">Built-in</span>
@@ -188,11 +181,11 @@ export function WorkflowsPanel() {
             <div className="wf-section-label">Completed</div>
             {completedInstances.map((inst) => {
               const tmpl = templates.find((t) => t.id === inst.template_id);
-              const icon = tmpl ? CATEGORY_ICONS[tmpl.category] ?? "" : "";
+              const cat = tmpl?.category ?? "custom";
               return (
                 <div key={inst.id} className="wf-instance-card wf-instance-card--done">
                   <div className="wf-instance-header">
-                    <span className="wf-instance-icon">{icon}</span>
+                    <span className="wf-instance-icon"><WorkflowCategoryIcon category={cat} size={16} /></span>
                     <span className="wf-instance-name">{tmpl?.name ?? inst.template_id}</span>
                     <span className="wf-instance-id">{inst.id}</span>
                     <span className="wf-instance-status">Completed</span>

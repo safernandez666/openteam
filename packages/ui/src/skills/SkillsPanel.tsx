@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { ModuleInfo } from "../workers/useWorkers";
+import { CloseIcon } from "../icons";
 
 interface MarketplaceSkill {
   id: string;
@@ -229,7 +230,7 @@ export function SkillsPanel({
                       onClick={() => handleDelete(skill.id)}
                         title="Remove"
                       >
-                        &times;
+                        <CloseIcon size={14} />
                       </button>
                     )}
                   </div>

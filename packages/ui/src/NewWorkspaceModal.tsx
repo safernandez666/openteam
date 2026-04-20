@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { CloseIcon } from "./icons";
 
 export function NewWorkspaceModal({
   onClose,
@@ -30,7 +31,7 @@ export function NewWorkspaceModal({
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
         <div className="modal-header">
           <div className="modal-title">New Workspace</div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}>&times;</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}><CloseIcon size={14} /></button>
         </div>
 
         <form onSubmit={handleSubmit}>
