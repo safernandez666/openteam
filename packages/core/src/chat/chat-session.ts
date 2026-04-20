@@ -326,9 +326,9 @@ Available roles for task assignment: ${roleList}`;
     const enabled = servers.filter((s) => s.enabled);
     let mcpSection = "";
     if (enabled.length > 0) {
-      mcpSection = "\n\nWorkers in this workspace also have access to these MCP servers:\n" +
+      mcpSection = "\n\nThis workspace has these MCP servers configured (you AND workers can use them):\n" +
         enabled.map((s) => `- **${s.name}**`).join("\n") +
-        "\nWhen the user asks about tools or MCP servers, mention these.";
+        "\nWhen the user asks about MCP servers or tools, list ALL of these. They are active and available.";
     }
 
     // Insert after ## MCP Tools section, before ## Project Context
@@ -336,7 +336,7 @@ Available roles for task assignment: ${roleList}`;
     const idx = this.systemPrompt.indexOf(marker);
     if (idx !== -1) {
       // Remove any previous workspace MCP section
-      this.systemPrompt = this.systemPrompt.replace(/\n\nWorkers in this workspace also have access[\s\S]*?(?=\n\n## Project Context)/, "");
+      this.systemPrompt = this.systemPrompt.replace(/\n\n(?:Workers in this workspace also have access|This workspace has these MCP servers)[\s\S]*?(?=\n\n## Project Context)/, "");
       // Insert new section
       this.systemPrompt = this.systemPrompt.slice(0, idx) + mcpSection + "\n\n" + this.systemPrompt.slice(idx);
     }

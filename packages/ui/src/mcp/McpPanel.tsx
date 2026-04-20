@@ -24,7 +24,9 @@ function parseInput(input: string): { name: string; config: McpServerConfig } {
   if (ghMatch) {
     const org = ghMatch[1].toLowerCase();
     const repo = ghMatch[2].replace(/\.git$/, "");
-    const name = repo.replace(/-mcp$/, "");
+    // Use org name if repo is generic (api-mcp-server, mcp-server, etc.)
+    const isGenericRepo = /^(api-)?mcp-server$/.test(repo) || repo === "mcp";
+    const name = isGenericRepo ? org : repo.replace(/-mcp-server$/, "").replace(/-mcp$/, "");
     return { name, config: { command: "npx", args: [`@${org}/${repo}@latest`] } };
   }
 
