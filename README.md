@@ -14,9 +14,9 @@
   <a href="#features">Features</a> &bull;
   <a href="#architecture">Architecture</a> &bull;
   <a href="#the-team">The Team</a> &bull;
+  <a href="#workflows">Workflows</a> &bull;
   <a href="#configuration">Configuration</a> &bull;
-  <a href="#cli">CLI</a> &bull;
-  <a href="#desktop-app">Desktop App</a>
+  <a href="#cli">CLI</a>
 </p>
 
 ---
@@ -55,13 +55,21 @@ Open **http://localhost:4200** and start chatting with Facu.
 
 ## Features
 
+### Dashboard
+
+Unified view of your team's performance: success rate, total tasks, active workflows, token usage, agent performance table, validation gate health, and system doctor checks — all in one screen.
+
+<p align="center">
+  <img src="screenshots/dashboard.png" alt="Dashboard" width="90%" />
+</p>
+
 ### Project & Workspace Hierarchy
 
-Organize your work as **Projects** (one per client or product) containing multiple **Workspaces** (one per area: API, Frontend, SIEM). Each workspace is fully isolated — its own database, team, skills, MCP servers, and chat history. Switch between workspaces at runtime without restarting the server.
+Organize your work as **Projects** (one per client or product) containing multiple **Workspaces** (one per area: API, Frontend, SIEM). Each workspace is fully isolated — its own database, team, MCP servers, and chat history. Switch between workspaces at runtime without restarting the server.
 
-### Kanban Board with Live Dashboard
+### Kanban Board
 
-Full-width kanban with drag & drop, search, and filters. Tasks update in real-time as workers complete them.
+Full-width kanban with drag & drop, search, filters, and stats bar. Tasks update in real-time as workers complete them. Token tracking per task.
 
 <p align="center">
   <img src="screenshots/board.png" alt="Board" width="90%" />
@@ -69,27 +77,31 @@ Full-width kanban with drag & drop, search, and filters. Tasks update in real-ti
 
 ### AI Agent Team
 
-Build your team from a catalog of 12 specialized roles. Each agent gets a unique avatar (DiceBear), an editable name, and an independent AI provider toggle. Mix Claude and Kimi in the same team for cross-model verification.
+Build your team from a catalog of 13 specialized roles. Each agent gets a unique avatar (DiceBear), an editable name, an independent AI provider toggle, and a **model tier** (Economy/Fast/Standard/Quality/Premium) that controls cost vs quality routing.
 
 <p align="center">
   <img src="screenshots/workers.png" alt="Workers" width="90%" />
 </p>
 
-Double-click any name to edit. Click the avatar to randomize. Toggle between Claude and Kimi per agent with one click. The PM (Facu) is always present — the rest of the team is yours to compose.
+### Workflow Templates
 
-### Skills Marketplace
+5 built-in multi-phase workflows: Bug Fix, Feature Implementation, Quick Refinement, Refactoring, and Security Audit. Each defines phases with roles, exit criteria, and auto-detection from user input. Workflows auto-advance — when a phase task completes, the next phase starts automatically.
 
-Install skill packs from GitHub or create them inline. AI auto-categorizes each install. Assign any combination of skills to any agent — give your designer Tailwind + Figma knowledge, your developer React + Prisma expertise.
+<p align="center">
+  <img src="screenshots/workflows.png" alt="Workflows" width="90%" />
+</p>
+
+### Skills & Marketplace
+
+Install skill packs from GitHub or create them inline. AI auto-categorizes each install. Skills are global (shared across all workspaces). **Skill Matrix** maps capability slots (framework, database, styling, testing) to concrete tech — changing stack means updating one JSON, not agent files.
 
 <p align="center">
   <img src="screenshots/skills.png" alt="Skills" width="90%" />
 </p>
 
-12 built-in skills covering all major roles. Add your own from any public GitHub repository.
-
 ### MCP Integration
 
-Connect your agents to external tools via Model Context Protocol (MCP) — Chrome DevTools for UI testing, databases, APIs, and more. Quick Add lets you paste a GitHub URL or npm package name and it auto-configures. Each workspace has its own MCP configuration.
+Connect your agents to external tools via Model Context Protocol (MCP). Quick Add: paste a GitHub URL or npm package name and it auto-configures. Each workspace has its own MCP configuration.
 
 <p align="center">
   <img src="screenshots/mcp.png" alt="MCP" width="90%" />
@@ -97,7 +109,7 @@ Connect your agents to external tools via Model Context Protocol (MCP) — Chrom
 
 ### Chat with Facu
 
-Natural conversation with your PM in any language. He creates tasks, checks status, manages the workspace context, and coordinates the team.
+Natural conversation with your PM in any language. He creates tasks, manages workflows, checks status, and coordinates the team. Workflow-aware: detects bug fixes, features, refactors from your message and suggests the right workflow.
 
 <p align="center">
   <img src="screenshots/chat.png" alt="Chat" width="90%" />
@@ -105,38 +117,54 @@ Natural conversation with your PM in any language. He creates tasks, checks stat
 
 ### And more...
 
+- **Model Tiers** — Economy/Fast/Standard/Quality/Premium per role, auto-inferred from task complexity
+- **Validation Gates** — 9 configurable quality checks (secret scan, lint/test/build, blast radius, dependency audit, fast review, browser test, regression test, panel review, smoke test)
+- **Agent Memory** — lessons learned, known issues, agent failure DLQ. Workers read lessons before starting
+- **Architecture Decision Records** — ADRs per workspace, injected into worker context
+- **Context Compaction** — structured summaries replace raw output for downstream workers
+- **Session Checkpoints** — workspace state persisted on shutdown, restored on restart
+- **Performance Analytics** — success rate, duration, tokens, per-category breakdown per agent
+- **Token tracking** — input/output tokens per task, global counter on board
 - **Task dependencies & subtasks** with cycle detection
 - **Error handling with automatic retry** (configurable max attempts)
 - **Worker output streaming** in real-time
 - **Knowledge base** with keyword-triggered document injection
-- **Auto-updating WORKSPACE.md** — workers learn from each other
-- **Session persistence** — chat survives server restarts
 - **Drag & drop** kanban with toast notifications
 - **Runtime hot-swap** — switch workspaces without server restart
-- **Graceful shutdown** — SIGTERM/SIGINT stop workers cleanly
-- **Token tracking** — input/output tokens per task, global counter on board
-- **Workspace settings** — configure workDir, git repo, branch, provider per workspace
+- **Graceful shutdown** — SIGTERM/SIGINT persist checkpoints and stop workers
 - **Desktop app** — Electron wrapper (scaffold ready)
 
 ## The Team
 
-| Role | Default Name | What they do |
-|------|-------------|-------------|
-| PM | Facu | Coordinates the team, manages tasks, talks to you |
-| Developer | Lucas | Writes code, implements features, fixes bugs |
-| Architect | - | System design, ADRs, technology evaluation |
-| API Designer | - | Route architecture, endpoint conventions |
-| Data Engineer | - | ETL pipelines, scrapers, data processing |
-| Designer | Sofia | UI/UX, interfaces, components, visual polish |
-| Tester | Max | Tests, validation, quality assurance |
-| Reviewer | Ana | Code review, security, performance |
-| DevOps | - | CI/CD, Docker, deployments |
-| Security | - | Auth, RLS, CSP, vulnerability management |
-| Copywriter | - | UI microcopy, marketing text, docs |
-| SEO | - | Meta tags, structured data, crawlability |
-| Performance | - | Profiling, bundle size, Core Web Vitals |
+| Role | Default Name | Tier | What they do |
+|------|-------------|------|-------------|
+| PM | Facu | Quality | Coordinates the team, manages tasks and workflows |
+| Developer | Lucas | Quality | Writes code, implements features, fixes bugs |
+| Architect | — | Quality | System design, ADRs, technology evaluation |
+| API Designer | — | Standard | Route architecture, endpoint conventions |
+| Data Engineer | — | Standard | ETL pipelines, scrapers, data processing |
+| Designer | Sofia | Quality | UI/UX, interfaces, components, visual polish |
+| Tester | Max | Fast | Tests, validation, quality assurance |
+| Reviewer | Ana | Economy | Code review, security, performance |
+| DevOps | — | Fast | CI/CD, Docker, deployments |
+| Security | — | Quality | Auth, RLS, CSP, vulnerability management |
+| Copywriter | — | Economy | UI microcopy, marketing text, docs |
+| SEO | — | Economy | Meta tags, structured data, crawlability |
+| Performance | — | Standard | Profiling, bundle size, Core Web Vitals |
 
-All names are customizable. Each agent can independently use Claude Code or Kimi Code. New workspaces start with only the PM — you build the team you need.
+Tiers determine provider routing: Economy/Fast use Kimi (cheaper), Standard/Quality/Premium use Claude (better reasoning). All names, tiers, and providers are configurable per workspace.
+
+## Workflows
+
+| Template | Phases | Use When |
+|----------|--------|----------|
+| Bug Fix | Triage → RCA → Fix → Test → Review | "hay un bug", "fix", "broken" |
+| Feature | Brainstorm → Research → Foundation → Integration → Test → Review | "add", "implement", "build" |
+| Quick Refinement | Triage → Implement → Verify | "tweak", "adjust", "polish" |
+| Refactoring | Scope → Test First → Refactor → Verify → Review | "refactor", "rewrite", "clean up" |
+| Security Audit | Scope → Scan → Review → Fix → Verify | "security", "audit", "vulnerability" |
+
+Facu auto-detects the workflow type from your message and validates the team has required roles before starting. Custom templates supported.
 
 ## Architecture
 
@@ -145,18 +173,24 @@ You <-> Facu (PM Chat) <-> MCP Tools <-> TaskStore (SQLite)
                                               |
                                     Orchestrator (polls every 3s)
                                               |
+                              TierEngine → Provider Selection
+                                              |
                                     WorkerRunner (Claude/Kimi CLI)
                                               |
-                                    PTY (pseudo-terminal)
+                                    CompactionEngine → Context
 ```
 
 **Monorepo structure:**
 
 ```
 packages/
-  core/       SQLite, TaskStore, Orchestrator, SkillLoader, McpManager, KnowledgeBase
+  core/       SQLite, TaskStore, Orchestrator, SkillLoader, McpManager,
+              KnowledgeBase, WorkflowEngine, TierEngine, GateEngine,
+              AgentMemory, PerformanceTracker, CompactionEngine,
+              CheckpointManager, DecisionStore, HealthChecker
   web/        Express + WebSocket server, all API routes
-  ui/         React + Vite (Board, Workers, Skills, MCP, Chat, Projects)
+  ui/         React + Vite (Dashboard, Board, Workers, Workflows,
+              Skills, MCP, Chat, Projects)
   cli/        CLI entry point (openteam command)
   desktop/    Electron wrapper (scaffold)
 ```
@@ -169,6 +203,7 @@ packages/
 |------|---------|
 | `skills/` | Role prompts (built-in + user-installed) |
 | `skills/modules/` | Modular skills from marketplace |
+| `skills/skill-matrix.json` | Tech stack slot bindings |
 | `skills/role-skills.json` | Skill-to-role assignments |
 | `marketplace.json` | User-curated skill catalog |
 
@@ -176,39 +211,13 @@ packages/
 
 | File | Purpose |
 |------|---------|
-| `openteam.db` | Tasks, chat history, updates |
+| `openteam.db` | Tasks, chat, workflows, gates, performance, decisions, checkpoints, compactions (SQLite, v15) |
 | `WORKSPACE.md` | Project context for all workers |
 | `project-config.json` | Working directory, repo, branch, provider |
-| `team.json` | Team composition (roles + names + providers) |
+| `team-config.json` | Team composition (roles + names + providers) |
 | `agent-config.json` | Agent names, providers, avatar seeds |
 | `knowledge/` | Docs with `read_when` keyword injection |
 | `mcp-servers.json` | MCP server configurations |
-
-## Skills System
-
-**Roles** are base agent prompts. **Modules** are reusable knowledge blocks.
-
-```bash
-# Install from GitHub
-openteam skills add https://github.com/user/skill-repo
-
-# Or from the UI: Skills Marketplace > "+ From GitHub"
-```
-
-### Knowledge Base
-
-Create `.md` files in the workspace's `knowledge/` directory:
-
-```markdown
----
-read_when: auth, login, session, jwt
----
-
-Our auth uses NextAuth.js v5 with JWT strategy.
-Always use the `auth()` helper, never read cookies directly.
-```
-
-When a task matches any keyword, the doc is automatically injected into the worker's prompt.
 
 ## CLI
 
@@ -227,35 +236,39 @@ openteam context set <file>       # Set project context
 openteam status                   # System status
 ```
 
-The CLI automatically resolves the active workspace DB — modern project hierarchy, legacy workspace path, or global fallback.
+## API Reference
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /api/health` | Server health |
+| `GET /api/doctor` | System health checks (8 checks) |
+| `GET /api/dashboard/*` | Dashboard aggregations |
+| `GET/POST /api/tasks` | Task CRUD |
+| `DELETE /api/tasks/:id` | Delete task |
+| `POST /api/tasks/:id/retry` | Retry failed task |
+| `GET/POST /api/projects` | Project CRUD |
+| `GET/POST /api/team/members` | Team management |
+| `GET/PUT /api/tiers/:roleId` | Model tier configuration |
+| `GET/POST /api/workflows/templates` | Workflow templates |
+| `GET/POST /api/workflows/instances` | Workflow instances |
+| `GET/POST /api/decisions` | Architecture Decision Records |
+| `GET/POST /api/memory/lessons` | Lessons learned |
+| `GET/POST /api/memory/issues` | Known issues |
+| `GET /api/memory/failures` | Agent failure DLQ |
+| `GET /api/performance` | Agent performance stats |
+| `GET /api/gates/definitions` | Validation gate definitions |
+| `GET /api/skill-matrix` | Skill matrix slots |
+| `GET/POST /api/checkpoints` | Session checkpoints |
+| `GET/PUT /api/mcp-servers` | MCP server management |
 
 ## Multi-Provider Support
 
-OpenTeam supports both **Claude Code** and **Kimi Code** as AI providers. You can:
+OpenTeam supports both **Claude Code** and **Kimi Code** as AI providers:
 
-- Set a default provider per project (Settings)
-- Override per agent (Workers panel)
+- **Tier-based routing**: Economy/Fast tasks → Kimi (cheaper), Quality/Premium → Claude (better)
+- Set a default provider per workspace
+- Override per agent in Workers panel
 - Mix providers for cross-model verification
-
-This means Lucas can write code with Claude while Ana reviews it with Kimi — diversity of perspective built into your workflow.
-
-## Desktop App
-
-An Electron-based desktop app is included as a scaffold in `packages/desktop/`. It embeds the web server and opens a native window.
-
-```bash
-cd packages/desktop
-pnpm install
-pnpm approve-builds   # Allow Electron native builds
-pnpm rebuild           # Rebuild native modules for Electron
-pnpm dev               # Launch the desktop app
-```
-
-Package for distribution:
-
-```bash
-pnpm dist              # Build .dmg (macOS), .exe (Windows), .AppImage (Linux)
-```
 
 ## Deployment
 
@@ -274,10 +287,12 @@ cd openteam && pnpm install && pnpm build && pnpm start
 ## Tech Stack
 
 - **Runtime:** Node.js 22+ / TypeScript
-- **Database:** SQLite (better-sqlite3, WAL mode)
+- **Database:** SQLite (better-sqlite3, WAL mode, schema v15)
 - **Server:** Express 5 + WebSocket (ws)
 - **UI:** React 19 + Vite 6
-- **AI:** Claude Code CLI / Kimi Code CLI via PTY
+- **Icons:** Heroicons (outline, 24px)
+- **Fonts:** Space Grotesk (display) + DM Sans (body) + JetBrains Mono (code)
+- **AI:** Claude Code CLI / Kimi Code CLI
 - **Desktop:** Electron 35
 - **Build:** tsup + Vite, pnpm workspaces
 - **Tests:** Vitest (81 tests across 9 files)
