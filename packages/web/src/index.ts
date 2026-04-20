@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager } from "openteam-core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -93,6 +93,7 @@ export function startServer(port = PORT, host = HOST): Server {
     agentNames: null as unknown as AgentNames,
     knowledgeBase: null as unknown as KnowledgeBase,
     mcpManager: null as unknown as McpManager,
+    agentMemory: null as unknown as AgentMemory,
   };
 
   // Global skills directory — shared across all workspaces
@@ -110,6 +111,7 @@ export function startServer(port = PORT, host = HOST): Server {
     state.agentNames = new AgentNames(dir);
     state.knowledgeBase = new KnowledgeBase(dir);
     state.mcpManager = new McpManager(dir);
+    state.agentMemory = new AgentMemory(state.db);
   }
 
   loadWorkspace(dataDir);
@@ -374,6 +376,7 @@ export function startServer(port = PORT, host = HOST): Server {
       mcpManager: state.mcpManager,
       agentNames: state.agentNames,
       knowledgeBase: state.knowledgeBase,
+      agentMemory: state.agentMemory,
       provider: state.projectConfig.get().provider as "claude" | "kimi",
       maxConcurrentWorkers: 3,
       pollIntervalMs: 3000,
@@ -437,6 +440,7 @@ export function startServer(port = PORT, host = HOST): Server {
       mcpManager: state.mcpManager,
       agentNames: state.agentNames,
       knowledgeBase: state.knowledgeBase,
+      agentMemory: state.agentMemory,
       provider: state.projectConfig.get().provider as "claude" | "kimi",
       maxConcurrentWorkers: 3,
       pollIntervalMs: 3000,
@@ -754,6 +758,72 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       res.status(404).json({ error: "Knowledge doc not found" });
       return;
     }
+    res.json({ ok: true });
+  });
+
+  // Agent Memory API (Lessons, Issues, Failures)
+  app.get("/api/memory/lessons", (_req, res) => {
+    res.json(state.agentMemory.getLessons());
+  });
+
+  app.post("/api/memory/lessons", (req, res) => {
+    const { category, title, description, severity, source_task } = req.body as Record<string, string>;
+    if (!title || !description) {
+      res.status(400).json({ error: "title and description are required" });
+      return;
+    }
+    const lesson = state.agentMemory.addLesson({ category: category ?? "general", title, description, severity, source_task });
+    res.status(201).json(lesson);
+  });
+
+  app.delete("/api/memory/lessons/:id", (req, res) => {
+    const removed = state.agentMemory.deleteLesson(parseInt(req.params.id, 10));
+    if (!removed) { res.status(404).json({ error: "Not found" }); return; }
+    res.json({ ok: true });
+  });
+
+  app.get("/api/memory/issues", (_req, res) => {
+    res.json(state.agentMemory.getIssues());
+  });
+
+  app.post("/api/memory/issues", (req, res) => {
+    const { title, description, severity, root_cause, workaround } = req.body as Record<string, string>;
+    if (!title || !description) {
+      res.status(400).json({ error: "title and description are required" });
+      return;
+    }
+    const issue = state.agentMemory.addIssue({ title, description, severity, root_cause, workaround });
+    res.status(201).json(issue);
+  });
+
+  app.patch("/api/memory/issues/:id", (req, res) => {
+    const updates = req.body as Record<string, string>;
+    const issue = state.agentMemory.updateIssue(parseInt(req.params.id, 10), updates);
+    if (!issue) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(issue);
+  });
+
+  app.delete("/api/memory/issues/:id", (req, res) => {
+    const removed = state.agentMemory.deleteIssue(parseInt(req.params.id, 10));
+    if (!removed) { res.status(404).json({ error: "Not found" }); return; }
+    res.json({ ok: true });
+  });
+
+  app.get("/api/memory/failures", (_req, res) => {
+    res.json(state.agentMemory.getFailures());
+  });
+
+  app.patch("/api/memory/failures/:id/resolve", (req, res) => {
+    const { resolution } = req.body as { resolution?: string };
+    if (!resolution) { res.status(400).json({ error: "resolution is required" }); return; }
+    const failure = state.agentMemory.resolveFailure(parseInt(req.params.id, 10), resolution);
+    if (!failure) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(failure);
+  });
+
+  app.patch("/api/memory/failures/:id/ignore", (req, res) => {
+    const ignored = state.agentMemory.ignoreFailure(parseInt(req.params.id, 10));
+    if (!ignored) { res.status(404).json({ error: "Not found" }); return; }
     res.json({ ok: true });
   });
 

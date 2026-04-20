@@ -79,6 +79,43 @@ const MIGRATION_V7 = `
   ALTER TABLE tasks ADD COLUMN output_tokens INTEGER NOT NULL DEFAULT 0;
 `;
 
+const MIGRATION_V8 = `
+  CREATE TABLE IF NOT EXISTS lessons_learned (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    category    TEXT NOT NULL DEFAULT 'general',
+    title       TEXT NOT NULL,
+    description TEXT NOT NULL,
+    severity    TEXT NOT NULL DEFAULT 'info',
+    source_task TEXT DEFAULT NULL,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS known_issues (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    title       TEXT NOT NULL,
+    description TEXT NOT NULL,
+    severity    TEXT NOT NULL DEFAULT 'medium',
+    status      TEXT NOT NULL DEFAULT 'open',
+    root_cause  TEXT DEFAULT NULL,
+    workaround  TEXT DEFAULT NULL,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS agent_failures (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id     TEXT NOT NULL,
+    agent_role  TEXT DEFAULT NULL,
+    agent_name  TEXT DEFAULT NULL,
+    error       TEXT NOT NULL,
+    output      TEXT DEFAULT NULL,
+    status      TEXT NOT NULL DEFAULT 'unresolved',
+    resolution  TEXT DEFAULT NULL,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    resolved_at TEXT DEFAULT NULL
+  );
+`;
+
 export function openDatabase(dbPath: string): BetterSqlite3Database {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -113,6 +150,10 @@ export function openDatabase(dbPath: string): BetterSqlite3Database {
   if (version < 7) {
     db.exec(MIGRATION_V7);
     db.pragma("user_version = 7");
+  }
+  if (version < 8) {
+    db.exec(MIGRATION_V8);
+    db.pragma("user_version = 8");
   }
 
   return db;

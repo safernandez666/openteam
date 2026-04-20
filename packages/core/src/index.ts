@@ -27,6 +27,7 @@ export {
   openDatabase,
   TaskStore,
   EventLogger,
+  AgentMemory,
 } from "./persistence/index.js";
 
 export type {
@@ -37,6 +38,9 @@ export type {
   CreateTaskInput,
   UpdateTaskInput,
   EventEntry,
+  LessonLearned,
+  KnownIssue,
+  AgentFailure,
 } from "./persistence/index.js";
 
 // Chat

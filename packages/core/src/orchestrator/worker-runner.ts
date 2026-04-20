@@ -6,6 +6,7 @@ import type { SkillLoader } from "../skills/skill-loader.js";
 import type { ContextManager } from "../context/context-manager.js";
 import type { McpManager } from "../mcp-server/mcp-manager.js";
 import type { KnowledgeBase } from "../context/knowledge-base.js";
+import type { AgentMemory } from "../persistence/agent-memory.js";
 import { buildCliArgs, parseStreamEvent, parseTokenUsage, type ProviderType, type TokenUsage } from "./cli-provider.js";
 
 const DEFAULT_WORKER_PROMPT = `You are a Worker agent in the OpenTeam framework.
@@ -21,6 +22,7 @@ export interface WorkerRunnerOptions {
   contextManager?: ContextManager;
   mcpManager?: McpManager;
   knowledgeBase?: KnowledgeBase;
+  agentMemory?: AgentMemory;
   provider?: ProviderType;
 }
 
@@ -32,6 +34,7 @@ export class WorkerRunner extends EventEmitter {
   private contextManager: ContextManager | null;
   private mcpManager: McpManager | null;
   private knowledgeBase: KnowledgeBase | null;
+  private agentMemory: AgentMemory | null;
   private provider: ProviderType;
   private pty: PtyManager | null = null;
 
@@ -44,6 +47,7 @@ export class WorkerRunner extends EventEmitter {
     this.contextManager = options.contextManager ?? null;
     this.mcpManager = options.mcpManager ?? null;
     this.knowledgeBase = options.knowledgeBase ?? null;
+    this.agentMemory = options.agentMemory ?? null;
     this.provider = options.provider ?? "claude";
   }
 
@@ -60,6 +64,14 @@ export class WorkerRunner extends EventEmitter {
       systemPrompt += this.knowledgeBase.buildPromptSection(
         this.task.title,
         this.task.description,
+        this.task.role ?? undefined,
+      );
+    }
+
+    // Append agent memory (lessons learned + known issues)
+    if (this.agentMemory) {
+      systemPrompt += this.agentMemory.buildPromptSection(
+        this.task.title,
         this.task.role ?? undefined,
       );
     }

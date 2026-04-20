@@ -6,6 +6,7 @@ import type { ContextManager } from "../context/context-manager.js";
 import type { McpManager } from "../mcp-server/mcp-manager.js";
 import type { AgentNames } from "./agent-names.js";
 import type { KnowledgeBase } from "../context/knowledge-base.js";
+import type { AgentMemory } from "../persistence/agent-memory.js";
 import type { ProviderType, TokenUsage } from "./cli-provider.js";
 import { WorkerRunner } from "./worker-runner.js";
 
@@ -27,6 +28,7 @@ export interface OrchestratorOptions {
   mcpManager?: McpManager;
   agentNames?: AgentNames;
   knowledgeBase?: KnowledgeBase;
+  agentMemory?: AgentMemory;
   provider?: ProviderType;
   maxConcurrentWorkers?: number;
   pollIntervalMs?: number;
@@ -42,6 +44,7 @@ export class Orchestrator extends EventEmitter {
   private mcpManager: McpManager | null;
   private agentNames: AgentNames | null;
   private knowledgeBase: KnowledgeBase | null;
+  private agentMemory: AgentMemory | null;
   private provider: ProviderType;
   private maxWorkers: number;
   private pollIntervalMs: number;
@@ -63,6 +66,7 @@ export class Orchestrator extends EventEmitter {
     this.mcpManager = options.mcpManager ?? null;
     this.agentNames = options.agentNames ?? null;
     this.knowledgeBase = options.knowledgeBase ?? null;
+    this.agentMemory = options.agentMemory ?? null;
     this.provider = options.provider ?? "claude";
     this.maxWorkers = options.maxConcurrentWorkers ?? 3;
     this.pollIntervalMs = options.pollIntervalMs ?? 3000;
@@ -149,6 +153,7 @@ export class Orchestrator extends EventEmitter {
       contextManager: this.contextManager ?? undefined,
       mcpManager: this.mcpManager ?? undefined,
       knowledgeBase: this.knowledgeBase ?? undefined,
+      agentMemory: this.agentMemory ?? undefined,
       provider: (this.agentNames?.getProvider(task.role ?? "") ?? this.provider) as "claude" | "kimi",
     });
 
@@ -246,6 +251,17 @@ export class Orchestrator extends EventEmitter {
           type: "worker_rejected",
           task_id: task.id,
           detail: `Max retries (${updatedTask.max_retries}) reached. Error: ${err.message}`,
+        });
+      }
+
+      // Auto-log failure to agent memory DLQ
+      if (this.agentMemory) {
+        const workerInfo = this.workerInfoMap.get(task.id);
+        this.agentMemory.logFailure({
+          task_id: task.id,
+          agent_role: task.role ?? undefined,
+          agent_name: workerInfo?.name,
+          error: err.message,
         });
       }
 

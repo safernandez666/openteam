@@ -10,3 +10,5 @@ export type {
   UpdateTaskInput,
 } from "./task-store.js";
 export type { EventEntry } from "./event-logger.js";
+export { AgentMemory } from "./agent-memory.js";
+export type { LessonLearned, KnownIssue, AgentFailure } from "./agent-memory.js";
