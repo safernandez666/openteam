@@ -53,6 +53,7 @@ export function McpPanel() {
   const [servers, setServers] = useState<McpServerEntry[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [input, setInput] = useState("");
+  const [customName, setCustomName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [configuring, setConfiguring] = useState<string | null>(null);
@@ -75,6 +76,7 @@ export function McpPanel() {
   const reset = () => {
     setShowAdd(false);
     setInput("");
+    setCustomName("");
     setError(null);
   };
 
@@ -86,7 +88,7 @@ export function McpPanel() {
       const res = await fetch("/api/mcp-servers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: preview.name, config: preview.config }),
+        body: JSON.stringify({ name: customName.trim() || preview.name, config: preview.config }),
       });
       if (!res.ok) {
         const data = await res.json();
@@ -188,14 +190,22 @@ export function McpPanel() {
               autoFocus
             />
             {preview && (
+              <>
+              <input
+                className="skill-installer-input"
+                placeholder={`Name (default: ${preview.name})`}
+                value={customName}
+                onChange={(e) => setCustomName(e.target.value)}
+              />
               <div className="mcp-preview">
-                <span className="mcp-preview-name">{preview.name}</span>
+                <span className="mcp-preview-name">{customName.trim() || preview.name}</span>
                 <code className="mcp-preview-cmd">
                   {preview.config.command
                     ? `${preview.config.command} ${(preview.config.args ?? []).join(" ")}`
                     : preview.config.url ?? ""}
                 </code>
               </div>
+              </>
             )}
             <div className="skill-installer-row">
               <button
