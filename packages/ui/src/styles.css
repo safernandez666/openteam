@@ -3736,7 +3736,7 @@ body {
   gap: 6px;
 }
 
-.wf-template-icon { font-size: 16px; }
+.wf-template-icon { color: var(--accent); display: flex; align-items: center; }
 .wf-template-name { font-weight: 600; font-size: 13px; color: var(--text-primary); flex: 1; }
 
 .wf-template-badge {
@@ -3771,7 +3771,7 @@ body {
   margin-bottom: 10px;
 }
 
-.wf-instance-icon { font-size: 14px; }
+.wf-instance-icon { color: var(--accent); display: flex; align-items: center; }
 .wf-instance-name { font-weight: 600; font-size: 13px; color: var(--text-primary); flex: 1; }
 .wf-instance-id { font-size: 10px; font-family: var(--font-mono); color: var(--text-muted); }
 
