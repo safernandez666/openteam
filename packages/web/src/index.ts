@@ -773,6 +773,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       return;
     }
     const entry = state.mcpManager.set(name, config as import("openteam-core").McpServerConfig, enabled ?? true);
+    wsHandler.setMcpServers(state.mcpManager.list());
     res.json(entry);
   });
 
@@ -787,6 +788,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       res.status(404).json({ error: "MCP server not found" });
       return;
     }
+    wsHandler.setMcpServers(state.mcpManager.list());
     res.json(entry);
   });
 
@@ -796,6 +798,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       res.status(404).json({ error: "MCP server not found" });
       return;
     }
+    wsHandler.setMcpServers(state.mcpManager.list());
     res.json({ ok: true });
   });
 
@@ -904,8 +907,9 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
   attachOrchestratorListeners(orchestrator);
 
-  // Update Clara's team knowledge
+  // Update PM's team + MCP knowledge
   wsHandler.setTeamInfo(state.teamConfig.getMembers());
+  wsHandler.setMcpServers(state.mcpManager.list());
 
   orchestrator.start();
   console.log("Orchestrator started — watching for assigned tasks");

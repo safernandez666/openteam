@@ -297,6 +297,27 @@ Available roles for task assignment: ${roleList}`;
     );
   }
 
+  /** Update MCP server info in the PM's system prompt. */
+  setMcpServers(servers: Array<{ name: string; enabled: boolean }>): void {
+    const enabled = servers.filter((s) => s.enabled);
+    let mcpSection = "";
+    if (enabled.length > 0) {
+      mcpSection = "\n\nWorkers in this workspace also have access to these MCP servers:\n" +
+        enabled.map((s) => `- **${s.name}**`).join("\n") +
+        "\nWhen the user asks about tools or MCP servers, mention these.";
+    }
+
+    // Insert after ## MCP Tools section, before ## Project Context
+    const marker = "## Project Context";
+    const idx = this.systemPrompt.indexOf(marker);
+    if (idx !== -1) {
+      // Remove any previous workspace MCP section
+      this.systemPrompt = this.systemPrompt.replace(/\n\nWorkers in this workspace also have access[\s\S]*?(?=\n\n## Project Context)/, "");
+      // Insert new section
+      this.systemPrompt = this.systemPrompt.slice(0, idx) + mcpSection + "\n\n" + this.systemPrompt.slice(idx);
+    }
+  }
+
   /** Change the AI provider at runtime. Updates system prompt too. */
   setProvider(provider: ProviderType): void {
     this.provider = provider;
