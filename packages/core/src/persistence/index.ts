@@ -12,3 +12,5 @@ export type {
 export type { EventEntry } from "./event-logger.js";
 export { AgentMemory } from "./agent-memory.js";
 export type { LessonLearned, KnownIssue, AgentFailure } from "./agent-memory.js";
+export { PerformanceTracker } from "./performance-tracker.js";
+export type { PerformanceEvent, AgentStats } from "./performance-tracker.js";

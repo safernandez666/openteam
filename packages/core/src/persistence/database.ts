@@ -116,6 +116,26 @@ const MIGRATION_V8 = `
   );
 `;
 
+const MIGRATION_V9 = `
+  CREATE TABLE IF NOT EXISTS performance_events (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    type          TEXT NOT NULL,
+    agent_role    TEXT NOT NULL,
+    agent_name    TEXT DEFAULT NULL,
+    task_id       TEXT DEFAULT NULL,
+    task_category TEXT DEFAULT NULL,
+    outcome       TEXT NOT NULL DEFAULT 'success',
+    duration_ms   INTEGER DEFAULT NULL,
+    input_tokens  INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    retries       INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_perf_role ON performance_events(agent_role);
+  CREATE INDEX IF NOT EXISTS idx_perf_outcome ON performance_events(outcome);
+`;
+
 export function openDatabase(dbPath: string): BetterSqlite3Database {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -154,6 +174,10 @@ export function openDatabase(dbPath: string): BetterSqlite3Database {
   if (version < 8) {
     db.exec(MIGRATION_V8);
     db.pragma("user_version = 8");
+  }
+  if (version < 9) {
+    db.exec(MIGRATION_V9);
+    db.pragma("user_version = 9");
   }
 
   return db;

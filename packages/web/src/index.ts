@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory } from "openteam-core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -94,6 +94,7 @@ export function startServer(port = PORT, host = HOST): Server {
     knowledgeBase: null as unknown as KnowledgeBase,
     mcpManager: null as unknown as McpManager,
     agentMemory: null as unknown as AgentMemory,
+    performanceTracker: null as unknown as PerformanceTracker,
   };
 
   // Global skills directory — shared across all workspaces
@@ -112,6 +113,7 @@ export function startServer(port = PORT, host = HOST): Server {
     state.knowledgeBase = new KnowledgeBase(dir);
     state.mcpManager = new McpManager(dir);
     state.agentMemory = new AgentMemory(state.db);
+    state.performanceTracker = new PerformanceTracker(state.db);
   }
 
   loadWorkspace(dataDir);
@@ -377,6 +379,7 @@ export function startServer(port = PORT, host = HOST): Server {
       agentNames: state.agentNames,
       knowledgeBase: state.knowledgeBase,
       agentMemory: state.agentMemory,
+      performanceTracker: state.performanceTracker,
       provider: state.projectConfig.get().provider as "claude" | "kimi",
       maxConcurrentWorkers: 3,
       pollIntervalMs: 3000,
@@ -441,6 +444,7 @@ export function startServer(port = PORT, host = HOST): Server {
       agentNames: state.agentNames,
       knowledgeBase: state.knowledgeBase,
       agentMemory: state.agentMemory,
+      performanceTracker: state.performanceTracker,
       provider: state.projectConfig.get().provider as "claude" | "kimi",
       maxConcurrentWorkers: 3,
       pollIntervalMs: 3000,
@@ -825,6 +829,25 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     const ignored = state.agentMemory.ignoreFailure(parseInt(req.params.id, 10));
     if (!ignored) { res.status(404).json({ error: "Not found" }); return; }
     res.json({ ok: true });
+  });
+
+  // Performance API
+  app.get("/api/performance", (_req, res) => {
+    res.json(state.performanceTracker.getAllStats());
+  });
+
+  app.get("/api/performance/:role", (req, res) => {
+    const stats = state.performanceTracker.getAgentStats(req.params.role);
+    res.json(stats);
+  });
+
+  app.get("/api/performance/best/:category", (req, res) => {
+    const best = state.performanceTracker.getBestAgentForCategory(req.params.category);
+    res.json({ category: req.params.category, bestAgent: best });
+  });
+
+  app.get("/api/performance/events/recent", (_req, res) => {
+    res.json(state.performanceTracker.getRecentEvents());
   });
 
   // MCP Servers API

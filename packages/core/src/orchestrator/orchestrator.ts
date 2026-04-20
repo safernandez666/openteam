@@ -7,6 +7,7 @@ import type { McpManager } from "../mcp-server/mcp-manager.js";
 import type { AgentNames } from "./agent-names.js";
 import type { KnowledgeBase } from "../context/knowledge-base.js";
 import type { AgentMemory } from "../persistence/agent-memory.js";
+import type { PerformanceTracker } from "../persistence/performance-tracker.js";
 import type { ProviderType, TokenUsage } from "./cli-provider.js";
 import { WorkerRunner } from "./worker-runner.js";
 
@@ -29,6 +30,7 @@ export interface OrchestratorOptions {
   agentNames?: AgentNames;
   knowledgeBase?: KnowledgeBase;
   agentMemory?: AgentMemory;
+  performanceTracker?: PerformanceTracker;
   provider?: ProviderType;
   maxConcurrentWorkers?: number;
   pollIntervalMs?: number;
@@ -45,6 +47,7 @@ export class Orchestrator extends EventEmitter {
   private agentNames: AgentNames | null;
   private knowledgeBase: KnowledgeBase | null;
   private agentMemory: AgentMemory | null;
+  private performanceTracker: PerformanceTracker | null;
   private provider: ProviderType;
   private maxWorkers: number;
   private pollIntervalMs: number;
@@ -67,6 +70,7 @@ export class Orchestrator extends EventEmitter {
     this.agentNames = options.agentNames ?? null;
     this.knowledgeBase = options.knowledgeBase ?? null;
     this.agentMemory = options.agentMemory ?? null;
+    this.performanceTracker = options.performanceTracker ?? null;
     this.provider = options.provider ?? "claude";
     this.maxWorkers = options.maxConcurrentWorkers ?? 3;
     this.pollIntervalMs = options.pollIntervalMs ?? 3000;
@@ -202,6 +206,23 @@ export class Orchestrator extends EventEmitter {
         detail: result,
       });
 
+      // Log performance event
+      if (this.performanceTracker) {
+        const startTime = new Date(workerInfo.startedAt).getTime();
+        this.performanceTracker.logEvent({
+          type: "task_completed",
+          agent_role: task.role ?? "unknown",
+          agent_name: workerInfo.name,
+          task_id: task.id,
+          task_category: task.role ?? undefined,
+          outcome: "success",
+          duration_ms: Date.now() - startTime,
+          input_tokens: usage?.inputTokens ?? 0,
+          output_tokens: usage?.outputTokens ?? 0,
+          retries: task.retry_count,
+        });
+      }
+
       // Auto-update WORKSPACE.md with task summary
       if (this.contextManager) {
         this.contextManager.appendTaskSummary(task, result);
@@ -251,6 +272,22 @@ export class Orchestrator extends EventEmitter {
           type: "worker_rejected",
           task_id: task.id,
           detail: `Max retries (${updatedTask.max_retries}) reached. Error: ${err.message}`,
+        });
+      }
+
+      // Log performance event (failure)
+      if (this.performanceTracker && !canRetry) {
+        const wInfo = this.workerInfoMap.get(task.id);
+        const startTime = wInfo ? new Date(wInfo.startedAt).getTime() : Date.now();
+        this.performanceTracker.logEvent({
+          type: "task_failed",
+          agent_role: task.role ?? "unknown",
+          agent_name: wInfo?.name,
+          task_id: task.id,
+          task_category: task.role ?? undefined,
+          outcome: "failure",
+          duration_ms: Date.now() - startTime,
+          retries: updatedTask.retry_count,
         });
       }
 

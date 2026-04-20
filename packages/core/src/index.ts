@@ -28,6 +28,7 @@ export {
   TaskStore,
   EventLogger,
   AgentMemory,
+  PerformanceTracker,
 } from "./persistence/index.js";
 
 export type {
@@ -41,6 +42,8 @@ export type {
   LessonLearned,
   KnownIssue,
   AgentFailure,
+  PerformanceEvent,
+  AgentStats,
 } from "./persistence/index.js";
 
 // Chat
