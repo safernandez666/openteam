@@ -371,7 +371,7 @@ export function WorkersPanel({
               isPM
               initialAvatarSeed={avatarSeeds.pm ?? 0}
               onAvatarSeedChange={handleAvatarSeedChange}
-              tier={tiers.pm ?? "quality"}
+              tier={Object.keys(tiers).length > 0 ? (tiers.pm ?? "quality") : undefined}
             />
 
             {/* Team member cards */}
