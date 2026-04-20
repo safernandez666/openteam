@@ -230,6 +230,16 @@ const MIGRATION_V13 = `
   CREATE INDEX IF NOT EXISTS idx_checkpoints_active ON session_checkpoints(is_active);
 `;
 
+const MIGRATION_V14 = `
+  CREATE TABLE IF NOT EXISTS worker_tiers (
+    role_id       TEXT PRIMARY KEY,
+    tier          TEXT NOT NULL DEFAULT 'standard',
+    provider      TEXT DEFAULT NULL,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`;
+
 export function openDatabase(dbPath: string): BetterSqlite3Database {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -288,6 +298,10 @@ export function openDatabase(dbPath: string): BetterSqlite3Database {
   if (version < 13) {
     db.exec(MIGRATION_V13);
     db.pragma("user_version = 13");
+  }
+  if (version < 14) {
+    db.exec(MIGRATION_V14);
+    db.pragma("user_version = 14");
   }
 
   return db;

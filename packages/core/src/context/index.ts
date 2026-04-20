@@ -11,3 +11,5 @@ export { WorkflowEngine } from "./workflow-engine.js";
 export type { WorkflowTemplate, WorkflowInstance, WorkflowPhase } from "./workflow-engine.js";
 export { CheckpointManager } from "./checkpoint-manager.js";
 export type { CheckpointData } from "./checkpoint-manager.js";
+export { TierEngine } from "./tier-engine.js";
+export type { Tier, TierConfig } from "./tier-engine.js";

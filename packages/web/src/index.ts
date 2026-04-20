@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine, GateEngine, CheckpointManager } from "openteam-core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine, GateEngine, CheckpointManager, TierEngine } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -99,6 +99,7 @@ export function startServer(port = PORT, host = HOST): Server {
     workflowEngine: null as unknown as WorkflowEngine,
     gateEngine: null as unknown as GateEngine,
     checkpointManager: null as unknown as CheckpointManager,
+    tierEngine: null as unknown as TierEngine,
   };
 
   // Global skills directory — shared across all workspaces
@@ -122,6 +123,7 @@ export function startServer(port = PORT, host = HOST): Server {
     state.workflowEngine = new WorkflowEngine(state.db);
     state.gateEngine = new GateEngine(state.db);
     state.checkpointManager = new CheckpointManager(state.db);
+    state.tierEngine = new TierEngine(state.db);
   }
 
   loadWorkspace(dataDir);
@@ -1071,6 +1073,36 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     state.gateEngine.addPhaseGate(req.params.templateId, parseInt(req.params.phaseIndex, 10), gateId, isRequired ?? true, order ?? 0);
     const gates = state.gateEngine.getPhaseGates(req.params.templateId, parseInt(req.params.phaseIndex, 10));
     res.json(gates);
+  });
+
+  // Tier API
+  app.get("/api/tiers", (_req, res) => {
+    res.json(state.tierEngine.getAllTiers());
+  });
+
+  app.get("/api/tiers/:roleId", (req, res) => {
+    res.json(state.tierEngine.getTier(req.params.roleId));
+  });
+
+  app.put("/api/tiers/:roleId", (req, res) => {
+    const { tier, provider } = req.body as { tier?: string; provider?: string };
+    if (!tier) { res.status(400).json({ error: "tier required" }); return; }
+    state.tierEngine.setTier(req.params.roleId, tier as import("openteam-core").Tier, provider as "claude" | "kimi" | undefined);
+    res.json(state.tierEngine.getTier(req.params.roleId));
+  });
+
+  app.post("/api/tiers/reset", (_req, res) => {
+    state.tierEngine.resetToDefaults();
+    res.json(state.tierEngine.getAllTiers());
+  });
+
+  app.post("/api/tiers/score", (req, res) => {
+    const { title, description, role } = req.body as { title?: string; description?: string; role?: string };
+    if (!title) { res.status(400).json({ error: "title required" }); return; }
+    const score = state.tierEngine.scoreTask(title, description, role);
+    const roleTier = state.tierEngine.getTier(role ?? "developer").tier;
+    const tier = state.tierEngine.inferTier(score, roleTier);
+    res.json({ score, tier, roleTier });
   });
 
   // Checkpoints API
