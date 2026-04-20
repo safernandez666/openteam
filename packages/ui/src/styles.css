@@ -385,7 +385,7 @@ body {
   color: #eab308;
 }
 
-.workdir-warning-icon { font-size: 16px; }
+.workdir-warning-icon { display: flex; align-items: center; }
 
 .workdir-warning-text { flex: 1; }
 
@@ -687,8 +687,7 @@ body {
 .project-card:hover { border-color: var(--border-strong); }
 
 .project-card--active {
-  border-color: var(--orange);
-  box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.15);
+  border-color: var(--accent);
 }
 
 .project-card-header {
@@ -714,8 +713,8 @@ body {
 .project-card-badge {
   font-size: 9px;
   font-weight: 700;
-  color: var(--orange);
-  background: var(--orange-muted);
+  color: var(--accent);
+  background: var(--accent-muted);
   padding: 2px 8px;
   border-radius: 9999px;
   text-transform: uppercase;
@@ -1165,7 +1164,7 @@ body {
 .dashboard-card-title {
   font-size: 10px;
   font-weight: 700;
-  color: var(--orange);
+  color: var(--accent);
   text-transform: uppercase;
 }
 
@@ -1361,7 +1360,7 @@ body {
 .column-dot--assigned { background: var(--purple); }
 .column-dot--in_progress { background: var(--blue); }
 .column-dot--blocked { background: var(--red); }
-.column-dot--review { background: var(--orange); }
+.column-dot--review { background: var(--accent); }
 .column-dot--done { background: var(--green); }
 
 .column-label {
@@ -1507,8 +1506,8 @@ body {
   color: var(--red);
 }
 .task-priority--high {
-  background: var(--orange-muted);
-  color: var(--orange);
+  background: var(--accent-muted);
+  color: var(--accent);
 }
 .task-priority--normal {
   background: var(--blue-muted);
@@ -1540,8 +1539,8 @@ body {
 .task-retry-badge {
   font-size: 10px;
   font-weight: 600;
-  color: var(--orange);
-  background: var(--orange-muted);
+  color: var(--accent);
+  background: var(--accent-muted);
   padding: 2px 6px;
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
@@ -1574,7 +1573,7 @@ body {
 .task-detail-status--blocked { background: var(--red-muted); color: var(--red); }
 .task-detail-status--rejected { background: var(--red-muted); color: var(--red); }
 .task-detail-status--backlog { background: var(--bg-tertiary); color: var(--text-muted); }
-.task-detail-status--review { background: var(--orange-muted); color: var(--orange); }
+.task-detail-status--review { background: var(--accent-muted); color: var(--accent); }
 
 .task-detail-title {
   font-size: 18px;
@@ -2397,7 +2396,7 @@ body {
 
 .provider-toggle--kimi.provider-toggle--active {
   background: rgba(255, 140, 66, 0.12);
-  color: var(--orange);
+  color: var(--accent);
 }
 
 .workers-header-right {
@@ -2564,8 +2563,8 @@ body {
 }
 
 .provider-pill--kimi.provider-pill--active {
-  background: var(--orange-muted);
-  color: var(--orange);
+  background: var(--accent-muted);
+  color: var(--accent);
 }
 
 .agent-card-modules {
@@ -3323,7 +3322,7 @@ body {
 .mp-card-category {
   font-size: 9px;
   font-weight: 600;
-  color: var(--orange);
+  color: var(--accent);
   text-transform: uppercase;
 }
 
