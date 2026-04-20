@@ -356,9 +356,11 @@ export function startServer(port = PORT, host = HOST): Server {
       res.status(404).json({ error: "Project not found" });
       return;
     }
-    // If we deleted the active project, clear the active pointer
+    // If we deleted the active project, clear active pointer and reset chat
     if (currentActive?.projectId === req.params.id) {
       projectManager.clearActive();
+      wsHandler.resetChat();
+      wsHandler.broadcastTasks([]);
     }
     res.json({ ok: true });
   });
