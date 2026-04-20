@@ -238,6 +238,7 @@ export function startServer(port = PORT, host = HOST): Server {
     try {
       const installed = state.skillLoader.installModules(source, name);
       const modules = state.skillLoader.listModules().map((m) => ({ name: m.name, source: m.source }));
+      refreshFacuSkills();
       res.json({ installed, modules });
     } catch (err) {
       res.status(400).json({ error: (err as Error).message });
@@ -253,6 +254,7 @@ export function startServer(port = PORT, host = HOST): Server {
     try {
       state.skillLoader.saveModule(name, content);
       const modules = state.skillLoader.listModules().map((m) => ({ name: m.name, source: m.source }));
+      refreshFacuSkills();
       res.json({ name, modules });
     } catch (err) {
       res.status(500).json({ error: (err as Error).message });
@@ -1172,6 +1174,13 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   });
 
   // Checkpoints API
+  const refreshFacuSkills = () => {
+    wsHandler.setSkillsInfo(
+      state.skillLoader.list().map((s) => ({ name: s.name, source: s.source })),
+      state.skillLoader.listModules().map((m) => ({ name: m.name, source: m.source })),
+    );
+  };
+
   const getWorkspaceId = () => {
     const a = projectManager.getActive();
     return a ? `${a.projectId}/${a.workspaceId}` : "default";
@@ -1410,10 +1419,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   // Update PM's team + MCP + skills knowledge
   wsHandler.setTeamInfo(state.teamConfig.getMembers());
   wsHandler.setMcpServers(state.mcpManager.list());
-  wsHandler.setSkillsInfo(
-    state.skillLoader.list().map((s) => ({ name: s.name, source: s.source })),
-    state.skillLoader.listModules().map((m) => ({ name: m.name, source: m.source })),
-  );
+  refreshFacuSkills();
 
   orchestrator.start();
   console.log("Orchestrator started — watching for assigned tasks");
