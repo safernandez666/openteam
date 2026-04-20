@@ -3775,9 +3775,9 @@ body {
   gap: 20px;
 }
 
-.dash-card-stat { text-align: center; }
-.dash-card-stat-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text-primary); }
-.dash-card-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; }
+.dash-card-stat { text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.dash-card-stat-value { font-family: var(--font-display); font-size: 22px; font-weight: 700; color: var(--text-primary); line-height: 1; }
+.dash-card-stat-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-top: 4px; }
 
 /* Agent table */
 .dash-table {
