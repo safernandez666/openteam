@@ -136,6 +136,20 @@ const MIGRATION_V9 = `
   CREATE INDEX IF NOT EXISTS idx_perf_outcome ON performance_events(outcome);
 `;
 
+const MIGRATION_V10 = `
+  CREATE TABLE IF NOT EXISTS decisions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    title           TEXT NOT NULL,
+    context         TEXT NOT NULL DEFAULT '',
+    decision        TEXT NOT NULL DEFAULT '',
+    consequences    TEXT NOT NULL DEFAULT '',
+    status          TEXT NOT NULL DEFAULT 'accepted',
+    superseded_by   INTEGER DEFAULT NULL,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`;
+
 export function openDatabase(dbPath: string): BetterSqlite3Database {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -178,6 +192,10 @@ export function openDatabase(dbPath: string): BetterSqlite3Database {
   if (version < 9) {
     db.exec(MIGRATION_V9);
     db.pragma("user_version = 9");
+  }
+  if (version < 10) {
+    db.exec(MIGRATION_V10);
+    db.pragma("user_version = 10");
   }
 
   return db;

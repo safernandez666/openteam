@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker } from "openteam-core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -95,6 +95,7 @@ export function startServer(port = PORT, host = HOST): Server {
     mcpManager: null as unknown as McpManager,
     agentMemory: null as unknown as AgentMemory,
     performanceTracker: null as unknown as PerformanceTracker,
+    decisionStore: null as unknown as DecisionStore,
   };
 
   // Global skills directory — shared across all workspaces
@@ -114,6 +115,7 @@ export function startServer(port = PORT, host = HOST): Server {
     state.mcpManager = new McpManager(dir);
     state.agentMemory = new AgentMemory(state.db);
     state.performanceTracker = new PerformanceTracker(state.db);
+    state.decisionStore = new DecisionStore(state.db);
   }
 
   loadWorkspace(dataDir);
@@ -411,6 +413,7 @@ export function startServer(port = PORT, host = HOST): Server {
       knowledgeBase: state.knowledgeBase,
       agentMemory: state.agentMemory,
       performanceTracker: state.performanceTracker,
+      decisionStore: state.decisionStore,
       provider: state.projectConfig.get().provider as "claude" | "kimi",
       maxConcurrentWorkers: 3,
       pollIntervalMs: 3000,
@@ -476,6 +479,7 @@ export function startServer(port = PORT, host = HOST): Server {
       knowledgeBase: state.knowledgeBase,
       agentMemory: state.agentMemory,
       performanceTracker: state.performanceTracker,
+      decisionStore: state.decisionStore,
       provider: state.projectConfig.get().provider as "claude" | "kimi",
       maxConcurrentWorkers: 3,
       pollIntervalMs: 3000,
@@ -879,6 +883,41 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
 
   app.get("/api/performance/events/recent", (_req, res) => {
     res.json(state.performanceTracker.getRecentEvents());
+  });
+
+  // Decisions (ADR) API
+  app.get("/api/decisions", (req, res) => {
+    const status = req.query.status as string | undefined;
+    res.json(state.decisionStore.list(status as import("openteam-core").DecisionStatus));
+  });
+
+  app.post("/api/decisions", (req, res) => {
+    const input = req.body as import("openteam-core").CreateDecisionInput;
+    if (!input.title) {
+      res.status(400).json({ error: "title is required" });
+      return;
+    }
+    const decision = state.decisionStore.create(input);
+    res.status(201).json(decision);
+  });
+
+  app.get("/api/decisions/:id", (req, res) => {
+    const decision = state.decisionStore.get(parseInt(req.params.id, 10));
+    if (!decision) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(decision);
+  });
+
+  app.patch("/api/decisions/:id", (req, res) => {
+    const updates = req.body as Record<string, string>;
+    const decision = state.decisionStore.update(parseInt(req.params.id, 10), updates);
+    if (!decision) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(decision);
+  });
+
+  app.delete("/api/decisions/:id", (req, res) => {
+    const removed = state.decisionStore.delete(parseInt(req.params.id, 10));
+    if (!removed) { res.status(404).json({ error: "Not found" }); return; }
+    res.json({ ok: true });
   });
 
   // MCP Servers API

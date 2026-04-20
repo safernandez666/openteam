@@ -8,6 +8,7 @@ import type { AgentNames } from "./agent-names.js";
 import type { KnowledgeBase } from "../context/knowledge-base.js";
 import type { AgentMemory } from "../persistence/agent-memory.js";
 import type { PerformanceTracker } from "../persistence/performance-tracker.js";
+import type { DecisionStore } from "../persistence/decision-store.js";
 import type { ProviderType, TokenUsage } from "./cli-provider.js";
 import { WorkerRunner } from "./worker-runner.js";
 
@@ -31,6 +32,7 @@ export interface OrchestratorOptions {
   knowledgeBase?: KnowledgeBase;
   agentMemory?: AgentMemory;
   performanceTracker?: PerformanceTracker;
+  decisionStore?: DecisionStore;
   provider?: ProviderType;
   maxConcurrentWorkers?: number;
   pollIntervalMs?: number;
@@ -48,6 +50,7 @@ export class Orchestrator extends EventEmitter {
   private knowledgeBase: KnowledgeBase | null;
   private agentMemory: AgentMemory | null;
   private performanceTracker: PerformanceTracker | null;
+  private decisionStore: DecisionStore | null;
   private provider: ProviderType;
   private maxWorkers: number;
   private pollIntervalMs: number;
@@ -71,6 +74,7 @@ export class Orchestrator extends EventEmitter {
     this.knowledgeBase = options.knowledgeBase ?? null;
     this.agentMemory = options.agentMemory ?? null;
     this.performanceTracker = options.performanceTracker ?? null;
+    this.decisionStore = options.decisionStore ?? null;
     this.provider = options.provider ?? "claude";
     this.maxWorkers = options.maxConcurrentWorkers ?? 3;
     this.pollIntervalMs = options.pollIntervalMs ?? 3000;
@@ -158,6 +162,7 @@ export class Orchestrator extends EventEmitter {
       mcpManager: this.mcpManager ?? undefined,
       knowledgeBase: this.knowledgeBase ?? undefined,
       agentMemory: this.agentMemory ?? undefined,
+      decisionStore: this.decisionStore ?? undefined,
       provider: (this.agentNames?.getProvider(task.role ?? "") ?? this.provider) as "claude" | "kimi",
     });
 

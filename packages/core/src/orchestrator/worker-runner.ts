@@ -7,6 +7,7 @@ import type { ContextManager } from "../context/context-manager.js";
 import type { McpManager } from "../mcp-server/mcp-manager.js";
 import type { KnowledgeBase } from "../context/knowledge-base.js";
 import type { AgentMemory } from "../persistence/agent-memory.js";
+import type { DecisionStore } from "../persistence/decision-store.js";
 import { buildCliArgs, parseStreamEvent, parseTokenUsage, type ProviderType, type TokenUsage } from "./cli-provider.js";
 
 const DEFAULT_WORKER_PROMPT = `You are a Worker agent in the OpenTeam framework.
@@ -23,6 +24,7 @@ export interface WorkerRunnerOptions {
   mcpManager?: McpManager;
   knowledgeBase?: KnowledgeBase;
   agentMemory?: AgentMemory;
+  decisionStore?: DecisionStore;
   provider?: ProviderType;
 }
 
@@ -35,6 +37,7 @@ export class WorkerRunner extends EventEmitter {
   private mcpManager: McpManager | null;
   private knowledgeBase: KnowledgeBase | null;
   private agentMemory: AgentMemory | null;
+  private decisionStore: DecisionStore | null;
   private provider: ProviderType;
   private pty: PtyManager | null = null;
 
@@ -48,6 +51,7 @@ export class WorkerRunner extends EventEmitter {
     this.mcpManager = options.mcpManager ?? null;
     this.knowledgeBase = options.knowledgeBase ?? null;
     this.agentMemory = options.agentMemory ?? null;
+    this.decisionStore = options.decisionStore ?? null;
     this.provider = options.provider ?? "claude";
   }
 
@@ -74,6 +78,11 @@ export class WorkerRunner extends EventEmitter {
         this.task.title,
         this.task.role ?? undefined,
       );
+    }
+
+    // Append accepted ADRs
+    if (this.decisionStore) {
+      systemPrompt += this.decisionStore.buildPromptSection();
     }
 
     // Append MCP tools info to system prompt

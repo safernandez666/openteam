@@ -29,6 +29,7 @@ export {
   EventLogger,
   AgentMemory,
   PerformanceTracker,
+  DecisionStore,
 } from "./persistence/index.js";
 
 export type {
@@ -44,6 +45,9 @@ export type {
   AgentFailure,
   PerformanceEvent,
   AgentStats,
+  Decision,
+  DecisionStatus,
+  CreateDecisionInput,
 } from "./persistence/index.js";
 
 // Chat
