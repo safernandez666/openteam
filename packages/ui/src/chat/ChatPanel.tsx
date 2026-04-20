@@ -71,7 +71,7 @@ export function ChatPanel({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, pmStatus]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
