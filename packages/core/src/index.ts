@@ -55,8 +55,8 @@ export { Orchestrator, WorkerRunner, AgentNames, TeamConfigManager, ROLE_CATALOG
 export type { OrchestratorOptions, WorkerInfo, AgentNamesConfig, TeamMember, TeamConfig, RoleDefinition } from "./orchestrator/index.js";
 
 // Skills
-export { SkillLoader, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize } from "./skills/index.js";
-export type { Skill, MarketplaceSkill } from "./skills/index.js";
+export { SkillLoader, SkillMatrix, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize } from "./skills/index.js";
+export type { Skill, MarketplaceSkill, SkillMatrixConfig, Slot, SlotEntry } from "./skills/index.js";
 
 // Context
 export { ContextManager, KnowledgeBase, ProjectConfigManager, WorkspaceManager, ProjectManager } from "./context/index.js";

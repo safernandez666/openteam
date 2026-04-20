@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, writeFileSync, unlinkSync, mkdirSync, exists
 import { join, basename, extname, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { execSync } from "node:child_process";
+import { SkillMatrix } from "./skill-matrix.js";
 
 export interface Skill {
   name: string;
@@ -41,10 +42,19 @@ export class SkillLoader {
   private modules = new Map<string, SkillModule>();
   private roleSkills: RoleSkillsMap = {};
   private userSkillsDir: string | null;
+  private _skillMatrix: SkillMatrix | null = null;
 
   constructor(userSkillsDir?: string) {
     this.userSkillsDir = userSkillsDir ?? null;
+    if (userSkillsDir) {
+      this._skillMatrix = new SkillMatrix(userSkillsDir);
+    }
     this.reload();
+  }
+
+  /** Get the skill matrix for this workspace. */
+  get skillMatrix(): SkillMatrix | null {
+    return this._skillMatrix;
   }
 
   /** Reload all skills and modules from disk. */
@@ -278,13 +288,30 @@ export class SkillLoader {
       ? skill.content
       : `You are a Worker agent with the role "${role}" in the OpenTeam framework. Complete the assigned task efficiently and concisely.`;
 
-    // Append assigned modules
+    // Append assigned modules (manual role-skill assignments)
     const assignedModules = this.getRoleSkills(role);
+    const injected = new Set<string>();
     for (const modName of assignedModules) {
       const mod = this.getModule(modName);
       if (mod) {
         prompt += `\n\n---\n\n## Skill: ${mod.name}\n\n${mod.content}`;
+        injected.add(modName);
       }
+    }
+
+    // Append skill matrix bindings (stack-specific skills)
+    if (this._skillMatrix) {
+      const matrixSkills = this._skillMatrix.getAllBoundSkills();
+      for (const skillName of matrixSkills) {
+        if (injected.has(skillName)) continue; // Already injected
+        const mod = this.getModule(skillName);
+        if (mod) {
+          prompt += `\n\n---\n\n## Skill: ${mod.name}\n\n${mod.content}`;
+          injected.add(skillName);
+        }
+      }
+      // Add tech stack summary
+      prompt += this._skillMatrix.buildPromptSection();
     }
 
     return prompt;

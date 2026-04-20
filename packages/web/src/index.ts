@@ -266,6 +266,37 @@ export function startServer(port = PORT, host = HOST): Server {
     res.json(modules);
   });
 
+  // Skill Matrix API
+  app.get("/api/skill-matrix", (_req, res) => {
+    const matrix = state.skillLoader.skillMatrix;
+    if (!matrix) { res.json({}); return; }
+    res.json(matrix.getAll());
+  });
+
+  app.put("/api/skill-matrix", (req, res) => {
+    const matrix = state.skillLoader.skillMatrix;
+    if (!matrix) { res.status(400).json({ error: "No skill matrix available" }); return; }
+    matrix.setAll(req.body as Record<string, unknown> as import("openteam-core").SkillMatrixConfig);
+    res.json(matrix.getAll());
+  });
+
+  app.post("/api/skill-matrix/:slot/bind", (req, res) => {
+    const matrix = state.skillLoader.skillMatrix;
+    if (!matrix) { res.status(400).json({ error: "No skill matrix available" }); return; }
+    const { name, skill } = req.body as { name?: string; skill?: string };
+    if (!name || !skill) { res.status(400).json({ error: "name and skill are required" }); return; }
+    matrix.bindSkill(req.params.slot, name, skill);
+    res.json(matrix.getSlot(req.params.slot));
+  });
+
+  app.delete("/api/skill-matrix/:slot/:skill", (req, res) => {
+    const matrix = state.skillLoader.skillMatrix;
+    if (!matrix) { res.status(400).json({ error: "No skill matrix available" }); return; }
+    const removed = matrix.unbindSkill(req.params.slot, req.params.skill);
+    if (!removed) { res.status(404).json({ error: "Binding not found" }); return; }
+    res.json({ ok: true });
+  });
+
   // Projects API
   app.get("/api/projects", (_req, res) => {
     res.json({
