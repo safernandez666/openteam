@@ -35,7 +35,7 @@ export interface WsHandler {
   broadcastWorkerDone: (taskId: string) => void;
   broadcastSkills: (skills: Array<{ name: string; source: string }>) => void;
   setProvider: (provider: string) => void;
-  setTeamInfo: (members: Array<{ roleId: string; name: string }>) => void;
+  setTeamInfo: (members: Array<{ roleId: string; name: string; provider?: string }>) => void;
   resetChat: () => void;
 }
 
@@ -193,7 +193,7 @@ export function createWsHandler(
     setProvider(provider: string) {
       chatSession.setProvider(provider as "claude" | "kimi");
     },
-    setTeamInfo(members: Array<{ roleId: string; name: string }>) {
+    setTeamInfo(members: Array<{ roleId: string; name: string; provider?: string }>) {
       chatSession.setTeamInfo(members);
     },
   };

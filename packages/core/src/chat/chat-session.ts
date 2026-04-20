@@ -275,8 +275,11 @@ Workers receive context from a file called WORKSPACE.md. This should describe th
   }
 
   /** Update the team info in the system prompt. Called when team changes. */
-  setTeamInfo(members: Array<{ roleId: string; name: string }>): void {
-    const teamLines = members.map((m) => `- **${m.name}** (${m.roleId})`).join("\n");
+  setTeamInfo(members: Array<{ roleId: string; name: string; provider?: string }>): void {
+    const teamLines = members.map((m) => {
+      const prov = m.provider ? ` — uses ${m.provider === "kimi" ? "Kimi" : "Claude"}` : "";
+      return `- **${m.name}** (${m.roleId}${prov})`;
+    }).join("\n");
     const roleList = members.map((m) => `"${m.roleId}"`).join(", ");
     const teamSection = `## Your Team
 You manage a team of AI worker agents:
