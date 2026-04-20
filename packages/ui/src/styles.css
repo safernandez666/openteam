@@ -2503,6 +2503,21 @@ body {
   border-radius: var(--radius-sm);
 }
 
+.agent-card-tier {
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+}
+
+.agent-card-tier--economy { background: var(--green-muted); color: var(--green); }
+.agent-card-tier--fast { background: var(--blue-muted); color: var(--blue); }
+.agent-card-tier--standard { background: var(--bg-tertiary); color: var(--text-secondary); }
+.agent-card-tier--quality { background: var(--purple-muted); color: var(--purple); }
+.agent-card-tier--premium { background: var(--accent-muted); color: var(--accent); }
+
 .agent-card-active {
   display: flex;
   align-items: center;

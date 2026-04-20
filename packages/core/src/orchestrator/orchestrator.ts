@@ -9,6 +9,7 @@ import type { KnowledgeBase } from "../context/knowledge-base.js";
 import type { AgentMemory } from "../persistence/agent-memory.js";
 import type { PerformanceTracker } from "../persistence/performance-tracker.js";
 import type { DecisionStore } from "../persistence/decision-store.js";
+import type { TierEngine } from "../context/tier-engine.js";
 import type { ProviderType, TokenUsage } from "./cli-provider.js";
 import { WorkerRunner } from "./worker-runner.js";
 
@@ -33,6 +34,7 @@ export interface OrchestratorOptions {
   agentMemory?: AgentMemory;
   performanceTracker?: PerformanceTracker;
   decisionStore?: DecisionStore;
+  tierEngine?: TierEngine;
   provider?: ProviderType;
   maxConcurrentWorkers?: number;
   pollIntervalMs?: number;
@@ -51,6 +53,7 @@ export class Orchestrator extends EventEmitter {
   private agentMemory: AgentMemory | null;
   private performanceTracker: PerformanceTracker | null;
   private decisionStore: DecisionStore | null;
+  private tierEngine: TierEngine | null;
   private provider: ProviderType;
   private maxWorkers: number;
   private pollIntervalMs: number;
@@ -75,6 +78,7 @@ export class Orchestrator extends EventEmitter {
     this.agentMemory = options.agentMemory ?? null;
     this.performanceTracker = options.performanceTracker ?? null;
     this.decisionStore = options.decisionStore ?? null;
+    this.tierEngine = options.tierEngine ?? null;
     this.provider = options.provider ?? "claude";
     this.maxWorkers = options.maxConcurrentWorkers ?? 3;
     this.pollIntervalMs = options.pollIntervalMs ?? 3000;
@@ -152,6 +156,22 @@ export class Orchestrator extends EventEmitter {
     return `${base[0].toUpperCase()}${base.slice(1)}-${this.workerCounter}`;
   }
 
+  /** Resolve provider for a role: explicit agent override > tier mapping > workspace default */
+  private resolveProvider(role: string): "claude" | "kimi" {
+    // 1. Explicit per-agent provider override
+    const agentProvider = this.agentNames?.getProvider(role);
+    if (agentProvider) return agentProvider;
+
+    // 2. Tier-based provider mapping
+    if (this.tierEngine) {
+      const tierConfig = this.tierEngine.getTier(role);
+      return this.tierEngine.getProviderForTier(tierConfig.tier, tierConfig.provider, this.provider);
+    }
+
+    // 3. Workspace default
+    return this.provider as "claude" | "kimi";
+  }
+
   private spawnWorker(task: Task): void {
     const worker = new WorkerRunner({
       task,
@@ -163,7 +183,7 @@ export class Orchestrator extends EventEmitter {
       knowledgeBase: this.knowledgeBase ?? undefined,
       agentMemory: this.agentMemory ?? undefined,
       decisionStore: this.decisionStore ?? undefined,
-      provider: (this.agentNames?.getProvider(task.role ?? "") ?? this.provider) as "claude" | "kimi",
+      provider: this.resolveProvider(task.role ?? ""),
     });
 
     this.activeWorkers.set(task.id, worker);

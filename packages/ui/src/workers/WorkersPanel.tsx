@@ -29,6 +29,7 @@ function AgentCard({
   isPM,
   initialAvatarSeed,
   onAvatarSeedChange,
+  tier,
 }: {
   role: string;
   skill?: SkillInfo;
@@ -43,6 +44,7 @@ function AgentCard({
   isPM?: boolean;
   initialAvatarSeed?: number;
   onAvatarSeedChange?: (role: string, seed: number) => void;
+  tier?: string;
 }) {
   const meta = getRoleMeta(role, agentNames);
   const [editingName, setEditingName] = useState(false);
@@ -85,6 +87,7 @@ function AgentCard({
             </span>
           )}
           <span className="agent-card-role">{role}</span>
+          {tier && <span className={`agent-card-tier agent-card-tier--${tier}`}>{tier}</span>}
           {activeCount > 0 && (
             <span className="agent-card-active">
               <span className="agent-card-active-dot" />
@@ -252,6 +255,7 @@ export function WorkersPanel({
   const [showCatalog, setShowCatalog] = useState(false);
   const [avatarSeeds, setAvatarSeeds] = useState<Record<string, number>>({});
   const [removingRole, setRemovingRole] = useState<string | null>(null);
+  const [tiers, setTiers] = useState<Record<string, string>>({});
 
   const handleNameChange = (role: string, name: string) => {
     onUpdateTeamMember(role, { name });
@@ -275,6 +279,11 @@ export function WorkersPanel({
     }).catch(() => {});
     fetch("/api/avatar-seeds").then((r) => r.json()).then((seeds) => {
       setAvatarSeeds(seeds);
+    }).catch(() => {});
+    fetch("/api/tiers").then((r) => r.json()).then((data: Array<{ roleId: string; tier: string }>) => {
+      const map: Record<string, string> = {};
+      for (const t of data) map[t.roleId] = t.tier;
+      setTiers(map);
     }).catch(() => {});
   }, []);
 
@@ -362,6 +371,7 @@ export function WorkersPanel({
               isPM
               initialAvatarSeed={avatarSeeds.pm ?? 0}
               onAvatarSeedChange={handleAvatarSeedChange}
+              tier={tiers.pm ?? "quality"}
             />
 
             {/* Team member cards */}
@@ -380,6 +390,7 @@ export function WorkersPanel({
                 onRemove={(roleId) => setRemovingRole(roleId)}
                 initialAvatarSeed={avatarSeeds[member.roleId] ?? 0}
                 onAvatarSeedChange={handleAvatarSeedChange}
+                tier={tiers[member.roleId]}
               />
             ))}
           </div>
