@@ -128,6 +128,16 @@ export function ChatPanel({
         {messages.map((msg, i) => (
           <MessageBubble key={i} message={msg} />
         ))}
+        {pmStatus === "working" && !streamingContent && (
+          <div className="chat-thinking">
+            <div className="chat-thinking-dots">
+              <span />
+              <span />
+              <span />
+            </div>
+            <span className="chat-thinking-label">Facu is thinking...</span>
+          </div>
+        )}
         <StreamingBubble content={streamingContent} />
         <div ref={messagesEndRef} />
       </div>
