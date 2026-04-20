@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 
-export type View = "projects" | "board" | "workers" | "skills" | "mcp" | "chat";
+export type View = "projects" | "board" | "workers" | "workflows" | "skills" | "mcp" | "chat";
 
 const NAV_ITEMS: { key: View; label: string; icon: string }[] = [
   { key: "projects", label: "Projects", icon: "projects" },
   { key: "board", label: "Board", icon: "board" },
   { key: "workers", label: "Workers", icon: "workers" },
+  { key: "workflows", label: "Workflows", icon: "workflows" },
   { key: "skills", label: "Skills", icon: "skills" },
   { key: "mcp", label: "MCP", icon: "mcp" },
   { key: "chat", label: "Chat", icon: "chat" },
@@ -43,6 +44,18 @@ function NavIcon({ type }: { type: string }) {
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M9 2l1.5 3.5L14 7l-3.5 1.5L9 12l-1.5-3.5L4 7l3.5-1.5z" />
         <path d="M14 12l.75 1.75L16.5 14.5l-1.75.75L14 17l-.75-1.75-1.75-.75 1.75-.75z" />
+      </svg>
+    );
+  }
+  if (type === "workflows") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="4" cy="4" r="2" />
+        <circle cx="14" cy="4" r="2" />
+        <circle cx="9" cy="14" r="2" />
+        <path d="M6 4h6" />
+        <path d="M4 6v4l5 4" />
+        <path d="M14 6v4l-5 4" />
       </svg>
     );
   }

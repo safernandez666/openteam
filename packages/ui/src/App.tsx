@@ -9,6 +9,7 @@ import { WorkersPanel } from "./workers/WorkersPanel";
 import { Sidebar, type View } from "./Sidebar";
 import { SkillsPanel } from "./skills/SkillsPanel";
 import { McpPanel } from "./mcp/McpPanel";
+import { WorkflowsPanel } from "./workflows/WorkflowsPanel";
 import { WorkspaceSettings } from "./WorkspaceSettings";
 import { useToasts, ToastContainer } from "./Toasts";
 import { NewWorkspaceModal } from "./NewWorkspaceModal";
@@ -223,6 +224,12 @@ export function App() {
             </div>
           )}
 
+          {activeView === "workflows" && (
+            <div className="view-panel view-panel--workflows">
+              <WorkflowsPanel />
+            </div>
+          )}
+
           {activeView === "skills" && (
             <div className="view-panel view-panel--skills">
               <SkillsPanel modules={modules} onRefresh={refreshModules} />
@@ -250,7 +257,7 @@ export function App() {
           )}
 
           {/* Persistent chat sidebar — visible on all views except chat and board */}
-          {activeView !== "chat" && activeView !== "board" && activeView !== "skills" && (
+          {activeView !== "chat" && activeView !== "board" && activeView !== "skills" && activeView !== "workflows" && (
             <div className="chat-sidebar">
               <ChatPanel
                 messages={messages}
