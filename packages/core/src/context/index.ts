@@ -9,3 +9,5 @@ export type { WorkspaceInfo } from "./workspace-manager.js";
 export type { ProjectInfo, ActiveSelection } from "./project-manager.js";
 export { WorkflowEngine } from "./workflow-engine.js";
 export type { WorkflowTemplate, WorkflowInstance, WorkflowPhase } from "./workflow-engine.js";
+export { CheckpointManager } from "./checkpoint-manager.js";
+export type { CheckpointData } from "./checkpoint-manager.js";

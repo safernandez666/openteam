@@ -211,6 +211,25 @@ const MIGRATION_V12 = `
   );
 `;
 
+const MIGRATION_V13 = `
+  CREATE TABLE IF NOT EXISTS session_checkpoints (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    workspace_id        TEXT NOT NULL,
+    summary             TEXT NOT NULL DEFAULT '',
+    task_status         TEXT NOT NULL DEFAULT '[]',
+    active_workers      TEXT NOT NULL DEFAULT '[]',
+    workflow_state      TEXT DEFAULT NULL,
+    resume_instructions TEXT NOT NULL DEFAULT '',
+    chat_summary        TEXT NOT NULL DEFAULT '',
+    is_active           INTEGER NOT NULL DEFAULT 1,
+    created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_checkpoints_workspace ON session_checkpoints(workspace_id);
+  CREATE INDEX IF NOT EXISTS idx_checkpoints_active ON session_checkpoints(is_active);
+`;
+
 export function openDatabase(dbPath: string): BetterSqlite3Database {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -265,6 +284,10 @@ export function openDatabase(dbPath: string): BetterSqlite3Database {
   if (version < 12) {
     db.exec(MIGRATION_V12);
     db.pragma("user_version = 12");
+  }
+  if (version < 13) {
+    db.exec(MIGRATION_V13);
+    db.pragma("user_version = 13");
   }
 
   return db;

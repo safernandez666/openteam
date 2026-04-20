@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine, GateEngine } from "openteam-core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine, GateEngine, CheckpointManager } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -98,6 +98,7 @@ export function startServer(port = PORT, host = HOST): Server {
     decisionStore: null as unknown as DecisionStore,
     workflowEngine: null as unknown as WorkflowEngine,
     gateEngine: null as unknown as GateEngine,
+    checkpointManager: null as unknown as CheckpointManager,
   };
 
   // Global skills directory — shared across all workspaces
@@ -120,6 +121,7 @@ export function startServer(port = PORT, host = HOST): Server {
     state.decisionStore = new DecisionStore(state.db);
     state.workflowEngine = new WorkflowEngine(state.db);
     state.gateEngine = new GateEngine(state.db);
+    state.checkpointManager = new CheckpointManager(state.db);
   }
 
   loadWorkspace(dataDir);
@@ -1071,6 +1073,59 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     res.json(gates);
   });
 
+  // Checkpoints API
+  const getWorkspaceId = () => {
+    const a = projectManager.getActive();
+    return a ? `${a.projectId}/${a.workspaceId}` : "default";
+  };
+
+  const triggerCheckpoint = (force = false) => {
+    const wsId = getWorkspaceId();
+    const workers = orchestrator.getWorkers().filter((w) => w.status === "running");
+    const activeWfInstances = state.workflowEngine.listInstances("running");
+    const wfState = activeWfInstances.length > 0 ? {
+      instanceId: activeWfInstances[0].id,
+      templateId: activeWfInstances[0].template_id,
+      currentPhase: activeWfInstances[0].current_phase,
+    } : null;
+
+    const checkpoint = state.checkpointManager.buildFromState(
+      wsId,
+      state.taskStore,
+      workers,
+      wfState,
+      wsHandler.getChatMessages(),
+    );
+    state.checkpointManager.saveCheckpoint(checkpoint, force);
+  };
+
+  app.get("/api/checkpoints", (_req, res) => {
+    res.json(state.checkpointManager.listCheckpoints(getWorkspaceId()));
+  });
+
+  app.get("/api/checkpoints/active", (_req, res) => {
+    const cp = state.checkpointManager.getActiveCheckpoint(getWorkspaceId());
+    res.json(cp ?? null);
+  });
+
+  app.post("/api/checkpoints", (_req, res) => {
+    triggerCheckpoint(true);
+    const cp = state.checkpointManager.getActiveCheckpoint(getWorkspaceId());
+    res.status(201).json(cp);
+  });
+
+  app.get("/api/checkpoints/:id", (req, res) => {
+    const cp = state.checkpointManager.getCheckpoint(parseInt(req.params.id, 10));
+    if (!cp) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(cp);
+  });
+
+  app.delete("/api/checkpoints/:id", (req, res) => {
+    const removed = state.checkpointManager.deleteCheckpoint(parseInt(req.params.id, 10));
+    if (!removed) { res.status(404).json({ error: "Not found" }); return; }
+    res.json({ ok: true });
+  });
+
   // MCP Servers API
   app.get("/api/mcp-servers", (_req, res) => {
     res.json(state.mcpManager.list());
@@ -1216,6 +1271,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     orc.on("worker_done", ({ taskId, result }: { taskId: string; result: string }) => {
       console.log(`Worker completed task ${taskId}: ${result.slice(0, 100)}`);
       wsHandler.broadcastWorkerDone(taskId);
+      triggerCheckpoint();
 
       // Auto-advance workflow if this task belongs to one
       const instance = state.workflowEngine.getInstanceByPhaseTask(taskId);
@@ -1275,6 +1331,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   // Graceful shutdown
   const shutdown = () => {
     console.log("Shutting down gracefully...");
+    triggerCheckpoint(true);
     orchestrator.stop();
     httpServer.close(() => process.exit(0));
   };
