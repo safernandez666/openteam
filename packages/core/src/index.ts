@@ -67,7 +67,7 @@ export { SkillLoader, SkillMatrix, MARKETPLACE_CATEGORIES, MarketplaceCatalog, a
 export type { Skill, MarketplaceSkill, SkillMatrixConfig, Slot, SlotEntry } from "./skills/index.js";
 
 // Context
-export { ContextManager, KnowledgeBase, ProjectConfigManager, WorkspaceManager, ProjectManager, WorkflowEngine, CheckpointManager, TierEngine } from "./context/index.js";
+export { ContextManager, KnowledgeBase, ProjectConfigManager, WorkspaceManager, ProjectManager, WorkflowEngine, CheckpointManager, TierEngine, HealthChecker } from "./context/index.js";
 export type { KnowledgeDoc, ProjectConfig, WorkspaceInfo, ProjectInfo, ActiveSelection, WorkflowTemplate, WorkflowInstance, WorkflowPhase, CheckpointData, Tier, TierConfig } from "./context/index.js";
 
 // MCP Server

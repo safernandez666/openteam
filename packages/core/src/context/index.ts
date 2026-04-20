@@ -13,3 +13,5 @@ export { CheckpointManager } from "./checkpoint-manager.js";
 export type { CheckpointData } from "./checkpoint-manager.js";
 export { TierEngine } from "./tier-engine.js";
 export type { Tier, TierConfig } from "./tier-engine.js";
+export { HealthChecker } from "./health-checker.js";
+export type { HealthCheckResult } from "./health-checker.js";

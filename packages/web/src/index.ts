@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine, GateEngine, CheckpointManager, TierEngine } from "openteam-core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine, GateEngine, CheckpointManager, TierEngine, HealthChecker } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -1075,6 +1075,66 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     state.gateEngine.addPhaseGate(req.params.templateId, parseInt(req.params.phaseIndex, 10), gateId, isRequired ?? true, order ?? 0);
     const gates = state.gateEngine.getPhaseGates(req.params.templateId, parseInt(req.params.phaseIndex, 10));
     res.json(gates);
+  });
+
+  // Dashboard API
+  app.get("/api/dashboard/overview", (_req, res) => {
+    const tasks = state.taskStore.list();
+    const done = tasks.filter((t) => t.status === "done").length;
+    const totalTokens = tasks.reduce((s, t) => s + (t.input_tokens ?? 0) + (t.output_tokens ?? 0), 0);
+    const activeWf = state.workflowEngine.listInstances("running").length;
+    const agentStats = state.performanceTracker.getAllStats();
+    const successRate = agentStats.length > 0
+      ? Math.round(agentStats.reduce((s, a) => s + a.successRate, 0) / agentStats.length)
+      : 0;
+
+    res.json({
+      totalTasks: tasks.length,
+      doneTasks: done,
+      successRate,
+      totalTokens,
+      activeWorkflows: activeWf,
+      inProgress: tasks.filter((t) => t.status === "in_progress").length,
+      blocked: tasks.filter((t) => t.status === "blocked").length,
+    });
+  });
+
+  app.get("/api/dashboard/agents", (_req, res) => {
+    res.json(state.performanceTracker.getAllStats());
+  });
+
+  app.get("/api/dashboard/tiers", (_req, res) => {
+    const tiers = state.tierEngine.getAllTiers();
+    const stats = state.performanceTracker.getAllStats();
+    res.json({ tiers, agentStats: stats });
+  });
+
+  app.get("/api/dashboard/gates", (_req, res) => {
+    res.json(state.gateEngine.getStats());
+  });
+
+  app.get("/api/dashboard/workflows", (_req, res) => {
+    const templates = state.workflowEngine.listTemplates();
+    const instances = state.workflowEngine.listInstances();
+    const running = instances.filter((i) => i.status === "running").length;
+    const completed = instances.filter((i) => i.status === "completed").length;
+    res.json({ templates: templates.length, instances: instances.length, running, completed });
+  });
+
+  app.get("/api/dashboard/memory", (_req, res) => {
+    const lessons = state.agentMemory.getLessons().slice(0, 5);
+    const issues = state.agentMemory.getIssues("open");
+    const failures = state.agentMemory.getFailures("unresolved").slice(0, 5);
+    res.json({ lessons, issues, failures });
+  });
+
+  // Health Check API
+  const healthChecker = new HealthChecker(state.db, cwd, state.dataDir);
+
+  app.get("/api/doctor", async (_req, res) => {
+    const results = await healthChecker.runAllChecks();
+    const overall = healthChecker.getOverallStatus(results);
+    res.json({ overall, checks: results });
   });
 
   // Tier API
