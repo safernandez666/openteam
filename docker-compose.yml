@@ -1,0 +1,14 @@
+services:
+  openteam:
+    build: .
+    ports:
+      - "4200:4200"
+    volumes:
+      - openteam-data:/root/.openteam
+      - ./workspace:/workspace  # Mount your project here
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+volumes:
+  openteam-data:

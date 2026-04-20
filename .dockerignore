@@ -1,8 +1,12 @@
 node_modules
-*/node_modules
 dist
-*/dist
 .git
 .claude
-*.md
-!pnpm-workspace.yaml
+.opencastle
+.agents
+screenshots
+packages/desktop
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
