@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore } from "openteam-core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -96,6 +96,7 @@ export function startServer(port = PORT, host = HOST): Server {
     agentMemory: null as unknown as AgentMemory,
     performanceTracker: null as unknown as PerformanceTracker,
     decisionStore: null as unknown as DecisionStore,
+    workflowEngine: null as unknown as WorkflowEngine,
   };
 
   // Global skills directory — shared across all workspaces
@@ -116,6 +117,7 @@ export function startServer(port = PORT, host = HOST): Server {
     state.agentMemory = new AgentMemory(state.db);
     state.performanceTracker = new PerformanceTracker(state.db);
     state.decisionStore = new DecisionStore(state.db);
+    state.workflowEngine = new WorkflowEngine(state.db);
   }
 
   loadWorkspace(dataDir);
@@ -918,6 +920,72 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     const removed = state.decisionStore.delete(parseInt(req.params.id, 10));
     if (!removed) { res.status(404).json({ error: "Not found" }); return; }
     res.json({ ok: true });
+  });
+
+  // Workflow API
+  app.get("/api/workflows/templates", (_req, res) => {
+    res.json(state.workflowEngine.listTemplates());
+  });
+
+  app.get("/api/workflows/templates/:id", (req, res) => {
+    const t = state.workflowEngine.getTemplate(req.params.id);
+    if (!t) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(t);
+  });
+
+  app.post("/api/workflows/templates", (req, res) => {
+    const input = req.body as { id: string; name: string; description: string; category: string; phases: unknown[] };
+    if (!input.id || !input.name) { res.status(400).json({ error: "id and name required" }); return; }
+    const t = state.workflowEngine.createTemplate(input as Parameters<typeof state.workflowEngine.createTemplate>[0]);
+    res.status(201).json(t);
+  });
+
+  app.put("/api/workflows/templates/:id", (req, res) => {
+    const t = state.workflowEngine.updateTemplate(req.params.id, req.body as Record<string, unknown>);
+    if (!t) { res.status(404).json({ error: "Not found or not editable" }); return; }
+    res.json(t);
+  });
+
+  app.delete("/api/workflows/templates/:id", (req, res) => {
+    const removed = state.workflowEngine.deleteTemplate(req.params.id);
+    if (!removed) { res.status(404).json({ error: "Not found or built-in" }); return; }
+    res.json({ ok: true });
+  });
+
+  app.get("/api/workflows/instances", (req, res) => {
+    const status = req.query.status as string | undefined;
+    res.json(state.workflowEngine.listInstances(status));
+  });
+
+  app.get("/api/workflows/instances/:id", (req, res) => {
+    const i = state.workflowEngine.getInstance(req.params.id);
+    if (!i) { res.status(404).json({ error: "Not found" }); return; }
+    const template = state.workflowEngine.getTemplate(i.template_id);
+    const phase = state.workflowEngine.getCurrentPhase(req.params.id);
+    res.json({ ...i, template, currentPhaseDetail: phase });
+  });
+
+  app.post("/api/workflows/instances", (req, res) => {
+    const { taskId, templateId } = req.body as { taskId?: string; templateId?: string };
+    if (!taskId || !templateId) { res.status(400).json({ error: "taskId and templateId required" }); return; }
+    const i = state.workflowEngine.startWorkflow(taskId, templateId);
+    if (!i) { res.status(404).json({ error: "Template not found" }); return; }
+    res.status(201).json(i);
+  });
+
+  app.post("/api/workflows/instances/:id/advance", (req, res) => {
+    const { notes } = req.body as { notes?: string };
+    const i = state.workflowEngine.advancePhase(req.params.id, notes);
+    if (!i) { res.status(404).json({ error: "Not found or not running" }); return; }
+    res.json(i);
+  });
+
+  app.post("/api/workflows/detect", (req, res) => {
+    const { input } = req.body as { input?: string };
+    if (!input) { res.status(400).json({ error: "input required" }); return; }
+    const templateId = state.workflowEngine.detectWorkflow(input);
+    const template = templateId ? state.workflowEngine.getTemplate(templateId) : null;
+    res.json({ detected: templateId, template });
   });
 
   // MCP Servers API

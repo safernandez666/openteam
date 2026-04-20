@@ -150,6 +150,31 @@ const MIGRATION_V10 = `
   );
 `;
 
+const MIGRATION_V11 = `
+  CREATE TABLE IF NOT EXISTS workflow_templates (
+    id          TEXT PRIMARY KEY,
+    name        TEXT NOT NULL,
+    description TEXT NOT NULL,
+    category    TEXT NOT NULL,
+    phases      TEXT NOT NULL,
+    is_builtin  INTEGER NOT NULL DEFAULT 1,
+    is_editable INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS workflow_instances (
+    id             TEXT PRIMARY KEY,
+    template_id    TEXT NOT NULL,
+    root_task_id   TEXT NOT NULL,
+    status         TEXT NOT NULL DEFAULT 'running',
+    current_phase  INTEGER NOT NULL DEFAULT 0,
+    phase_data     TEXT NOT NULL DEFAULT '{}',
+    created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+`;
+
 export function openDatabase(dbPath: string): BetterSqlite3Database {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -196,6 +221,10 @@ export function openDatabase(dbPath: string): BetterSqlite3Database {
   if (version < 10) {
     db.exec(MIGRATION_V10);
     db.pragma("user_version = 10");
+  }
+  if (version < 11) {
+    db.exec(MIGRATION_V11);
+    db.pragma("user_version = 11");
   }
 
   return db;

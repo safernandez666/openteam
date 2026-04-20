@@ -7,3 +7,5 @@ export type { KnowledgeDoc } from "./knowledge-base.js";
 export type { ProjectConfig } from "./project-config.js";
 export type { WorkspaceInfo } from "./workspace-manager.js";
 export type { ProjectInfo, ActiveSelection } from "./project-manager.js";
+export { WorkflowEngine } from "./workflow-engine.js";
+export type { WorkflowTemplate, WorkflowInstance, WorkflowPhase } from "./workflow-engine.js";
