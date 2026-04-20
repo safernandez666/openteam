@@ -215,9 +215,8 @@ export function ProjectsPanel({
                     {isEditing ? (
                       <button className="btn btn--primary btn--sm" onClick={() => saveEdit(proj.id)}>Save</button>
                     ) : (
-                      <button
-                        className="module-card-delete"
-                        onClick={() => setDeletingProject(proj.id)}
+                      <button className="module-card-delete" aria-label="Delete"
+                      onClick={() => setDeletingProject(proj.id)}
                         title="Delete project"
                       >&times;</button>
                     )}

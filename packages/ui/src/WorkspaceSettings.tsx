@@ -68,7 +68,7 @@ export function WorkspaceSettings({ onClose }: { onClose: () => void }) {
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 520 }}>
         <div className="modal-header">
           <div className="modal-title">Workspace Settings</div>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>&times;</button>
         </div>
 
         <div className="modal-body">

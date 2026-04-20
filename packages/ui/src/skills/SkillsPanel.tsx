@@ -225,9 +225,8 @@ export function SkillsPanel({
                   <div className="mp-card-actions">
                     <span className="mp-card-installed">Installed</span>
                     {skill.source !== "built-in" && (
-                      <button
-                        className="module-card-delete"
-                        onClick={() => handleDelete(skill.id)}
+                      <button className="module-card-delete" aria-label="Delete"
+                      onClick={() => handleDelete(skill.id)}
                         title="Remove"
                       >
                         &times;

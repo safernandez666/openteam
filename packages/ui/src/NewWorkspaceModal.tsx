@@ -30,7 +30,7 @@ export function NewWorkspaceModal({
       <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 420 }}>
         <div className="modal-header">
           <div className="modal-title">New Workspace</div>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>&times;</button>
         </div>
 
         <form onSubmit={handleSubmit}>

@@ -69,7 +69,7 @@ export function TaskDetail({
             <StatusBadge status={task.status} />
             <span className={`task-priority task-priority--${task.priority}`}>{task.priority}</span>
           </div>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>&times;</button>
         </div>
 
         <div className="modal-body">

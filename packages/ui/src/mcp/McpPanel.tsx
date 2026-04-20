@@ -188,8 +188,7 @@ export function McpPanel() {
                     >
                       {server.enabled ? "Disable" : "Enable"}
                     </button>
-                    <button
-                      className="module-card-delete"
+                    <button className="module-card-delete" aria-label="Delete"
                       onClick={() => handleDelete(server.name)}
                       title="Remove"
                     >

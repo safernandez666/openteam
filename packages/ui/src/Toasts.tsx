@@ -115,7 +115,7 @@ export function ToastContainer({
           </span>
           <span className="toast-message">{toast.message}</span>
           {onDismiss && (
-            <button className="toast-dismiss" onClick={() => onDismiss(toast.id)}>
+            <button className="toast-dismiss" aria-label="Dismiss" onClick={() => onDismiss(toast.id)}>
               &times;
             </button>
           )}

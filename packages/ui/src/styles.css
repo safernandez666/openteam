@@ -83,7 +83,7 @@ body {
 
 /* ===== LAYOUT ===== */
 .app {
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: row;
 }
@@ -485,7 +485,6 @@ body {
   flex-direction: column;
   flex-shrink: 0;
   z-index: 20;
-  transition: width 0.25s ease;
   overflow: hidden;
 }
 
@@ -4120,6 +4119,22 @@ body {
 
 .task-card {
   animation: fadeIn 0.2s ease-out;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Tabular nums for data */
+.stat-value, .kanban-count, .column-badge, .task-id, .task-time,
+.wf-instance-phase, .wf-template-meta, .mcp-panel-count, .wf-count,
+.workers-count, .header-stat {
+  font-variant-numeric: tabular-nums;
 }
 
 .message {

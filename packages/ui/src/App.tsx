@@ -168,7 +168,7 @@ export function App() {
             <button className="workdir-warning-action" onClick={() => setShowWsSettings(true)}>
               Configure
             </button>
-            <button className="workdir-warning-dismiss" onClick={() => setWorkDirWarning(null)}>
+            <button className="workdir-warning-dismiss" aria-label="Dismiss" onClick={() => setWorkDirWarning(null)}>
               &times;
             </button>
           </div>
