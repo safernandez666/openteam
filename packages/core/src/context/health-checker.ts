@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type BetterSqlite3 from "better-sqlite3";
 
@@ -57,16 +57,16 @@ export class HealthChecker {
     if (existsSync(wsPath)) {
       return { name: "Workspace Context", status: "pass", message: "WORKSPACE.md exists" };
     }
-    return { name: "Workspace Context", status: "warn", message: "No WORKSPACE.md — workers run without project context", fix: "Chat with Facu to set project context" };
+    return { name: "Workspace Context", status: "warn", message: "No WORKSPACE.md — describe your project to Facu and he'll create it", fix: "Tell Facu about your project: tech stack, file structure, conventions" };
   }
 
   checkTeam(): HealthCheckResult {
     try {
-      const teamPath = join(this.dataDir, "team.json");
+      const teamPath = join(this.dataDir, "team-config.json");
       if (!existsSync(teamPath)) {
         return { name: "Team", status: "warn", message: "No team configured — only PM available", fix: "Add agents in Workers → + Add Agent" };
       }
-      const data = JSON.parse(require("fs").readFileSync(teamPath, "utf-8"));
+      const data = JSON.parse(readFileSync(teamPath, "utf-8"));
       const count = (data.members ?? []).length;
       if (count >= 1) {
         return { name: "Team", status: "pass", message: `${count} agent${count !== 1 ? "s" : ""} + PM` };
