@@ -5,9 +5,13 @@ services:
       - "4200:4200"
     volumes:
       - openteam-data:/root/.openteam
-      - ./workspace:/workspace  # Mount your project here
+      - ./workspace:/workspace          # Mount your project here
+      - ~/.claude:/root/.claude:ro       # Claude Code credentials (read-only)
     environment:
       - NODE_ENV=production
+      # Option A: Mount credentials (default, see volumes above)
+      # Option B: Use API key directly (uncomment):
+      # - ANTHROPIC_API_KEY=sk-ant-your-key-here
     restart: unless-stopped
 
 volumes:
