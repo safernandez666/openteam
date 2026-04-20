@@ -1334,6 +1334,7 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
       return a ? `${a.projectId}/${a.workspaceId}` : "default";
     },
     getProvider: () => state.projectConfig.get().provider,
+    getWorkDir: () => state.projectConfig.get().workDir,
   });
 
   // Orchestrator — picks up "assigned" tasks and spawns workers

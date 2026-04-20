@@ -50,10 +50,12 @@ export function createWsHandler(
     getDb: () => BetterSqlite3.Database | undefined;
     getActiveWs: () => string;
     getProvider: () => string;
+    getWorkDir: () => string;
   },
 ): WsHandler {
   const wss = new WebSocketServer({ server, path: "/ws" });
-  const chatSession = new ChatSession(cwd, undefined, deps.getDb(), (deps.getProvider() as "claude" | "kimi") ?? "claude");
+  const effectiveCwd = deps.getWorkDir() || cwd;
+  const chatSession = new ChatSession(effectiveCwd, undefined, deps.getDb(), (deps.getProvider() as "claude" | "kimi") ?? "claude");
 
   chatSession.on("stream", (chunk: string) => {
     for (const client of wss.clients) {
