@@ -1,28 +1,28 @@
 :root {
-  /* Base palette — Deep Tech Console */
-  --bg-primary: #060b18;
-  --bg-secondary: #0c1225;
-  --bg-tertiary: #131b32;
-  --bg-elevated: #0f1628;
-  --bg-hover: #162040;
-  --bg-active: #1c2850;
+  /* Base palette — MyClaw-inspired */
+  --bg-primary: #050810;
+  --bg-secondary: #0a0f1a;
+  --bg-tertiary: #111827;
+  --bg-elevated: #0d1220;
+  --bg-hover: #151e30;
+  --bg-active: #1a2540;
 
   /* Borders */
-  --border-subtle: rgba(30, 58, 100, 0.35);
-  --border-default: rgba(40, 70, 120, 0.4);
-  --border-strong: rgba(60, 100, 160, 0.5);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
 
   /* Text */
-  --text-primary: #edf2f7;
-  --text-secondary: #8da4bf;
-  --text-tertiary: #5a7a9a;
-  --text-muted: #3d5a78;
+  --text-primary: #f0f4ff;
+  --text-secondary: #8892b0;
+  --text-tertiary: #5a6580;
+  --text-muted: #3a4560;
 
-  /* Accent — electric cyan */
-  --accent: #00d4ff;
-  --accent-hover: #00b8e6;
-  --accent-muted: rgba(0, 212, 255, 0.08);
-  --accent-strong: rgba(0, 212, 255, 0.15);
+  /* Accent — coral red */
+  --accent: #ff4d4d;
+  --accent-hover: #e63e3e;
+  --accent-muted: rgba(255, 77, 77, 0.08);
+  --accent-strong: rgba(255, 77, 77, 0.15);
 
   /* Status colors */
   --green: #34d399;
@@ -45,9 +45,9 @@
   --radius-xl: 16px;
 
   /* Fonts */
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Space Grotesk', sans-serif;
 }
 
 * {
@@ -102,7 +102,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   flex-shrink: 0;
   z-index: 10;
 }
@@ -355,7 +355,7 @@ body {
 }
 
 .header-breadcrumb-project {
-  color: var(--orange);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -479,7 +479,7 @@ body {
 
 /* ===== SIDEBAR ===== */
 .sidebar {
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
@@ -529,13 +529,12 @@ body {
   background: var(--accent);
   color: #ffffff;
   font-family: var(--font-display);
-  font-weight: 800;
+  font-weight: 700;
   font-size: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 .sidebar-logo-text {
@@ -568,7 +567,7 @@ body {
   text-transform: uppercase;
 }
 
-.sidebar-project-header--active { color: var(--orange); }
+.sidebar-project-header--active { color: var(--accent); }
 .sidebar-project-icon { font-size: 12px; }
 
 .sidebar-project-name {
@@ -1281,7 +1280,7 @@ body {
 
 .dashboard-role-fill {
   height: 100%;
-  background: var(--orange);
+  background: var(--accent);
   border-radius: 2px;
   transition: width 0.4s ease;
 }
