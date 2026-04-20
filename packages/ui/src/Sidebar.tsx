@@ -3,11 +3,11 @@ import { useState, useEffect } from "react";
 export type View = "projects" | "board" | "workers" | "workflows" | "dashboard" | "skills" | "mcp" | "chat";
 
 const NAV_ITEMS: { key: View; label: string; icon: string }[] = [
+  { key: "dashboard", label: "Dashboard", icon: "dashboard" },
   { key: "projects", label: "Projects", icon: "projects" },
   { key: "board", label: "Board", icon: "board" },
   { key: "workers", label: "Workers", icon: "workers" },
   { key: "workflows", label: "Workflows", icon: "workflows" },
-  { key: "dashboard", label: "Dashboard", icon: "dashboard" },
   { key: "skills", label: "Skills", icon: "skills" },
   { key: "mcp", label: "MCP", icon: "mcp" },
   { key: "chat", label: "Chat", icon: "chat" },
