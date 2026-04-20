@@ -3671,6 +3671,62 @@ body {
   padding: 0;
 }
 
+.mcp-server-env {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.mcp-env-chip {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.mcp-configure {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mcp-configure-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mcp-configure-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.mcp-configure-textarea {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 8px 10px;
+  outline: none;
+  resize: vertical;
+}
+
+.mcp-configure-textarea:focus { border-color: var(--accent); }
+
+.mcp-configure-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
 .mcp-empty {
   font-size: 13px;
   color: var(--text-muted);

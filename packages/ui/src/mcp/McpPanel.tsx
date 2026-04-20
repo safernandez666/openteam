@@ -53,6 +53,9 @@ export function McpPanel() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [configuring, setConfiguring] = useState<string | null>(null);
+  const [envInput, setEnvInput] = useState("");
+  const [argsInput, setArgsInput] = useState("");
 
   // Preview what will be installed
   const preview = input.trim() ? parseInput(input) : null;
@@ -102,6 +105,42 @@ export function McpPanel() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ enabled }),
     });
+    await refresh();
+  };
+
+  const openConfigure = (server: McpServerEntry) => {
+    setConfiguring(server.name);
+    // Parse existing env into KEY=VALUE lines
+    const envLines = Object.entries(server.config.env ?? {})
+      .map(([k, v]) => `${k}=${v}`)
+      .join("\n");
+    setEnvInput(envLines);
+    setArgsInput((server.config.args ?? []).join(" "));
+  };
+
+  const handleSaveConfig = async () => {
+    if (!configuring) return;
+    const server = servers.find((s) => s.name === configuring);
+    if (!server) return;
+
+    // Parse env vars from KEY=VALUE lines
+    const env: Record<string, string> = {};
+    for (const line of envInput.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || !trimmed.includes("=")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      env[trimmed.slice(0, eqIdx)] = trimmed.slice(eqIdx + 1);
+    }
+
+    const args = argsInput.trim() ? argsInput.trim().split(/\s+/) : [];
+
+    const newConfig = { ...server.config, env, args };
+    await fetch(`/api/mcp-servers`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: configuring, config: newConfig }),
+    });
+    setConfiguring(null);
     await refresh();
   };
 
@@ -184,6 +223,12 @@ export function McpPanel() {
                   </div>
                   <div className="mcp-server-actions">
                     <button
+                      className="btn btn--ghost btn--sm"
+                      onClick={() => openConfigure(server)}
+                    >
+                      Configure
+                    </button>
+                    <button
                       className={`btn btn--ghost btn--sm ${server.enabled ? "" : "btn--active"}`}
                       onClick={() => handleToggle(server.name, !server.enabled)}
                     >
@@ -207,7 +252,42 @@ export function McpPanel() {
                   ) : (
                     <code>{JSON.stringify(server.config)}</code>
                   )}
+                  {server.config.env && Object.keys(server.config.env).length > 0 && (
+                    <div className="mcp-server-env">
+                      {Object.entries(server.config.env).map(([k, v]) => (
+                        <span key={k} className="mcp-env-chip">{k}={v.length > 8 ? v.slice(0, 8) + "..." : v}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
+                {configuring === server.name && (
+                  <div className="mcp-configure">
+                    <div className="mcp-configure-field">
+                      <label className="mcp-configure-label">Environment Variables</label>
+                      <textarea
+                        className="mcp-configure-textarea"
+                        placeholder={"API_TOKEN=your-token-here\nHOSTINGER_API_KEY=abc123"}
+                        value={envInput}
+                        onChange={(e) => setEnvInput(e.target.value)}
+                        rows={3}
+                      />
+                      <span className="mcp-configure-hint">One per line: KEY=VALUE</span>
+                    </div>
+                    <div className="mcp-configure-field">
+                      <label className="mcp-configure-label">Arguments</label>
+                      <input
+                        className="skill-installer-input"
+                        placeholder="--port 9222 --host localhost"
+                        value={argsInput}
+                        onChange={(e) => setArgsInput(e.target.value)}
+                      />
+                    </div>
+                    <div className="skill-installer-row">
+                      <button className="btn btn--primary btn--sm" onClick={handleSaveConfig}>Save</button>
+                      <button className="btn btn--ghost btn--sm" onClick={() => setConfiguring(null)}>Cancel</button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
