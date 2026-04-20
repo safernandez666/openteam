@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { CloseIcon, CheckmarkIcon, SettingsIcon } from "../icons";
+import { OnboardingWizard } from "./OnboardingWizard";
 
 interface Project {
   id: string;
@@ -31,6 +32,7 @@ export function ProjectsPanel({
   const [projects, setProjects] = useState<Project[]>([]);
   const [workspacesByProject, setWorkspacesByProject] = useState<Record<string, Workspace[]>>({});
   const [showCreate, setShowCreate] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [newName, setNewName] = useState("");
   const [newDesc, setNewDesc] = useState("");
   const [newWsName, setNewWsName] = useState("");
@@ -137,7 +139,7 @@ export function ProjectsPanel({
     <>
       <div className="projects-header">
         <span className="projects-title">Projects</span>
-        <button className="btn btn--ghost btn--sm" onClick={() => setShowCreate(!showCreate)}>
+        <button className="btn btn--ghost btn--sm" onClick={() => setShowOnboarding(true)}>
           + New Project
         </button>
       </div>
@@ -312,6 +314,71 @@ export function ProjectsPanel({
           danger
           onConfirm={confirmDeleteWorkspace}
           onCancel={() => setDeletingWs(null)}
+        />
+      )}
+
+      {showOnboarding && (
+        <OnboardingWizard
+          onClose={() => setShowOnboarding(false)}
+          onComplete={async (data) => {
+            const projId = data.projectName.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
+            const wsId = data.workspaceName.toLowerCase().replace(/[^a-z0-9-_]/g, "-").replace(/-+/g, "-");
+
+            // 1. Create project
+            await fetch("/api/projects", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: projId, name: data.projectName.trim(), description: data.projectDesc.trim() }),
+            });
+
+            // 2. Create workspace
+            await fetch(`/api/projects/${projId}/workspaces`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: wsId, name: data.workspaceName.trim() }),
+            });
+
+            // 3. Switch to it
+            await fetch("/api/active", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ projectId: projId, workspaceId: wsId }),
+            });
+
+            // 4. Set working directory
+            if (data.workDir.trim()) {
+              await fetch("/api/project", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ workDir: data.workDir.trim() }),
+              });
+            }
+
+            // 5. Set tech stack via skill matrix
+            const techEntries = Object.entries(data.techStack).filter(([, v]) => v);
+            for (const [slot, name] of techEntries) {
+              const skill = name.toLowerCase().replace(/[^a-z0-9]/g, "-");
+              await fetch(`/api/skill-matrix/${slot}/bind`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, skill }),
+              });
+            }
+
+            // 6. Add team members
+            for (const roleId of data.teamRoles) {
+              await fetch("/api/team/members", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ roleId }),
+              });
+            }
+
+            setShowOnboarding(false);
+            await refresh();
+            onRefresh();
+            onSwitch(projId, wsId);
+          }}
         />
       )}
     </>

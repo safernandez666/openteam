@@ -3676,6 +3676,180 @@ body {
   white-space: nowrap;
 }
 
+/* ===== ONBOARDING ===== */
+
+.onboarding-modal {
+  max-width: 520px;
+  width: 100%;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.onboarding-header {
+  padding: 20px 20px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.onboarding-step-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  margin-bottom: 4px;
+}
+
+.onboarding-step-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.onboarding-step-subtitle {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+.onboarding-progress {
+  display: flex;
+  gap: 6px;
+  padding: 0 20px 16px;
+}
+
+.onboarding-progress-dot {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+  transition: background 0.2s;
+}
+
+.onboarding-progress-dot--active {
+  background: var(--accent);
+}
+
+.onboarding-body {
+  flex: 1;
+  padding: 0 20px 16px;
+  overflow-y: auto;
+}
+
+.onboarding-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.onboarding-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.onboarding-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.onboarding-input:focus { border-color: var(--accent); }
+.onboarding-input--mono { font-family: var(--font-mono); font-size: 12px; }
+
+.onboarding-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* Tech stack chips */
+.onboarding-tech-row { display: flex; flex-direction: column; gap: 6px; }
+
+.onboarding-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.onboarding-chip {
+  padding: 5px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.onboarding-chip:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.onboarding-chip--active { border-color: var(--accent); color: var(--accent); background: var(--accent-muted); }
+
+/* Team roles */
+.onboarding-roles {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.onboarding-role {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-sans);
+  transition: border-color 0.15s;
+}
+
+.onboarding-role:hover { border-color: var(--border-strong); }
+.onboarding-role--active { border-color: var(--accent); }
+
+.onboarding-role-check {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.onboarding-role--active .onboarding-role-check {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+}
+
+.onboarding-role-info { flex: 1; }
+.onboarding-role-name { font-size: 13px; font-weight: 600; color: var(--text-primary); display: block; }
+.onboarding-role-desc { font-size: 11px; color: var(--text-muted); }
+
+.onboarding-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ===== LOGS ===== */
 
 .logs-header {
