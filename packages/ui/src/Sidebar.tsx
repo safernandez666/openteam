@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 
-export type View = "projects" | "board" | "workers" | "workflows" | "dashboard" | "skills" | "mcp" | "chat";
+export type View = "projects" | "board" | "workers" | "workflows" | "logs" | "dashboard" | "skills" | "mcp" | "chat";
 
 const NAV_ITEMS: { key: View; label: string; icon: string }[] = [
   { key: "dashboard", label: "Dashboard", icon: "dashboard" },
@@ -8,6 +8,7 @@ const NAV_ITEMS: { key: View; label: string; icon: string }[] = [
   { key: "board", label: "Board", icon: "board" },
   { key: "workers", label: "Workers", icon: "workers" },
   { key: "workflows", label: "Workflows", icon: "workflows" },
+  { key: "logs", label: "Logs", icon: "logs" },
   { key: "skills", label: "Skills", icon: "skills" },
   { key: "mcp", label: "MCP", icon: "mcp" },
   { key: "chat", label: "Chat", icon: "chat" },
@@ -37,6 +38,13 @@ function NavIcon({ type }: { type: string }) {
         <circle cx="13" cy="5" r="2" />
         <path d="M1 15c0-3 2.5-5 5-5s5 2 5 5" />
         <path d="M11 15c0-2.5 1.5-4 3-4s2.5 1.5 2.5 4" />
+      </svg>
+    );
+  }
+  if (type === "logs") {
+    return (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 4h12M3 7h8M3 10h10M3 13h6M3 16h9" />
       </svg>
     );
   }
