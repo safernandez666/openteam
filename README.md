@@ -5,6 +5,13 @@
 <h1 align="center">OpenTeam</h1>
 
 <p align="center">
+  <a href="https://github.com/safernandez666/openteam/actions"><img src="https://img.shields.io/badge/tests-passing-brightgreen" alt="Tests"></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-%3E%3D%2022-blue" alt="Node"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-v0.2.0-orange" alt="Changelog"></a>
+</p>
+
+<p align="center">
   <strong>Your AI development team, ready to ship.</strong><br/>
   Spawn autonomous agents that write code, design UI, run tests, and review PRs — all orchestrated from a single dashboard.
 </p>
@@ -16,7 +23,8 @@
   <a href="#the-team">The Team</a> &bull;
   <a href="#workflows">Workflows</a> &bull;
   <a href="#configuration">Configuration</a> &bull;
-  <a href="#cli">CLI</a>
+  <a href="#cli">CLI</a> &bull;
+  <a href="docs/architecture.md">Docs</a>
 </p>
 
 ---
@@ -28,6 +36,8 @@ OpenTeam is an **AI agent orchestration framework** that gives you a virtual dev
 You talk to **Facu** (the PM). He creates tasks, assigns them to the right agent, and they execute autonomously — with real-time output streaming to your browser.
 
 No prompting. No copy-pasting. Just describe what you need and watch your team build it.
+
+> **New to OpenTeam?** Check out the [Architecture Overview](docs/architecture.md) to understand how it works under the hood, or the [Data Model](docs/data-model.md) for the database schema.
 
 ## Quick Start
 
@@ -133,6 +143,56 @@ Natural conversation with your PM in any language. He creates tasks, manages wor
 - **Runtime hot-swap** — switch workspaces without server restart
 - **Graceful shutdown** — SIGTERM/SIGINT persist checkpoints and stop workers
 - **Desktop app** — Electron wrapper (scaffold ready)
+
+## Advanced Usage
+
+### Create a workspace with a specific tech stack
+
+```bash
+openteam start
+# In the UI: Create Project → Create Workspace → Set working directory to your repo
+# Facu will scan the repo and suggest skills automatically
+```
+
+### Install a custom skill from GitHub
+
+```bash
+# Via UI: Skills → Install → paste GitHub URL
+# Or via CLI:
+openteam skills add https://github.com/user/my-skill-repo
+```
+
+### Debug a stuck worker
+
+```bash
+# Check active processes
+ps aux | grep "claude --print"
+
+# Kill stale workers
+pkill -f "claude --print"
+
+# Retry the task via CLI
+openteam task update T-42 -s backlog
+openteam task update T-42 -s assigned
+```
+
+### Export workspace data
+
+```bash
+# SQLite database location
+~/.openteam/projects/<project>/workspaces/<workspace>/openteam.db
+
+# Export tasks to JSON
+sqlite3 openteam.db "SELECT json_object('id', id, 'title', title, 'status', status) FROM tasks;"
+```
+
+### Run health checks
+
+```bash
+# Via UI: Dashboard → Doctor tab
+# Or via API:
+curl http://localhost:4200/api/doctor
+```
 
 ## The Team
 
@@ -296,6 +356,19 @@ cd openteam && pnpm install && pnpm build && pnpm start
 - **Desktop:** Electron 35
 - **Build:** tsup + Vite, pnpm workspaces
 - **Tests:** Vitest (81 tests across 9 files)
+
+## Documentation
+
+| Document | What you'll learn |
+|----------|-----------------|
+| [Architecture](docs/architecture.md) | How components interact, data flow, design decisions |
+| [Data Model](docs/data-model.md) | SQLite schema, tables, indexes, migrations |
+| [Troubleshooting](docs/troubleshooting.md) | Common problems and how to fix them |
+| [Contributing](CONTRIBUTING.md) | Development setup, how to add features, PR process |
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ## License
 
