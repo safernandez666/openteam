@@ -178,6 +178,35 @@ export class WorkflowEngine {
     return this.db.prepare("DELETE FROM workflow_templates WHERE id = ? AND is_builtin = 0").run(id).changes > 0;
   }
 
+  /** Get all unique roles required by a template (excluding 'pm'). */
+  getRequiredRoles(templateId: string): string[] {
+    const template = this.getTemplate(templateId);
+    if (!template) return [];
+    const roles = new Set<string>();
+    for (const phase of template.phases) {
+      if (phase.role !== "pm") roles.add(phase.role);
+    }
+    return Array.from(roles);
+  }
+
+  /** Check if a team has all roles needed for a workflow. Returns missing roles. */
+  validateTeam(templateId: string, teamRoles: string[]): string[] {
+    const required = this.getRequiredRoles(templateId);
+    return required.filter((r) => !teamRoles.includes(r));
+  }
+
+  /** Find any workflow instance that has a specific task (by checking phase_data taskIds). */
+  getInstanceByPhaseTask(taskId: string): WorkflowInstance | null {
+    const all = this.listInstances();
+    for (const inst of all) {
+      if (inst.root_task_id === taskId) return inst;
+      for (const pd of Object.values(inst.phase_data)) {
+        if ((pd as Record<string, unknown>).taskId === taskId) return inst;
+      }
+    }
+    return null;
+  }
+
   // ── Instances ──────────────────────────────────────
 
   startWorkflow(rootTaskId: string, templateId: string): WorkflowInstance | null {
@@ -217,7 +246,7 @@ export class WorkflowEngine {
     return rows.map((r) => ({ ...r, phase_data: JSON.parse(r.phase_data as string) }) as unknown as WorkflowInstance);
   }
 
-  advancePhase(instanceId: string, notes?: string): WorkflowInstance | null {
+  advancePhase(instanceId: string, notes?: string, nextTaskId?: string): WorkflowInstance | null {
     const instance = this.getInstance(instanceId);
     if (!instance || instance.status !== "running") return null;
 
@@ -240,7 +269,7 @@ export class WorkflowEngine {
       ).run(nextPhase, JSON.stringify(phaseData), now, instanceId);
     } else {
       // Advance to next phase
-      phaseData[String(nextPhase)] = { startedAt: now };
+      phaseData[String(nextPhase)] = { startedAt: now, taskId: nextTaskId ?? undefined };
       this.db.prepare(
         "UPDATE workflow_instances SET current_phase = ?, phase_data = ?, updated_at = ? WHERE id = ?",
       ).run(nextPhase, JSON.stringify(phaseData), now, instanceId);

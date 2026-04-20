@@ -970,8 +970,29 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   app.post("/api/workflows/instances", (req, res) => {
     const { taskId, templateId } = req.body as { taskId?: string; templateId?: string };
     if (!taskId || !templateId) { res.status(400).json({ error: "taskId and templateId required" }); return; }
+
+    // Validate team has required roles
+    const teamRoles = state.teamConfig.getMembers().map((m) => m.roleId);
+    const missingRoles = state.workflowEngine.validateTeam(templateId, teamRoles);
+    if (missingRoles.length > 0) {
+      res.status(400).json({
+        error: `Team is missing required roles: ${missingRoles.join(", ")}. Add them in Workers → + Add Agent.`,
+        missingRoles,
+      });
+      return;
+    }
+
     const i = state.workflowEngine.startWorkflow(taskId, templateId);
     if (!i) { res.status(404).json({ error: "Template not found" }); return; }
+
+    // Store first phase taskId
+    const template = state.workflowEngine.getTemplate(templateId);
+    if (template) {
+      const phaseData = { ...i.phase_data };
+      phaseData["0"] = { ...phaseData["0"], taskId };
+      state.workflowEngine.getInstance(i.id); // ensure exists
+    }
+
     res.status(201).json(i);
   });
 
@@ -1195,6 +1216,37 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     orc.on("worker_done", ({ taskId, result }: { taskId: string; result: string }) => {
       console.log(`Worker completed task ${taskId}: ${result.slice(0, 100)}`);
       wsHandler.broadcastWorkerDone(taskId);
+
+      // Auto-advance workflow if this task belongs to one
+      const instance = state.workflowEngine.getInstanceByPhaseTask(taskId);
+      if (instance && instance.status === "running") {
+        const template = state.workflowEngine.getTemplate(instance.template_id);
+        if (template && instance.current_phase < template.phases.length) {
+          // Advance to next phase
+          const nextPhaseIdx = instance.current_phase + 1;
+          if (nextPhaseIdx < template.phases.length) {
+            const nextPhase = template.phases[nextPhaseIdx];
+            const title = nextPhase.task_title_template.replace("{description}", state.taskStore.get(instance.root_task_id)?.title ?? "");
+
+            // Create next phase task
+            const nextTask = state.taskStore.create({
+              title,
+              description: nextPhase.description,
+              role: nextPhase.role === "pm" ? undefined : nextPhase.role,
+              assignee: nextPhase.role === "pm" ? undefined : "worker",
+              priority: "normal",
+            });
+
+            state.workflowEngine.advancePhase(instance.id, `Task ${taskId} completed`, nextTask.id);
+            console.log(`Workflow ${instance.id}: advanced to phase ${nextPhaseIdx + 1} → ${nextPhase.name} (${nextTask.id})`);
+            wsHandler.broadcastTasks(state.taskStore.list());
+          } else {
+            // Last phase done — complete workflow
+            state.workflowEngine.advancePhase(instance.id, `Task ${taskId} completed — workflow done`);
+            console.log(`Workflow ${instance.id}: completed all phases`);
+          }
+        }
+      }
     });
   }
 
