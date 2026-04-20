@@ -175,6 +175,42 @@ const MIGRATION_V11 = `
   );
 `;
 
+const MIGRATION_V12 = `
+  CREATE TABLE IF NOT EXISTS gate_definitions (
+    id           TEXT PRIMARY KEY,
+    name         TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    description  TEXT NOT NULL,
+    category     TEXT NOT NULL,
+    is_builtin   INTEGER NOT NULL DEFAULT 1,
+    is_enabled   INTEGER NOT NULL DEFAULT 1,
+    config       TEXT NOT NULL DEFAULT '{}',
+    created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS workflow_phase_gates (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id     TEXT NOT NULL,
+    phase_index     INTEGER NOT NULL,
+    gate_id         TEXT NOT NULL,
+    is_required     INTEGER NOT NULL DEFAULT 1,
+    config_override TEXT DEFAULT NULL,
+    execution_order INTEGER NOT NULL DEFAULT 0
+  );
+
+  CREATE TABLE IF NOT EXISTS gate_executions (
+    id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id            TEXT NOT NULL,
+    gate_id            TEXT NOT NULL,
+    phase_index        INTEGER DEFAULT NULL,
+    status             TEXT NOT NULL DEFAULT 'pending',
+    output             TEXT DEFAULT NULL,
+    duration_ms        INTEGER DEFAULT NULL,
+    triggered_at       TEXT NOT NULL DEFAULT (datetime('now')),
+    completed_at       TEXT DEFAULT NULL
+  );
+`;
+
 export function openDatabase(dbPath: string): BetterSqlite3Database {
   mkdirSync(dirname(dbPath), { recursive: true });
   const db = new Database(dbPath);
@@ -225,6 +261,10 @@ export function openDatabase(dbPath: string): BetterSqlite3Database {
   if (version < 11) {
     db.exec(MIGRATION_V11);
     db.pragma("user_version = 11");
+  }
+  if (version < 12) {
+    db.exec(MIGRATION_V12);
+    db.pragma("user_version = 12");
   }
 
   return db;

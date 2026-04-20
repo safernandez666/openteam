@@ -30,6 +30,7 @@ export {
   AgentMemory,
   PerformanceTracker,
   DecisionStore,
+  GateEngine,
 } from "./persistence/index.js";
 
 export type {
@@ -48,6 +49,9 @@ export type {
   Decision,
   DecisionStatus,
   CreateDecisionInput,
+  GateDefinition,
+  PhaseGate,
+  GateExecution,
 } from "./persistence/index.js";
 
 // Chat

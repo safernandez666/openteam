@@ -4,7 +4,7 @@ import { join, dirname } from "node:path";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine } from "openteam-core";
+import { VERSION, openDatabase, TaskStore, EventLogger, Orchestrator, SkillLoader, ContextManager, McpManager, AgentNames, KnowledgeBase, ProjectConfigManager, WorkspaceManager, TeamConfigManager, ROLE_CATALOG, CATEGORIES, MARKETPLACE_CATEGORIES, MarketplaceCatalog, autoCategorize, ProjectManager, AgentMemory, PerformanceTracker, DecisionStore, WorkflowEngine, GateEngine } from "openteam-core";
 import { createWsHandler } from "./ws-handler.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -97,6 +97,7 @@ export function startServer(port = PORT, host = HOST): Server {
     performanceTracker: null as unknown as PerformanceTracker,
     decisionStore: null as unknown as DecisionStore,
     workflowEngine: null as unknown as WorkflowEngine,
+    gateEngine: null as unknown as GateEngine,
   };
 
   // Global skills directory — shared across all workspaces
@@ -118,6 +119,7 @@ export function startServer(port = PORT, host = HOST): Server {
     state.performanceTracker = new PerformanceTracker(state.db);
     state.decisionStore = new DecisionStore(state.db);
     state.workflowEngine = new WorkflowEngine(state.db);
+    state.gateEngine = new GateEngine(state.db);
   }
 
   loadWorkspace(dataDir);
@@ -986,6 +988,66 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
     const templateId = state.workflowEngine.detectWorkflow(input);
     const template = templateId ? state.workflowEngine.getTemplate(templateId) : null;
     res.json({ detected: templateId, template });
+  });
+
+  // Validation Gates API
+  app.get("/api/gates/definitions", (_req, res) => {
+    res.json(state.gateEngine.listGates());
+  });
+
+  app.get("/api/gates/definitions/:id", (req, res) => {
+    const gate = state.gateEngine.getGate(req.params.id);
+    if (!gate) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(gate);
+  });
+
+  app.put("/api/gates/definitions/:id", (req, res) => {
+    const { enabled, config } = req.body as { enabled?: boolean; config?: Record<string, unknown> };
+    if (enabled !== undefined) state.gateEngine.toggleGate(req.params.id, enabled);
+    if (config) state.gateEngine.updateGateConfig(req.params.id, config);
+    const gate = state.gateEngine.getGate(req.params.id);
+    if (!gate) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(gate);
+  });
+
+  app.get("/api/tasks/:id/gates", (req, res) => {
+    res.json(state.gateEngine.getExecutionsForTask(req.params.id));
+  });
+
+  app.post("/api/tasks/:id/gates/:gateId/trigger", (req, res) => {
+    const { phaseIndex } = req.body as { phaseIndex?: number };
+    const exec = state.gateEngine.triggerGate(req.params.id, req.params.gateId, phaseIndex);
+    res.status(201).json(exec);
+  });
+
+  app.patch("/api/gates/executions/:id", (req, res) => {
+    const { status, output, durationMs } = req.body as { status?: string; output?: string; durationMs?: number };
+    if (!status) { res.status(400).json({ error: "status required" }); return; }
+    const exec = state.gateEngine.updateExecution(
+      parseInt(req.params.id, 10),
+      status as "passed" | "failed" | "skipped",
+      output,
+      durationMs,
+    );
+    if (!exec) { res.status(404).json({ error: "Not found" }); return; }
+    res.json(exec);
+  });
+
+  app.get("/api/gates/stats", (_req, res) => {
+    res.json(state.gateEngine.getStats());
+  });
+
+  app.get("/api/workflows/templates/:templateId/gates/:phaseIndex", (req, res) => {
+    const gates = state.gateEngine.getPhaseGates(req.params.templateId, parseInt(req.params.phaseIndex, 10));
+    res.json(gates);
+  });
+
+  app.post("/api/workflows/templates/:templateId/gates/:phaseIndex", (req, res) => {
+    const { gateId, isRequired, order } = req.body as { gateId?: string; isRequired?: boolean; order?: number };
+    if (!gateId) { res.status(400).json({ error: "gateId required" }); return; }
+    state.gateEngine.addPhaseGate(req.params.templateId, parseInt(req.params.phaseIndex, 10), gateId, isRequired ?? true, order ?? 0);
+    const gates = state.gateEngine.getPhaseGates(req.params.templateId, parseInt(req.params.phaseIndex, 10));
+    res.json(gates);
   });
 
   // MCP Servers API

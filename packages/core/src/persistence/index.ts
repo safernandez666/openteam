@@ -16,3 +16,5 @@ export { PerformanceTracker } from "./performance-tracker.js";
 export type { PerformanceEvent, AgentStats } from "./performance-tracker.js";
 export { DecisionStore } from "./decision-store.js";
 export type { Decision, DecisionStatus, CreateDecisionInput } from "./decision-store.js";
+export { GateEngine } from "./gate-engine.js";
+export type { GateDefinition, PhaseGate, GateExecution } from "./gate-engine.js";
