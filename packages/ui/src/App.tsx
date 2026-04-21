@@ -133,7 +133,7 @@ export function App() {
         <header className="header">
           <div className="header-left">
             <span className="header-logo">OpenTeam</span>
-            <span className="header-version">v0.3.0</span>
+            <span className="header-version">v0.3.1</span>
             {activeProject && (
               <span className="header-breadcrumb">
                 <span className="header-breadcrumb-project">{projects.find((p) => p.id === activeProject)?.name ?? activeProject}</span>

@@ -1,6 +1,6 @@
 {
   "name": "openteam",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "AI agent orchestration framework — spawn a team of AI agents that collaborate to build your project",
