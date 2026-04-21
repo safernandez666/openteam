@@ -2,16 +2,37 @@ import { useState, useEffect } from "react";
 
 export type View = "projects" | "board" | "workers" | "workflows" | "logs" | "dashboard" | "skills" | "mcp" | "chat";
 
-const NAV_ITEMS: { key: View; label: string; icon: string }[] = [
-  { key: "dashboard", label: "Dashboard", icon: "dashboard" },
-  { key: "projects", label: "Projects", icon: "projects" },
-  { key: "board", label: "Board", icon: "board" },
-  { key: "workers", label: "Workers", icon: "workers" },
-  { key: "workflows", label: "Workflows", icon: "workflows" },
-  { key: "logs", label: "Logs", icon: "logs" },
-  { key: "skills", label: "Skills", icon: "skills" },
-  { key: "mcp", label: "MCP", icon: "mcp" },
-  { key: "chat", label: "Chat", icon: "chat" },
+const NAV_SECTIONS: {
+  label: string;
+  items: { key: View; label: string; icon: string }[];
+}[] = [
+  {
+    label: "Overview",
+    items: [
+      { key: "dashboard", label: "Dashboard", icon: "dashboard" },
+      { key: "projects", label: "Projects", icon: "projects" },
+    ],
+  },
+  {
+    label: "Workspace",
+    items: [
+      { key: "board", label: "Board", icon: "board" },
+      { key: "workers", label: "Workers", icon: "workers" },
+      { key: "workflows", label: "Workflows", icon: "workflows" },
+      { key: "logs", label: "Logs", icon: "logs" },
+    ],
+  },
+  {
+    label: "Configuration",
+    items: [
+      { key: "skills", label: "Skills", icon: "skills" },
+      { key: "mcp", label: "MCP", icon: "mcp" },
+    ],
+  },
+  {
+    label: "Communication",
+    items: [{ key: "chat", label: "Chat", icon: "chat" }],
+  },
 ];
 
 function NavIcon({ type }: { type: string }) {
@@ -147,25 +168,30 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.key}
-            className={`sidebar-nav-item ${activeView === item.key ? "sidebar-nav-item--active" : ""}`}
-            onClick={() => onViewChange(item.key)}
-            title={item.label}
-          >
-            <NavIcon type={item.icon} />
-            {!collapsed && <span className="sidebar-nav-label">{item.label}</span>}
-            {item.key === "board" && taskCount > 0 && (
-              <span className="sidebar-badge">{taskCount}</span>
-            )}
-            {item.key === "workers" && activeWorkerCount > 0 && (
-              <span className="sidebar-badge sidebar-badge--workers">{activeWorkerCount}</span>
-            )}
-            {item.key === "chat" && isConnected && pmStatus === "working" && (
-              <span className="sidebar-badge sidebar-badge--active" />
-            )}
-          </button>
+        {NAV_SECTIONS.map((section) => (
+          <div key={section.label} className="sidebar-section">
+            {!collapsed && <div className="sidebar-section-label">{section.label}</div>}
+            {section.items.map((item) => (
+              <button
+                key={item.key}
+                className={`sidebar-nav-item ${activeView === item.key ? "sidebar-nav-item--active" : ""}`}
+                onClick={() => onViewChange(item.key)}
+                title={item.label}
+              >
+                <NavIcon type={item.icon} />
+                {!collapsed && <span className="sidebar-nav-label">{item.label}</span>}
+                {item.key === "board" && taskCount > 0 && (
+                  <span className="sidebar-badge">{taskCount}</span>
+                )}
+                {item.key === "workers" && activeWorkerCount > 0 && (
+                  <span className="sidebar-badge sidebar-badge--workers">{activeWorkerCount}</span>
+                )}
+                {item.key === "chat" && isConnected && pmStatus === "working" && (
+                  <span className="sidebar-badge sidebar-badge--active" />
+                )}
+              </button>
+            ))}
+          </div>
         ))}
       </nav>
 

@@ -68,7 +68,7 @@ function AgentCard({
   return (
     <div className="agent-card">
       <div className="agent-card-avatar" onClick={handleAvatarClick} title="Click to change avatar">
-        <img src={avatarUrl} alt={meta.displayName} className="agent-avatar" />
+        <img src={avatarUrl} alt={meta.displayName} className="agent-avatar" width={40} height={40} />
       </div>
       <div className="agent-card-body">
         <div className="agent-card-top">
@@ -174,7 +174,7 @@ function WorkerCard({
     <div className="worker-card">
       <div className="worker-card-header">
         <div className="worker-avatar">
-          <img src={getAvatarUrl(worker.name)} alt={worker.name} className="agent-avatar agent-avatar--sm" />
+          <img src={getAvatarUrl(worker.name)} alt={worker.name} className="agent-avatar agent-avatar--sm" width={24} height={24} />
         </div>
         <div className="worker-identity">
           <span className="worker-name">{worker.name}</span>

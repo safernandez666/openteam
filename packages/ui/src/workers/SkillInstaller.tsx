@@ -100,7 +100,7 @@ export function SkillInstaller({
               onClick={handleInstallGithub}
               disabled={loading || !url.trim()}
             >
-              {loading ? "..." : "Install"}
+              {loading ? "…" : "Install"}
             </button>
             <button className="btn btn--ghost btn--sm" onClick={reset}>
               Cancel
@@ -131,7 +131,7 @@ export function SkillInstaller({
               onClick={handleCreate}
               disabled={loading || !name.trim() || !content.trim()}
             >
-              {loading ? "..." : "Create"}
+              {loading ? "…" : "Create"}
             </button>
             <button className="btn btn--ghost btn--sm" onClick={reset}>
               Cancel

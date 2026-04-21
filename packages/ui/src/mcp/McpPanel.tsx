@@ -267,7 +267,7 @@ export function McpPanel() {
                   {server.config.env && Object.keys(server.config.env).length > 0 && (
                     <div className="mcp-server-env">
                       {Object.entries(server.config.env).map(([k, v]) => (
-                        <span key={k} className="mcp-env-chip">{k}={v.length > 8 ? v.slice(0, 8) + "..." : v}</span>
+                        <span key={k} className="mcp-env-chip">{k}={v.length > 8 ? v.slice(0, 8) + "…" : v}</span>
                       ))}
                     </div>
                   )}

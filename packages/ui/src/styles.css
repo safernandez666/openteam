@@ -64,6 +64,10 @@
   box-sizing: border-box;
 }
 
+html {
+  color-scheme: dark;
+}
+
 body {
   font-family: var(--font-sans);
   background: var(--bg-primary);
@@ -71,6 +75,7 @@ body {
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
 }
 
 /* Scrollbar */
@@ -2948,6 +2953,7 @@ body {
   justify-content: center;
   z-index: 100;
   animation: fadeIn 0.15s ease-out;
+  overscroll-behavior: contain;
 }
 
 .modal {
@@ -3159,7 +3165,7 @@ body {
   background: var(--bg-tertiary);
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: opacity 0.15s, transform 0.15s;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -3434,7 +3440,7 @@ body {
   font-weight: 600;
   font-family: var(--font-sans);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: opacity 0.15s, transform 0.15s;
 }
 
 .mp-filter:hover {
@@ -5091,6 +5097,12 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Global focus-visible */
+*:focus-visible {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 2px;
 }
 
 /* Tabular nums for data */

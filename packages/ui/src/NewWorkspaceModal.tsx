@@ -50,7 +50,7 @@ export function NewWorkspaceModal({
               <div className="ws-settings-field" style={{ marginTop: 8 }}>
                 <label className="ws-settings-label">ID</label>
                 <span className="ws-settings-hint" style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-secondary)" }}>
-                  {id || "..."}
+                  {id || "…"}
                 </span>
               </div>
             )}
