@@ -1,6 +1,6 @@
 {
   "name": "openteam-web",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -11,11 +11,12 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "dist/public"
   ],
   "license": "MIT",
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && mkdir -p dist/public && cp -r ../ui/dist/* dist/public/ 2>/dev/null || true",
     "dev": "tsx watch src/server.ts",
     "clean": "rm -rf dist"
   },

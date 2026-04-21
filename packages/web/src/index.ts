@@ -1427,7 +1427,10 @@ ${allContent.replace(/---[\s\S]*?---/g, "").slice(0, 1500)}`;
   console.log("Orchestrator started — watching for assigned tasks");
 
   // Serve UI static files in production
-  const uiDistPath = join(__dirname, "../../ui/dist");
+  // Check bundled public dir first (npm install), then monorepo path (dev)
+  const bundledPath = join(__dirname, "public");
+  const monorepoPath = join(__dirname, "../../ui/dist");
+  const uiDistPath = existsSync(bundledPath) ? bundledPath : monorepoPath;
   if (existsSync(uiDistPath)) {
     app.use(express.static(uiDistPath));
     app.get("/{*path}", (_req, res) => {
