@@ -934,17 +934,36 @@ body {
 }
 
 .sidebar-connection {
-  width: 32px;
-  height: 32px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
-  justify-content: center;
   background: var(--bg-tertiary);
+}
+
+.sidebar--collapsed .sidebar-connection {
+  width: 32px;
+  height: 32px;
+  justify-content: center;
+}
+
+.sidebar--expanded .sidebar-connection {
+  gap: 8px;
+  padding: 6px 10px;
+  width: 100%;
 }
 
 .sidebar-connection .status-dot {
   margin: 0;
+}
+
+.sidebar-connection-label {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.sidebar--expanded .sidebar-bottom {
+  align-items: stretch;
+  padding: 8px 8px 12px;
 }
 
 .task-status-select {

@@ -181,6 +181,7 @@ export function Sidebar({
         )}
         <div className={`sidebar-connection ${isConnected ? "sidebar-connection--on" : ""}`}>
           <span className={`status-dot ${isConnected ? "status-dot--connected" : "status-dot--disconnected"}`} />
+          {!collapsed && <span className="sidebar-connection-label">{isConnected ? "Connected" : "Offline"}</span>}
         </div>
       </div>
     </aside>

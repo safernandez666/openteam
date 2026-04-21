@@ -8,7 +8,7 @@
   <a href="https://github.com/safernandez666/openteam/actions"><img src="https://img.shields.io/badge/tests-passing-brightgreen" alt="Tests"></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/node-%3E%3D%2022-blue" alt="Node"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue" alt="License"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-v0.2.0-orange" alt="Changelog"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/changelog-v0.3.2-orange" alt="Changelog"></a>
 </p>
 
 <p align="center">
