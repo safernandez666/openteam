@@ -1114,19 +1114,18 @@ body {
 }
 
 .stat-progress-bar {
-  height: 4px;
-  background: var(--bg-tertiary);
-  border-radius: 2px;
+  height: 2px;
+  background: var(--border-default);
+  border-radius: 1px;
   margin-top: 8px;
   overflow: hidden;
 }
 
 .stat-progress-fill {
   height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
+  background: var(--text-secondary);
+  border-radius: 1px;
   transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  
 }
 
 /* Active workers strip */
@@ -1344,10 +1343,25 @@ body {
 
 .board-empty-subtitle {
   font-size: 13px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   text-align: center;
-  max-width: 300px;
+  max-width: 320px;
   line-height: 1.5;
+}
+
+.board-empty-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+.board-empty-hint code {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: var(--bg-tertiary);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
 }
 
 .kanban-columns {
@@ -4385,7 +4399,7 @@ body {
 .dash-card-title {
   font-size: 11px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--text-tertiary);
   text-transform: uppercase;
   margin-bottom: 10px;
 }
@@ -4936,6 +4950,139 @@ body {
 .task-card {
   animation: fadeIn 0.2s ease-out;
 }
+
+/* ===== REDESIGN OVERRIDES ===== */
+
+/* Sidebar expanded width & padding */
+.sidebar--expanded { width: 220px; }
+.sidebar--expanded .sidebar-logo { padding: 0 16px; }
+.sidebar--expanded .sidebar-nav { padding: 8px 10px; gap: 8px; }
+
+/* Sidebar sections */
+.sidebar-section { display: flex; flex-direction: column; gap: 2px; }
+.sidebar--collapsed .sidebar-section { align-items: center; }
+.sidebar-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 8px 10px 2px;
+}
+.sidebar--collapsed .sidebar-section-label { display: none; }
+
+/* Remove all box-shadows */
+.modal { box-shadow: none; }
+.stat-card { transition: border-color 0.25s, transform 0.2s; box-shadow: none; }
+.stat-card:hover { box-shadow: none; }
+.skill-card { transition: border-color 0.25s, background 0.25s, transform 0.2s; box-shadow: none; }
+.skill-card:hover { box-shadow: none; }
+.agent-card { transition: border-color 0.25s, transform 0.2s; box-shadow: none; }
+.agent-card:hover { box-shadow: none; border-color: var(--border-strong); }
+.task-card { transition: border-color 0.25s, background 0.25s, transform 0.2s; box-shadow: none; }
+.task-card:hover { box-shadow: none; border-color: var(--border-strong); }
+.chat-input:focus { box-shadow: none; }
+.chat-send-btn { transition: background 0.15s, opacity 0.15s, transform 0.1s; }
+.toast { box-shadow: none; }
+.btn { box-shadow: none; }
+.btn--primary { box-shadow: none; }
+
+/* Remove layout-thrashing transitions */
+.kanban-search { transition: border-color 0.15s; }
+
+/* Neutral chat user bubble (no brand accent) */
+.message-bubble--user {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
+  border-bottom-right-radius: 4px;
+}
+
+/* Dashboard titles less shouty */
+.dash-card-title { color: var(--text-secondary); }
+.dashboard-card-title { color: var(--text-secondary); }
+
+/* Sidebar active indicator */
+.sidebar-nav-item--active { border-right: 2px solid var(--accent); }
+
+/* Column headers with subtle background */
+.column-header {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Kanban board spacing */
+.kanban-columns { gap: 12px; padding: 12px 16px; scroll-behavior: smooth; }
+.kanban-column { min-width: 180px; }
+
+/* Board stats gap */
+.board-stats { gap: 12px; padding: 12px 16px 0; }
+
+/* Logs tabs */
+.logs-tab { border-radius: var(--radius-md); padding: 5px 12px; }
+.logs-tab--active { background: var(--accent-muted); }
+
+/* Panel headers consistent height & padding */
+.projects-header { height: 48px; padding: 0 20px; }
+.workers-header { height: 48px; padding: 0 20px; }
+.skills-panel-header { height: 48px; padding: 0 20px; }
+.mcp-panel-header { height: 48px; padding: 0 20px; }
+.logs-header { padding: 16px 20px 12px; }
+.dash-header { padding: 16px 20px 12px; }
+.wf-header { padding: 16px 20px 12px; }
+.kanban-header { height: 48px; padding: 0 20px; }
+
+/* Chat team panel wider */
+.chat-team-panel { width: 260px; padding: 16px; }
+
+/* Status dot */
+.status-dot { width: 8px; height: 8px; }
+
+/* Empty state typography */
+.board-empty-title { font-family: var(--font-display); font-size: 20px; }
+.chat-empty-title { font-family: var(--font-display); font-size: 18px; }
+
+/* View panels no extra padding */
+.view-panel--projects,
+.view-panel--workers,
+.view-panel--skills,
+.view-panel--mcp,
+.view-panel--logs,
+.view-panel--dashboard,
+.view-panel--workflows { padding: 0; }
+
+/* Onboarding progress thicker */
+.onboarding-progress-dot { height: 4px; border-radius: 2px; }
+
+/* Worker output cleaner */
+.worker-output { border-radius: var(--radius-md); }
+
+/* MCP cards */
+.mcp-server-card { border-radius: var(--radius-lg); padding: 12px 14px; }
+
+/* Project cards */
+.project-card { border-radius: var(--radius-lg); }
+
+/* Task detail modal */
+.modal--task-detail { border-radius: var(--radius-xl); }
+
+/* Workflow template cards */
+.wf-template-card { transition: border-color 0.2s, transform 0.15s; }
+.wf-template-card:hover { border-color: var(--border-strong); }
+
+/* Modal close cleaner */
+.modal-close { color: var(--text-muted); }
+
+/* Sidebar connection full width in expanded */
+.sidebar--expanded .sidebar-connection { width: 100%; }
+
+/* Sidebar bottom stretch */
+.sidebar--expanded .sidebar-bottom { padding: 8px 10px 12px; }
+
+/* ===== END REDESIGN OVERRIDES ===== */
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {

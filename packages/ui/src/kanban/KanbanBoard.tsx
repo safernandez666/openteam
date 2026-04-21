@@ -269,10 +269,10 @@ export function KanbanBoard({
       {/* Project stats */}
       <div className="board-stats">
         <StatCard label="Total" value={totalTasks} />
-        <StatCard label="Done" value={doneTasks} accent="var(--green)" />
-        <StatCard label="In Progress" value={inProgress} accent="var(--blue)" />
+        <StatCard label="Done" value={doneTasks} />
+        <StatCard label="In Progress" value={inProgress} />
         <StatCard label="Blocked" value={blockedTasks + rejectedTasks} accent={blockedTasks + rejectedTasks > 0 ? "var(--red)" : undefined} />
-        <StatCard label="Workers" value={activeWorkers.length} accent={activeWorkers.length > 0 ? "var(--accent)" : undefined} />
+        <StatCard label="Workers" value={activeWorkers.length} />
         {totalTokens > 0 && (
           <StatCard
             label="Tokens"
@@ -361,7 +361,10 @@ export function KanbanBoard({
           </div>
           <div className="board-empty-title">No tasks yet</div>
           <div className="board-empty-subtitle">
-            Chat with Facu to create your first task, or use the CLI
+            Go to Chat and tell Facu what you want to build. He'll create the tasks.
+          </div>
+          <div className="board-empty-hint">
+            Or use the CLI: <code>openteam task create "My first task"</code>
           </div>
         </div>
       )}
